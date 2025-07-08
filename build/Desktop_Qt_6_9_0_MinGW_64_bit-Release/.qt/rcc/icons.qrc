@@ -1,0 +1,10 @@
+<RCC>
+  <qresource prefix="/icons/">
+    <file alias="arrow_back.svg">C:/Users/prnl2/OneDrive/Documents/window_logger/arrow_back.svg</file>
+    <file alias="camera.svg">C:/Users/prnl2/OneDrive/Documents/window_logger/camera.svg</file>
+    <file alias="visibility_off.svg">C:/Users/prnl2/OneDrive/Documents/window_logger/visibility_off.svg</file>
+    <file alias="visibility.svg">C:/Users/prnl2/OneDrive/Documents/window_logger/visibility.svg</file>
+    <file alias="edit.svg">C:/Users/prnl2/OneDrive/Documents/window_logger/edit.svg</file>
+  </qresource>
+</RCC>
+

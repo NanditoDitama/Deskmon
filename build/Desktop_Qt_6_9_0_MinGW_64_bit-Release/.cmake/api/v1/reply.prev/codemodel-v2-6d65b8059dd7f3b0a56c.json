@@ -1,0 +1,196 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Release-300a39ef12f3f3165189.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15
+					]
+				}
+			],
+			"name" : "Release",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "Deskmon",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "Deskmon::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Deskmon-Release-d449db82b614f57eb568.json",
+					"name" : "Deskmon",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Deskmon_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Deskmon_autogen-Release-0a3e329c23dc68b6f2d7.json",
+					"name" : "Deskmon_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Deskmon_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Deskmon_autogen_timestamp_deps-Release-229d072b7c33030ed76f.json",
+					"name" : "Deskmon_autogen_timestamp_deps",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Deskmon_copy_qml::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Deskmon_copy_qml-Release-29be1205feb6ab826409.json",
+					"name" : "Deskmon_copy_qml",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Deskmon_copy_res::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Deskmon_copy_res-Release-09e0f8bb64f2d17afbf4.json",
+					"name" : "Deskmon_copy_res",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Deskmon_qmlimportscan::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Deskmon_qmlimportscan-Release-c364bb6363c57405d631.json",
+					"name" : "Deskmon_qmlimportscan",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Deskmon_qmllint::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Deskmon_qmllint-Release-6f3cc9d144a1f9804ef1.json",
+					"name" : "Deskmon_qmllint",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Deskmon_qmllint_json::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Deskmon_qmllint_json-Release-0071a678e1f1440d3c88.json",
+					"name" : "Deskmon_qmllint_json",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Deskmon_qmllint_module::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Deskmon_qmllint_module-Release-4dc399c6ce62faf9c599.json",
+					"name" : "Deskmon_qmllint_module",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Deskmon_qmltyperegistration::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Deskmon_qmltyperegistration-Release-ff876611507a7ece3f0b.json",
+					"name" : "Deskmon_qmltyperegistration",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_aotstats::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_aotstats-Release-b50f436ac0b5852f8e33.json",
+					"name" : "all_aotstats",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmllint::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmllint-Release-6196b5402f5bd045d835.json",
+					"name" : "all_qmllint",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmllint_json::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmllint_json-Release-86062e9245488c8c08a6.json",
+					"name" : "all_qmllint_json",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmllint_module::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmllint_module-Release-c75fe80c464326c31025.json",
+					"name" : "all_qmllint_module",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "all_qmltyperegistrations::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-all_qmltyperegistrations-Release-e4cca2a067d6f7783343.json",
+					"name" : "all_qmltyperegistrations",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "module_Deskmon_aotstats_target::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-module_Deskmon_aotstats_target-Release-49eeb1507cb170c15c0f.json",
+					"name" : "module_Deskmon_aotstats_target",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release",
+		"source" : "C:/Users/prnl2/OneDrive/Documents/window_logger"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}

@@ -1,0 +1,15 @@
+-rootPath
+C:/Users/prnl2/OneDrive/Documents/window_logger
+-cmake-output
+-output-file
+C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug/.qt/qml_imports/appwindow_logger_build.cmake
+-importPath
+C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug/window_logger
+-importPath
+C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug
+-importPath
+C:/Qt/6.9.0/mingw_64/qml
+-qrcFiles
+C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug/.qt/rcc/qmake_window_logger.qrc
+C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug/.qt/rcc/appwindow_logger_raw_qml_0.qrc
+C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug/.qt/rcc/resources.qrc

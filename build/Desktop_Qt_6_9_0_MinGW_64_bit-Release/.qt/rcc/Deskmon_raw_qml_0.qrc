@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/window_logger/">
+    <file alias="Main.qml">C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml</file>
+  </qresource>
+</RCC>
+

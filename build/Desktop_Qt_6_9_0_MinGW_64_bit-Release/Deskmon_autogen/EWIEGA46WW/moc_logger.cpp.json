@@ -1,0 +1,828 @@
+{
+    "classes": [
+        {
+            "className": "Logger",
+            "lineNumber": 17,
+            "methods": [
+                {
+                    "access": "public",
+                    "index": 29,
+                    "isConst": true,
+                    "name": "debugShowRawData",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 30,
+                    "name": "showLogs",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "username",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 31,
+                    "name": "isUsernameTaken",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "currentUsername",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "newUsername",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "newPassword",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 32,
+                    "name": "updateUserProfile",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "imagePath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "x",
+                            "type": "qreal"
+                        },
+                        {
+                            "name": "y",
+                            "type": "qreal"
+                        },
+                        {
+                            "name": "imageWidth",
+                            "type": "qreal"
+                        },
+                        {
+                            "name": "imageHeight",
+                            "type": "qreal"
+                        },
+                        {
+                            "name": "cropWidth",
+                            "type": "qreal"
+                        },
+                        {
+                            "name": "cropHeight",
+                            "type": "qreal"
+                        }
+                    ],
+                    "index": 33,
+                    "name": "cropProfileImage",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 34,
+                    "name": "clearLogFilter",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "filePath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 35,
+                    "name": "validateFilePath",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "startDate",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "endDate",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 36,
+                    "name": "setLogFilter",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "username",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "imagePath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 37,
+                    "name": "updateProfileImage",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "username",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 38,
+                    "name": "getProfileImagePath",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "taskId",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 39,
+                    "name": "setActiveTask",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "taskId",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 40,
+                    "name": "finishTask",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 41,
+                    "name": "toggleTaskPause",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "seconds",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 42,
+                    "isConst": true,
+                    "name": "formatDuration",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 43,
+                    "name": "startGlobalTimer",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "username",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 44,
+                    "name": "getUserPassword",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "seconds",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 45,
+                    "name": "setIdleThreshold",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 46,
+                    "isConst": true,
+                    "name": "getAvailableApps",
+                    "returnType": "QVariantList"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "appName",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "windowTitle",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "productivityType",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 47,
+                    "name": "addProductivityApp",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 48,
+                    "isConst": true,
+                    "name": "getProductivityApps",
+                    "returnType": "QVariantList"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "email",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "password",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 49,
+                    "name": "authenticate",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "username",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 50,
+                    "name": "getUserDepartment",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 51,
+                    "isConst": true,
+                    "name": "getCurrentUsername",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 52,
+                    "isConst": true,
+                    "name": "getCurrentUserEmail",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "username",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 53,
+                    "name": "getUserEmail",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 54,
+                    "name": "fetchAndStoreTasks",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "taskId",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 55,
+                    "name": "updateTaskStatus",
+                    "returnType": "void"
+                }
+            ],
+            "object": true,
+            "properties": [
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 0,
+                    "name": "currentAppName",
+                    "notify": "currentAppNameChanged",
+                    "read": "currentAppName",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 1,
+                    "name": "currentWindowTitle",
+                    "notify": "currentWindowTitleChanged",
+                    "read": "currentWindowTitle",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 2,
+                    "name": "logCount",
+                    "notify": "logCountChanged",
+                    "read": "logCount",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 3,
+                    "name": "logContent",
+                    "notify": "logContentChanged",
+                    "read": "logContent",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 4,
+                    "name": "productivityStats",
+                    "notify": "productivityStatsChanged",
+                    "read": "productivityStats",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QVariantMap",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 5,
+                    "name": "taskList",
+                    "notify": "taskListChanged",
+                    "read": "taskList",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QVariantList",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 6,
+                    "name": "activeTaskId",
+                    "notify": "activeTaskChanged",
+                    "read": "activeTaskId",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 7,
+                    "name": "isTaskPaused",
+                    "notify": "taskPausedChanged",
+                    "read": "isTaskPaused",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 8,
+                    "name": "globalTimeUsage",
+                    "notify": "globalTimeUsageChanged",
+                    "read": "globalTimeUsage",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "qint64",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 9,
+                    "name": "isTrackingActive",
+                    "notify": "trackingActiveChanged",
+                    "read": "isTrackingActive",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 10,
+                    "name": "currentUserId",
+                    "notify": "currentUserIdChanged",
+                    "read": "currentUserId",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 11,
+                    "name": "productiveAppsModel",
+                    "notify": "productivityAppsChanged",
+                    "read": "productiveAppsModel",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QAbstractItemModel*",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 12,
+                    "name": "nonProductiveAppsModel",
+                    "notify": "productivityAppsChanged",
+                    "read": "nonProductiveAppsModel",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QAbstractItemModel*",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 13,
+                    "name": "authToken",
+                    "notify": "authTokenChanged",
+                    "read": "authToken",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 14,
+                    "name": "userEmail",
+                    "notify": "userEmailChanged",
+                    "read": "userEmail",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 15,
+                    "name": "currentUsername",
+                    "notify": "currentUsernameChanged",
+                    "read": "currentUsername",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 16,
+                    "name": "currentUserEmail",
+                    "notify": "currentUserEmailChanged",
+                    "read": "currentUserEmail",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                }
+            ],
+            "qualifiedClassName": "Logger",
+            "signals": [
+                {
+                    "access": "public",
+                    "index": 0,
+                    "name": "currentAppNameChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 1,
+                    "name": "currentWindowTitleChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 2,
+                    "name": "logCountChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 3,
+                    "name": "logContentChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 4,
+                    "name": "productivityStatsChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 5,
+                    "name": "taskListChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 6,
+                    "name": "activeTaskChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 7,
+                    "name": "taskPausedChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 8,
+                    "name": "globalTimeUsageChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 9,
+                    "name": "trackingActiveChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 10,
+                    "name": "idleThresholdChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 11,
+                    "name": "currentUserIdChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 12,
+                    "name": "productivityAppsChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "success",
+                            "type": "bool"
+                        },
+                        {
+                            "name": "message",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 13,
+                    "name": "loginCompleted",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 14,
+                    "name": "authTokenChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 15,
+                    "name": "userEmailChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 16,
+                    "name": "currentUsernameChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 17,
+                    "name": "currentUserEmailChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "message",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 18,
+                    "name": "authTokenError",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "username",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "newPath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 19,
+                    "name": "profileImageChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "taskId",
+                            "type": "int"
+                        },
+                        {
+                            "name": "newStatus",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 20,
+                    "name": "taskStatusChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "message",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 21,
+                    "name": "taskReviewNotification",
+                    "returnType": "void"
+                }
+            ],
+            "slots": [
+                {
+                    "access": "public",
+                    "index": 22,
+                    "name": "logActiveWindow",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "startTime",
+                            "type": "qint64"
+                        },
+                        {
+                            "name": "endTime",
+                            "type": "qint64"
+                        }
+                    ],
+                    "index": 23,
+                    "name": "logIdle",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 24,
+                    "name": "updateTaskTime",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 25,
+                    "name": "refreshAll",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "reply",
+                            "type": "QNetworkReply*"
+                        },
+                        {
+                            "name": "taskId",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 26,
+                    "name": "handleTaskStatusReply",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 27,
+                    "name": "getPendingApplicationRequests",
+                    "returnType": "QVariantList"
+                },
+                {
+                    "access": "private",
+                    "arguments": [
+                        {
+                            "name": "reply",
+                            "type": "QNetworkReply*"
+                        }
+                    ],
+                    "index": 28,
+                    "name": "handleTaskFetchReply",
+                    "returnType": "void"
+                }
+            ],
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QObject"
+                }
+            ]
+        }
+    ],
+    "inputFile": "logger.h",
+    "outputRevision": 69
+}

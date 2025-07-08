@@ -1,0 +1,134 @@
+{
+    "classes": [
+        {
+            "className": "Logger",
+            "lineNumber": 8,
+            "methods": [
+                {
+                    "access": "public",
+                    "index": 6,
+                    "name": "showLogs",
+                    "returnType": "void"
+                }
+            ],
+            "object": true,
+            "properties": [
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 0,
+                    "name": "currentAppName",
+                    "notify": "currentAppNameChanged",
+                    "read": "currentAppName",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 1,
+                    "name": "currentWindowTitle",
+                    "notify": "currentWindowTitleChanged",
+                    "read": "currentWindowTitle",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 2,
+                    "name": "logCount",
+                    "notify": "logCountChanged",
+                    "read": "logCount",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 3,
+                    "name": "logContent",
+                    "notify": "logContentChanged",
+                    "read": "logContent",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                }
+            ],
+            "qualifiedClassName": "Logger",
+            "signals": [
+                {
+                    "access": "public",
+                    "index": 0,
+                    "name": "currentAppNameChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 1,
+                    "name": "currentWindowTitleChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 2,
+                    "name": "logCountChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 3,
+                    "name": "logContentChanged",
+                    "returnType": "void"
+                }
+            ],
+            "slots": [
+                {
+                    "access": "public",
+                    "index": 4,
+                    "name": "logActiveWindow",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "startTime",
+                            "type": "qint64"
+                        },
+                        {
+                            "name": "endTime",
+                            "type": "qint64"
+                        }
+                    ],
+                    "index": 5,
+                    "name": "logIdle",
+                    "returnType": "void"
+                }
+            ],
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QObject"
+                }
+            ]
+        }
+    ],
+    "inputFile": "logger.h",
+    "outputRevision": 69
+}

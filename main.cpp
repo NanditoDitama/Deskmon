@@ -1,0 +1,153 @@
+#include <QGuiApplication>
+#include <QApplication>
+#include <QQmlApplicationEngine>
+#include <QSystemTrayIcon>
+#include <QMenu>
+#include <QTimer>
+#include <QQuickWindow>
+#include <QIcon>
+#include <QQmlContext>
+#include <QDebug>
+#include "logger.h"
+#include "idlechecker.h"
+
+int main(int argc, char *argv[])
+{
+    QApplication app(argc, argv);
+    app.setWindowIcon(QIcon(":/icon.ico"));
+    app.setQuitOnLastWindowClosed(false);
+
+    // Initialize components
+    Logger logger;
+    IdleChecker idleChecker(&logger);
+    QObject::connect(&idleChecker, &IdleChecker::idleDetected, &logger, &Logger::logIdle);
+
+
+
+    // Setup system tray
+    QSystemTrayIcon trayIcon(QIcon(":/icon.ico"));
+    trayIcon.setToolTip("Deskmon");
+
+    QMenu trayMenu;
+    QAction *showAction = trayMenu.addAction("Show");
+    QAction *pauseAction = trayMenu.addAction("Pause");
+    QAction *quitAction = trayMenu.addAction("Quit");
+
+#ifdef Q_OS_MACOS
+    // macOS memerlukan setVisible(true) untuk menampilkan tray icon
+    trayIcon.setVisible(true);
+#endif
+
+    // Function to update tray icon based on pause state
+    auto updateTrayIcon = [&]() {
+        if (logger.isTaskPaused()) {
+            trayIcon.setIcon(QIcon(":/play_icon_app.png"));
+            pauseAction->setText("Resume");
+        } else {
+            trayIcon.setIcon(QIcon(":/pause_icon_app.png"));
+            pauseAction->setText("Pause");
+        }
+    };
+
+    // Connect pause action
+    QObject::connect(pauseAction, &QAction::triggered, &app, [&]() {
+        logger.toggleTaskPause();
+        updateTrayIcon();
+    });
+
+    // Initialize QML engine and window
+    QQmlApplicationEngine *engine = nullptr;
+    QQuickWindow *qmlWindow = nullptr;
+
+    // Function to show QML window
+    auto showQmlWindow = [&]() {
+        if (!engine) {
+            engine = new QQmlApplicationEngine(&app);
+            engine->rootContext()->setContextProperty("logger", &logger);
+            engine->rootContext()->setContextProperty("idleChecker", &idleChecker);
+            qDebug() << "Loading QML module: window_logger, Main";
+            engine->loadFromModule("window_logger", "Main");
+
+            if (engine->rootObjects().isEmpty()) {
+                qWarning() << "Failed to load QML module: window_logger, Main";
+                return;
+            }
+
+            const auto rootObjects = engine->rootObjects();
+            if (!rootObjects.isEmpty()) {
+                qmlWindow = qobject_cast<QQuickWindow*>(rootObjects.constFirst());
+                if (!qmlWindow) {
+                    qWarning() << "Failed to cast root object to QQuickWindow";
+                    return;
+                }
+            }
+        }
+
+        if (qmlWindow) {
+            // Pastikan jendela tidak minimized
+            qmlWindow->setWindowState(Qt::WindowNoState);
+            qmlWindow->show();
+            qmlWindow->raise();
+            qmlWindow->requestActivate(); // Perbaikan: Ganti setActiveWindow
+            qDebug() << "QML window shown, state:" << qmlWindow->windowState();
+        } else {
+            qWarning() << "qmlWindow is null, cannot show window";
+        }
+    };
+
+    // Connect show action
+    QObject::connect(showAction, &QAction::triggered, &app, showQmlWindow);
+
+
+    // Di main.cpp, tambahkan koneksi untuk menangani notifikasi review
+    QObject::connect(&logger, &Logger::taskReviewNotification, &app, [&](const QString &message) {
+        // Tampilkan notifikasi system tray
+        trayIcon.showMessage("Task Review", message, QSystemTrayIcon::Information, 10000);
+
+        // Jika window QML terbuka, kirim sinyal untuk menampilkan notifikasi in-app
+        if (qmlWindow) {
+            QMetaObject::invokeMethod(qmlWindow, "showReviewNotification",
+                                      Q_ARG(QVariant, message));
+        }
+    });
+
+    // Connect notifikasi idle ke system tray
+    QObject::connect(&idleChecker, &IdleChecker::showIdleNotification, &app, [&](const QString &message) {
+        trayIcon.showMessage("Deskmon", message, QSystemTrayIcon::Information, 15000);
+        qDebug() << "System tray notification shown:" << message;
+    });
+
+    // Connect klik notifikasi untuk membuka aplikasi
+    QObject::connect(&trayIcon, &QSystemTrayIcon::messageClicked, &app, [&]() {
+        qDebug() << "Notification clicked, attempting to show QML window";
+        showQmlWindow();
+    });
+
+    QObject::connect(quitAction, &QAction::triggered, &app, &QGuiApplication::quit);
+    trayIcon.setContextMenu(&trayMenu);
+    trayIcon.show();
+
+    // Connect to logger's pause state changed signal
+    QObject::connect(&logger, &Logger::taskPausedChanged, &app, [&]() {
+        updateTrayIcon();
+    });
+
+    // Initial icon update
+    updateTrayIcon();
+
+    // Start monitoring
+    QTimer timer;
+    QObject::connect(&timer, &QTimer::timeout, &app, [&]() {
+        if (!idleChecker.isIdle()) {
+            logger.logActiveWindow();
+        }
+    });
+    timer.start(1000);
+
+    // Load QML UI if started with --show argument
+    if (app.arguments().contains("--show")) {
+        showQmlWindow();
+    }
+
+    return app.exec();
+}
