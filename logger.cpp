@@ -2457,7 +2457,7 @@ Logger::WindowInfo Logger::getActiveWindowInfoWindows()
 
     return info;
 }
-#elif define(Q_OS_LINUX)
+#elif defined(Q_OS_LINUX)
 Logger::WindowInfo Logger::getActiveWindowInfoLinux() {
     WindowInfo info;
 
@@ -2499,7 +2499,7 @@ Logger::WindowInfo Logger::getActiveWindowInfoLinux() {
     return info;
 }
 #elif defined(Q_OS_MACOS)
-Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
+Logger::WindowInfo Logger::getActiveWindowInfoLinux() {
     WindowInfo info;
 
     // Gunakan AppleScript untuk mendapatkan info window di macOS

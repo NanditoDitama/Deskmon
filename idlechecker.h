@@ -27,6 +27,8 @@ private:
 
 #ifdef Q_OS_WIN
     qint64 getSystemIdleTimeWindows() const;
+#elif defined(Q_OS_MACOS)
+    qint64 getSystemIdleTimeMacOS() const;
 #else
     qint64 getSystemIdleTimeLinux() const;
 #endif

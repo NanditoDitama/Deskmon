@@ -2,9 +2,11 @@
 #include "logger.h"
 #include <QDateTime>
 #include <QDebug>
+#include <QProcess>
+#include <QRegularExpression>
 #ifdef Q_OS_WIN
 #include <windows.h>
-#else
+#elif defined(Q_OS_LINUX)
 #include <X11/Xlib.h>
 #include <X11/extensions/scrnsaver.h>
 #endif
@@ -150,6 +152,8 @@ qint64 IdleChecker::getSystemIdleTime() const
 {
 #ifdef Q_OS_WIN
     return getSystemIdleTimeWindows();
+#elif defined(Q_OS_MACOS)
+    return getSystemIdleTimeMacOS();
 #else
     return getSystemIdleTimeLinux();
 #endif
@@ -167,7 +171,7 @@ qint64 IdleChecker::getSystemIdleTimeWindows() const
     qWarning() << "Failed to get last input info";
     return -1;
 }
-#else
+#elif defined(Q_OS_LINUX)
 qint64 IdleChecker::getSystemIdleTimeLinux() const
 {
     Display *display = XOpenDisplay(nullptr);
