@@ -81,7 +81,7 @@
 			{
 				"command" : 3,
 				"file" : 1,
-				"line" : 42,
+				"line" : 117,
 				"parent" : 0
 			},
 			{
@@ -105,19 +105,19 @@
 			{
 				"command" : 4,
 				"file" : 1,
-				"line" : 133,
+				"line" : 216,
 				"parent" : 0
 			},
 			{
 				"command" : 5,
 				"file" : 1,
-				"line" : 84,
+				"line" : 158,
 				"parent" : 0
 			},
 			{
 				"command" : 5,
 				"file" : 1,
-				"line" : 101,
+				"line" : 172,
 				"parent" : 0
 			},
 			{
@@ -239,7 +239,7 @@
 			{
 				"command" : 12,
 				"file" : 1,
-				"line" : 48,
+				"line" : 123,
 				"parent" : 0
 			},
 			{
@@ -429,7 +429,7 @@
 			{
 				"command" : 14,
 				"file" : 12,
-				"line" : 3471,
+				"line" : 3465,
 				"parent" : 64
 			},
 			{
@@ -441,7 +441,7 @@
 			{
 				"command" : 14,
 				"file" : 12,
-				"line" : 3465,
+				"line" : 3471,
 				"parent" : 64
 			},
 			{
@@ -608,7 +608,7 @@
 			{
 				"command" : 30,
 				"file" : 1,
-				"line" : 57,
+				"line" : 131,
 				"parent" : 0
 			},
 			{
@@ -871,11 +871,215 @@
 				1,
 				2,
 				3,
-				8,
-				10,
+				9,
 				11,
 				12,
-				13
+				13,
+				14
+			]
+		},
+		{
+			"defines" : 
+			[
+				{
+					"backtrace" : 45,
+					"define" : "MINGW_HAS_SECURE_API=1"
+				},
+				{
+					"backtrace" : 45,
+					"define" : "QT_CORE_LIB"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "QT_GUI_LIB"
+				},
+				{
+					"backtrace" : 45,
+					"define" : "QT_NEEDS_QMAIN"
+				},
+				{
+					"backtrace" : 32,
+					"define" : "QT_NETWORK_LIB"
+				},
+				{
+					"backtrace" : 45,
+					"define" : "QT_NO_DEBUG"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "QT_OPENGL_LIB"
+				},
+				{
+					"backtrace" : 32,
+					"define" : "QT_QMLINTEGRATION_LIB"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "QT_QMLMETA_LIB"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "QT_QMLMODELS_LIB"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "QT_QMLWORKERSCRIPT_LIB"
+				},
+				{
+					"backtrace" : 32,
+					"define" : "QT_QML_LIB"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "QT_QUICKCONTROLS2_LIB"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "QT_QUICK_LIB"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "QT_SQL_LIB"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "QT_WIDGETS_LIB"
+				},
+				{
+					"backtrace" : 45,
+					"define" : "UNICODE"
+				},
+				{
+					"backtrace" : 45,
+					"define" : "WIN32"
+				},
+				{
+					"backtrace" : 45,
+					"define" : "WIN64"
+				},
+				{
+					"backtrace" : 45,
+					"define" : "_ENABLE_EXTENDED_ALIGNED_STORAGE"
+				},
+				{
+					"backtrace" : 45,
+					"define" : "_UNICODE"
+				},
+				{
+					"backtrace" : 45,
+					"define" : "_WIN64"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 0,
+					"path" : "C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/Deskmon_autogen/include"
+				},
+				{
+					"backtrace" : 77,
+					"path" : "C:/Users/prnl2/OneDrive/Documents/window_logger"
+				},
+				{
+					"backtrace" : 78,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtQml/6.9.0"
+				},
+				{
+					"backtrace" : 78,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtQml/6.9.0/QtQml"
+				},
+				{
+					"backtrace" : 78,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtCore/6.9.0"
+				},
+				{
+					"backtrace" : 78,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtCore/6.9.0/QtCore"
+				},
+				{
+					"backtrace" : 78,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtCore"
+				},
+				{
+					"backtrace" : 78,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include"
+				},
+				{
+					"backtrace" : 78,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/mkspecs/win32-g++"
+				},
+				{
+					"backtrace" : 78,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtQml"
+				},
+				{
+					"backtrace" : 78,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtQmlIntegration"
+				},
+				{
+					"backtrace" : 78,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtNetwork"
+				},
+				{
+					"backtrace" : 6,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtQuick"
+				},
+				{
+					"backtrace" : 6,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtGui"
+				},
+				{
+					"backtrace" : 6,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtQmlMeta"
+				},
+				{
+					"backtrace" : 6,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtQmlModels"
+				},
+				{
+					"backtrace" : 6,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtQmlWorkerScript"
+				},
+				{
+					"backtrace" : 6,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtOpenGL"
+				},
+				{
+					"backtrace" : 6,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtSql"
+				},
+				{
+					"backtrace" : 6,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtWidgets"
+				},
+				{
+					"backtrace" : 6,
+					"isSystem" : true,
+					"path" : "C:/Qt/6.9.0/mingw_64/include/QtQuickControls2"
+				}
+			],
+			"language" : "RC",
+			"sourceIndexes" : 
+			[
+				4
 			]
 		},
 		{
@@ -1098,30 +1302,30 @@
 			},
 			"sourceIndexes" : 
 			[
-				7
+				8
 			]
 		}
 	],
 	"dependencies" : 
 	[
 		{
+			"backtrace" : 66,
+			"id" : "Deskmon_copy_qml::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 68,
+			"id" : "Deskmon_copy_res::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 75,
+			"id" : "Deskmon_qmlimportscan::@6890427a1f51a3e7e1df"
+		},
+		{
 			"id" : "Deskmon_autogen_timestamp_deps::@6890427a1f51a3e7e1df"
 		},
 		{
 			"backtrace" : 0,
 			"id" : "Deskmon_autogen::@6890427a1f51a3e7e1df"
-		},
-		{
-			"backtrace" : 66,
-			"id" : "Deskmon_copy_res::@6890427a1f51a3e7e1df"
-		},
-		{
-			"backtrace" : 68,
-			"id" : "Deskmon_copy_qml::@6890427a1f51a3e7e1df"
-		},
-		{
-			"backtrace" : 75,
-			"id" : "Deskmon_qmlimportscan::@6890427a1f51a3e7e1df"
 		}
 	],
 	"id" : "Deskmon::@6890427a1f51a3e7e1df",
@@ -1297,9 +1501,7 @@
 			"sourceIndexes" : 
 			[
 				0,
-				38,
-				48,
-				49,
+				40,
 				50,
 				51,
 				52,
@@ -1309,7 +1511,9 @@
 				56,
 				57,
 				58,
-				59
+				59,
+				60,
+				61
 			]
 		},
 		{
@@ -1319,37 +1523,37 @@
 				1,
 				2,
 				3,
-				7,
+				4,
 				8,
-				10,
+				9,
 				11,
 				12,
-				13
+				13,
+				14
 			]
 		},
 		{
 			"name" : "Header Files",
 			"sourceIndexes" : 
 			[
-				4,
-				5
+				5,
+				6
 			]
 		},
 		{
 			"name" : "",
 			"sourceIndexes" : 
 			[
-				6,
-				9,
-				15
+				7,
+				10,
+				16
 			]
 		},
 		{
 			"name" : "Resources",
 			"sourceIndexes" : 
 			[
-				14,
-				16,
+				15,
 				17,
 				18,
 				19,
@@ -1370,22 +1574,24 @@
 				34,
 				35,
 				36,
-				37
+				37,
+				38,
+				39
 			]
 		},
 		{
 			"name" : "CMake Rules",
 			"sourceIndexes" : 
 			[
-				39,
-				40,
 				41,
 				42,
 				43,
 				44,
 				45,
 				46,
-				47
+				47,
+				48,
+				49
 			]
 		}
 	],
@@ -1418,6 +1624,12 @@
 		},
 		{
 			"backtrace" : 4,
+			"compileGroupIndex" : 1,
+			"path" : "app.rc",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 4,
 			"path" : "logger.h",
 			"sourceGroupIndex" : 2
 		},
@@ -1434,7 +1646,7 @@
 		},
 		{
 			"backtrace" : 81,
-			"compileGroupIndex" : 1,
+			"compileGroupIndex" : 2,
 			"isGenerated" : true,
 			"path" : "build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/deskmon_qmltyperegistrations.cpp",
 			"sourceGroupIndex" : 1
@@ -1601,6 +1813,11 @@
 		{
 			"backtrace" : 101,
 			"path" : "icons/close.svg",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 101,
+			"path" : "icons/danger.svg",
 			"sourceGroupIndex" : 4
 		},
 		{

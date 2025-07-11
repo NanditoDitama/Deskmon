@@ -15,12 +15,19 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/icon.ico"));
-    app.setQuitOnLastWindowClosed(false);
+    app.setQuitOnLastWindowClosed(true);
 
     // Initialize components
     Logger logger;
+    logger.checkAndCreateNewDayRecord();
+    logger.loadWorkTimeData();
     IdleChecker idleChecker(&logger);
     QObject::connect(&idleChecker, &IdleChecker::idleDetected, &logger, &Logger::logIdle);
+    QObject::connect(&app, &QApplication::aboutToQuit, [&]() {
+        qDebug() << "Application is about to quit, saving final data...";
+        logger.saveWorkTimeData();
+        logger.sendWorkTimeToAPI();
+    });
 
 
 
@@ -85,7 +92,7 @@ int main(int argc, char *argv[])
 
         if (qmlWindow) {
             // Pastikan jendela tidak minimized
-            qmlWindow->setWindowState(Qt::WindowNoState);
+            qmlWindow->setWindowState(Qt::WindowMaximized);
             qmlWindow->show();
             qmlWindow->raise();
             qmlWindow->requestActivate(); // Perbaikan: Ganti setActiveWindow
@@ -97,6 +104,13 @@ int main(int argc, char *argv[])
 
     // Connect show action
     QObject::connect(showAction, &QAction::triggered, &app, showQmlWindow);
+
+    // Handle tray icon double-click to show the window
+    QObject::connect(&trayIcon, &QSystemTrayIcon::activated, &app, [&](QSystemTrayIcon::ActivationReason reason) {
+        if (reason == QSystemTrayIcon::DoubleClick) {
+            showQmlWindow();
+        }
+    });
 
 
     // Di main.cpp, tambahkan koneksi untuk menangani notifikasi review
@@ -127,6 +141,8 @@ int main(int argc, char *argv[])
     trayIcon.setContextMenu(&trayMenu);
     trayIcon.show();
 
+
+
     // Connect to logger's pause state changed signal
     QObject::connect(&logger, &Logger::taskPausedChanged, &app, [&]() {
         updateTrayIcon();
@@ -134,6 +150,7 @@ int main(int argc, char *argv[])
 
     // Initial icon update
     updateTrayIcon();
+    showQmlWindow();
 
     // Start monitoring
     QTimer timer;
@@ -143,6 +160,19 @@ int main(int argc, char *argv[])
         }
     });
     timer.start(1000);
+
+    // Di main()
+    QTimer *dayChangeTimer = new QTimer(&app);
+    QObject::connect(dayChangeTimer, &QTimer::timeout, [&]() {
+        static QString lastDate = QDate::currentDate().toString("yyyy-MM-dd");
+        QString currentDate = QDate::currentDate().toString("yyyy-MM-dd");
+        if (currentDate != lastDate) {
+            lastDate = currentDate;
+            logger.checkAndCreateNewDayRecord();
+            logger.loadWorkTimeData();
+        }
+    });
+    dayChangeTimer->start(60000); // cek setiap 1 menit
 
     // Load QML UI if started with --show argument
     if (app.arguments().contains("--show")) {

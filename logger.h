@@ -12,6 +12,7 @@
 #include <QJsonObject>
 #include <QNetworkRequest>
 #include <QEventLoop>
+#include <QDate>
 
 
 class Logger : public QObject
@@ -26,7 +27,7 @@ class Logger : public QObject
     Q_PROPERTY(int activeTaskId READ activeTaskId NOTIFY activeTaskChanged)
     Q_PROPERTY(bool isTaskPaused READ isTaskPaused NOTIFY taskPausedChanged)
     Q_PROPERTY(qint64 globalTimeUsage READ globalTimeUsage NOTIFY globalTimeUsageChanged)
-    Q_PROPERTY(bool isTrackingActive READ isTrackingActive NOTIFY trackingActiveChanged) // Tambah properti
+    Q_PROPERTY(bool isTrackingActive READ isTrackingActive NOTIFY trackingActiveChanged)
     Q_PROPERTY(int currentUserId READ currentUserId NOTIFY currentUserIdChanged)
     Q_PROPERTY(QAbstractItemModel* productiveAppsModel READ productiveAppsModel NOTIFY productivityAppsChanged)
     Q_PROPERTY(QAbstractItemModel* nonProductiveAppsModel READ nonProductiveAppsModel NOTIFY productivityAppsChanged)
@@ -35,6 +36,10 @@ class Logger : public QObject
     Q_PROPERTY(QString userEmail READ userEmail NOTIFY userEmailChanged)
     Q_PROPERTY(QString currentUsername READ currentUsername NOTIFY currentUsernameChanged)
     Q_PROPERTY(QString currentUserEmail READ currentUserEmail NOTIFY currentUserEmailChanged)
+
+    // Properti baru untuk "Time at Work"
+    Q_PROPERTY(int workTimeElapsedSeconds READ workTimeElapsedSeconds NOTIFY workTimeElapsedSecondsChanged)
+
 
 
 public:
@@ -54,11 +59,14 @@ public:
     int activeTaskId() const { return m_activeTaskId; }
     bool isTaskPaused() const { return m_isTaskPaused; }
     qint64 globalTimeUsage() const { return m_globalTimeUsage; }
-    bool isTrackingActive() const { return m_isTrackingActive; } // Tambah getter
+    bool isTrackingActive() const { return m_isTrackingActive; }
     int getIdleThreshold() const;
     int currentUserId() const { return m_currentUserId; }
     QString getUsernameById(int userId) const;
     QString getTaskName(int taskId);
+
+    // Getter untuk properti baru
+    int workTimeElapsedSeconds() const;
 
 
     // Fungsi lainnya tetap sama
@@ -107,9 +115,17 @@ public:
     QString getCurrentToken() const;  // Untuk mendapatkan token saat ini
     void clearToken();
     Q_INVOKABLE void updateTaskStatus(int taskId);
+    Q_INVOKABLE void logout();
+    Q_INVOKABLE void sendProductivityAppToAPI(const QString &appName, const QString &windowTitle, int productivityType);
+    void fetchAndStoreProductivityApps();
+    void refreshProductivityModels();
+    void revertTaskChange();
 
-
-
+    // Fungsi baru untuk dipanggil dari main.cpp
+    Q_INVOKABLE void loadWorkTimeData();
+    Q_INVOKABLE void checkAndCreateNewDayRecord();
+    void saveWorkTimeData();
+    void sendWorkTimeToAPI();
 
 
 
@@ -119,13 +135,13 @@ public slots:
     void updateTaskTime();
     void refreshAll();
     void handleTaskStatusReply(QNetworkReply *reply, int taskId);
-    // Di bagian public slots:
-    // Tambahkan di bagian public slots:
     Q_INVOKABLE QVariantList getPendingApplicationRequests();
+    void handleProductivityAppsResponse(QNetworkReply *reply);
 
 
 private slots:
     void handleTaskFetchReply(QNetworkReply *reply);
+    void updateWorkTimeAndSave(); // Slot baru untuk timer "Time at Work"
 
 
 signals:
@@ -138,11 +154,11 @@ signals:
     void activeTaskChanged();
     void taskPausedChanged();
     void globalTimeUsageChanged();
-    void trackingActiveChanged(); // Tambah sinyal
+    void trackingActiveChanged();
     void idleThresholdChanged();
     void currentUserIdChanged();
     void productivityAppsChanged();
-    void loginCompleted(bool success, const QString &message); // Sinyal baru
+    void loginCompleted(bool success, const QString &message);
     void authTokenChanged();
     void userEmailChanged();
 
@@ -150,9 +166,17 @@ signals:
     void currentUserEmailChanged();
     void authTokenError(const QString& message);
 
-   void profileImageChanged(const QString &username, const QString &newPath);
+    void profileImageChanged(const QString &username, const QString &newPath);
     void taskStatusChanged(int taskId, const QString& newStatus);
     void taskReviewNotification(const QString& message);
+
+    void taskTimeUpdated(int taskId, int timeUsage);
+
+    void showNotification(const QString &message);
+
+    // Sinyal baru untuk "Time at Work"
+    void workTimeElapsedSecondsChanged();
+
 
 private:
     void syncActiveTask();
@@ -167,7 +191,7 @@ private:
     void setMaxTimeForTask(int taskId);
     void checkTaskStatusBeforeStart();
     void migrateProductivityDatabase();
-    QSqlQueryModel* m_productiveAppsModel; // Tambahkan model
+    QSqlQueryModel* m_productiveAppsModel;
     QSqlQueryModel* m_nonProductiveAppsModel;
 
     QNetworkAccessManager *m_networkManager;
@@ -177,7 +201,7 @@ private:
 
     qint64 m_taskStartTime = 0;
     qint64 m_taskTimeOffset = 0;
-    bool m_isTrackingActive = false; // Tambah variabel untuk status tracking
+    bool m_isTrackingActive = false;
     int m_currentUserId = -1;
 
     QString m_currentUsername;
@@ -187,18 +211,21 @@ private:
 
 
     void handleLoginResponse(QNetworkReply* reply, const QString& username);
-    // Tambahkan member variables baru
     QDateTime m_lastPlayStartTime;
     QDateTime m_lastPauseStartTime;
 
-    // Tambahkan method baru
+
     void sendPausePlayDataToAPI(int taskId, const QString& startTime,
                                 const QString& endTime, const QString& status);
 
-    QTimer m_pingTimer; // Timer untuk ping reguler
+    QTimer m_pingTimer;
     void sendPing(int taskId);
     void startPingTimer(int taskId);
     void stopPingTimer();
+
+    // Fungsi helper baru untuk "Time at Work"
+
+
 
 #ifdef Q_OS_WIN
     WindowInfo getActiveWindowInfoWindows();
@@ -221,7 +248,10 @@ private:
     qint64 m_pauseStartTime = 0;
     qint64 m_globalTimeUsage = 0;
 
+    // Member baru untuk "Time at Work"
+    QTimer m_workTimer;
+    int m_workTimeElapsedSeconds = 0;
+
 };
 
 #endif // LOGGER_H
-
