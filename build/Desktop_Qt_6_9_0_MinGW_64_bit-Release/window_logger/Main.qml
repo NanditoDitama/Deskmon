@@ -594,6 +594,17 @@ ApplicationWindow {
         color: backgroundColor
         visible: !isLoggedIn && !isProfileVisible && !showRegisterPage
 
+        Component.onCompleted: {
+            // Cek apakah user sebelumnya sudah login
+            if (logger.currentUserId !== -1) {
+                usernameField.text = logger.currentUsername
+                passwordField.text = logger.getUserPassword(logger.currentUsername) // ambil password
+
+                console.log("Pre-filled login with:", usernameField.text)
+            }
+        }
+
+
         Rectangle {
             anchors.centerIn: parent
             width: 360
@@ -722,15 +733,16 @@ ApplicationWindow {
                         }
                     }
 
-                    function refreshProfileImage() {
-                        console.log("Refreshing profile image for user:", currentUsername, "path:", profileImagePath)
-                        profileImage.source = ""
-                        profileImage.source = profileImagePath
-                    }
+
 
                     Behavior on Material.background {
                         ColorAnimation { duration: 200 }
                     }
+                }
+                function refreshProfileImage() {
+                    console.log("Refreshing profile image for user:", currentUsername, "path:", profileImagePath)
+                    profileImage.source = ""
+                    profileImage.source = profileImagePath
                 }
 
                 Label {
@@ -743,6 +755,9 @@ ApplicationWindow {
             }
         }
     }
+
+
+
 
     // Profile Page
     Rectangle {
@@ -3380,7 +3395,7 @@ ApplicationWindow {
                             TextField {
                                 id: txtWebsite
                                 Layout.fillWidth: true
-                                placeholderText: "Contoh: YouTube ,pastikan nama Website nya benar"
+                                placeholderText: "Masukkan URL Website, contoh: https://www.youtube.com/"
                                 font.pixelSize: 14
                                 visible: false
                                 background: Rectangle {
@@ -3877,7 +3892,7 @@ ApplicationWindow {
 
 
 
-
+//Monitored application
 
 
 

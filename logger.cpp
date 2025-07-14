@@ -62,6 +62,11 @@ Logger::Logger(QObject *parent) : QObject(parent)
     // Inisialisasi dan mulai timer untuk "Time at Work"
     connect(&m_workTimer, &QTimer::timeout, this, &Logger::updateWorkTimeAndSave);
     m_workTimer.start(1000); // Update setiap detik
+
+    m_productivePingTimer.setInterval(10000); // 3 menit = 180000 ms
+    connect(&m_productivePingTimer, &QTimer::timeout, this, &Logger::sendProductiveTimeToAPI);
+    m_productivePingTimer.start();
+
 }
 Logger::~Logger()
 {
@@ -304,15 +309,18 @@ void Logger::initializeProductivityDatabase()
     migrateProductivityDatabase();
 
     QSqlQuery query(m_productivityDb);
+    // Dalam fungsi initializeProductivityDatabase()
     if (!query.exec("CREATE TABLE IF NOT EXISTS aplikasi ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "aplikasi TEXT NOT NULL, "
                     "window_title TEXT, "
+                    "url TEXT, "  // KOLOM URL SUDAH ADA
                     "jenis INTEGER NOT NULL, "
                     "productivity INTEGER NOT NULL DEFAULT 0, "
-                    "for_user TEXT NOT NULL DEFAULT '0')")) { // '0'=all users, '1,2,3'=specific users
+                    "for_user TEXT NOT NULL DEFAULT '0')")) {
         qWarning() << "Failed to create aplikasi table:" << query.lastError().text();
     }
+
 
     if (!query.exec("CREATE TABLE IF NOT EXISTS task ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -485,6 +493,311 @@ void Logger::updateWorkTimeAndSave()
     }
 }
 
+int Logger::calculateTodayProductiveSeconds() const
+{
+    if (!ensureDatabaseOpen() || m_currentUserId == -1) {
+        return 0;
+    }
+
+    QString today = QDate::currentDate().toString("yyyy-MM-dd");
+    int totalProductiveSeconds = 0;
+
+    // Helper functions untuk advanced matching
+    auto normalizeString = [](const QString &str) {
+        return str.toLower()
+        .remove(' ')
+            .remove('-')
+            .remove('_')
+            .remove('.');
+    };
+
+    auto extractKeywords = [](const QString &str) -> QStringList {
+        QStringList keywords;
+        QString normalized = str.toLower();
+        QStringList parts = normalized.split(QRegularExpression("[\\s\\-_.]"), Qt::SkipEmptyParts);
+
+        for (const QString &part : parts) {
+            if (part.length() >= 3) {
+                keywords.append(part);
+            }
+        }
+
+        if (keywords.size() > 4) {
+            keywords = keywords.mid(0, 4);
+        }
+
+        return keywords;
+    };
+
+    auto calculateKeywordMatch = [&extractKeywords](const QString &str1, const QString &str2) -> double {
+        QStringList keywords1 = extractKeywords(str1);
+        QStringList keywords2 = extractKeywords(str2);
+
+        if (keywords1.isEmpty() || keywords2.isEmpty()) return 0.0;
+
+        int matches = 0;
+        for (const QString &k1 : keywords1) {
+            for (const QString &k2 : keywords2) {
+                if (k1 == k2 || k1.contains(k2) || k2.contains(k1)) {
+                    matches++;
+                    break;
+                }
+            }
+        }
+
+        return (double)matches / qMax(keywords1.size(), keywords2.size());
+    };
+
+    auto findBestMatch = [&](const QString &inputStr, const QHash<QString, int> &candidates, bool isTitle = false) -> int {
+        if (inputStr.isEmpty()) return 0;
+
+        QString normalizedInput = normalizeString(inputStr);
+
+        // Cache untuk performa
+        static QHash<QString, QString> normalizedCache;
+
+        int bestMatch = 0;
+        double bestScore = 0.0;
+
+        for (auto it = candidates.begin(); it != candidates.end(); ++it) {
+            const QString &candidate = it.key();
+            if (candidate.isEmpty()) continue;
+
+            QString normalizedCandidate;
+            if (normalizedCache.contains(candidate)) {
+                normalizedCandidate = normalizedCache[candidate];
+            } else {
+                normalizedCandidate = normalizeString(candidate);
+                normalizedCache[candidate] = normalizedCandidate;
+            }
+
+            double score = 0.0;
+
+            // 1. Exact match (score tertinggi)
+            if (normalizedInput == normalizedCandidate) {
+                return it.value();
+            }
+
+            // 2. Contains match
+            if (normalizedInput.contains(normalizedCandidate) || normalizedCandidate.contains(normalizedInput)) {
+                score = 0.9;
+                // Prioritas untuk kandidat yang lebih pendek (lebih spesifik)
+                if (normalizedCandidate.length() < normalizedInput.length()) {
+                    score = 0.95;
+                }
+            }
+
+            // 3. Keyword matching (hanya jika belum ada score atau untuk title yang panjang)
+            if (score < 0.7 && (normalizedInput.length() > 6 || isTitle)) {
+                double keywordScore = calculateKeywordMatch(inputStr, candidate);
+                if (keywordScore > 0.5) {
+                    score = qMax(score, keywordScore * 0.8);
+                }
+            }
+
+            // Update best match
+            if (score > bestScore && score >= 0.6) {
+                bestScore = score;
+                bestMatch = it.value();
+            }
+        }
+
+        return bestMatch;
+    };
+
+    // 1. Dapatkan semua aplikasi dan window title yang productive dari database produktivitas
+    QHash<QString, int> productiveApps;       // Key: app name (original case), Value: productivity type
+    QHash<QString, int> productiveTitles;    // Key: title (original case), Value: productivity type
+
+    if (ensureProductivityDatabaseOpen()) {
+        QSqlQuery query(m_productivityDb);
+        query.prepare(R"(
+            SELECT aplikasi, window_title, jenis
+            FROM aplikasi
+            WHERE (for_user = '0' OR for_user LIKE :userPattern)
+            AND jenis IN (1, 2)  -- 1: productive, 2: non-productive
+        )");
+        query.bindValue(":userPattern", "%," + QString::number(m_currentUserId) + ",%");
+
+        if (query.exec()) {
+            while (query.next()) {
+                QString appName = query.value(0).toString();
+                QString windowTitle = query.value(1).toString();
+                int type = query.value(2).toInt();
+
+                if (!appName.isEmpty()) {
+                    productiveApps[appName] = type;
+                }
+                if (!windowTitle.isEmpty()) {
+                    productiveTitles[windowTitle] = type;
+                }
+            }
+        } else {
+            qWarning() << "Failed to fetch productivity apps:" << query.lastError().text();
+        }
+    }
+
+    // 2. Hitung durasi productive dari log aktivitas hari ini
+    QSqlQuery logQuery(m_db);
+    logQuery.prepare(R"(
+        SELECT start_time, end_time, app_name, title
+        FROM log
+        WHERE id_user = :user_id
+        AND date(start_time, 'unixepoch', 'localtime') = :today
+        ORDER BY start_time ASC
+    )");
+    logQuery.bindValue(":user_id", m_currentUserId);
+    logQuery.bindValue(":today", today);
+
+    if (logQuery.exec()) {
+        QHash<QString, int> appProductivityTime;
+        QHash<QString, int> titleProductivityTime;
+        QHash<QString, int> matchStats; // Untuk tracking metode matching
+
+        while (logQuery.next()) {
+            qint64 start = logQuery.value(0).toLongLong();
+            qint64 end = logQuery.value(1).toLongLong();
+            QString appName = logQuery.value(2).toString();
+            QString title = logQuery.value(3).toString();
+
+            int duration = end - start;
+            if (duration <= 0) continue;
+
+            // 3. Tentukan produktivitas dengan advanced matching
+            int productivityType = 0;
+            QString matchMethod = "none";
+
+            // Prioritas: Window title dulu, lalu app name
+            if (!title.isEmpty()) {
+                productivityType = findBestMatch(title, productiveTitles, true);
+                if (productivityType != 0) {
+                    matchMethod = "title_match";
+                }
+            }
+
+            // Jika tidak ada match dari title, cek app name
+            if (productivityType == 0 && !appName.isEmpty()) {
+                productivityType = findBestMatch(appName, productiveApps, false);
+                if (productivityType != 0) {
+                    matchMethod = "app_match";
+                }
+            }
+
+            bool isProductive = (productivityType == 1);
+
+            if (isProductive) {
+                totalProductiveSeconds += duration;
+                appProductivityTime[appName] += duration;
+                titleProductivityTime[title] += duration;
+                matchStats[matchMethod] += duration;
+            }
+        }
+
+        // 4. Enhanced debug output dengan match statistics
+        qDebug() << "==== Enhanced Productivity Breakdown ====";
+        qDebug() << "Total Productive Time:" << formatDuration(totalProductiveSeconds);
+
+        qDebug() << "\nMatching Method Statistics:";
+        for (auto it = matchStats.begin(); it != matchStats.end(); ++it) {
+            qDebug() << QString("%1: %2").arg(it.key(), -15).arg(formatDuration(it.value()));
+        }
+
+        qDebug() << "\nTop Productive Apps:";
+        QList<QPair<int, QString>> sortedApps;
+        for (auto it = appProductivityTime.begin(); it != appProductivityTime.end(); ++it) {
+            if (it.value() > 0) {
+                sortedApps.append(qMakePair(it.value(), it.key()));
+            }
+        }
+        std::sort(sortedApps.begin(), sortedApps.end(), std::greater<QPair<int, QString>>());
+        for (const auto &pair : sortedApps.mid(0, 5)) {
+            // Tampilkan juga match yang ditemukan
+            int matchType = findBestMatch(pair.second, productiveApps, false);
+            QString matchInfo = matchType == 1 ? " [PRODUCTIVE]" : matchType == 2 ? " [NON-PRODUCTIVE]" : " [NEUTRAL]";
+            qDebug() << QString("%1: %2%3").arg(pair.second, -30).arg(formatDuration(pair.first)).arg(matchInfo);
+        }
+
+        qDebug() << "\nTop Productive Window Titles:";
+        QList<QPair<int, QString>> sortedTitles;
+        for (auto it = titleProductivityTime.begin(); it != titleProductivityTime.end(); ++it) {
+            if (it.value() > 0) {
+                sortedTitles.append(qMakePair(it.value(), it.key()));
+            }
+        }
+        std::sort(sortedTitles.begin(), sortedTitles.end(), std::greater<QPair<int, QString>>());
+        for (const auto &pair : sortedTitles.mid(0, 5)) {
+            int matchType = findBestMatch(pair.second, productiveTitles, true);
+            QString matchInfo = matchType == 1 ? " [PRODUCTIVE]" : matchType == 2 ? " [NON-PRODUCTIVE]" : " [NEUTRAL]";
+            qDebug() << QString("%1: %2%3").arg(pair.second.left(40), -40).arg(formatDuration(pair.first)).arg(matchInfo);
+        }
+
+        // 5. Tampilkan contoh aplikasi yang tidak terdeteksi (untuk debugging)
+        qDebug() << "\nSample Unmatched Applications:";
+        QSet<QString> unmatchedApps;
+        QSqlQuery unmatchedQuery(m_db);
+        unmatchedQuery.prepare(R"(
+            SELECT DISTINCT app_name
+            FROM log
+            WHERE id_user = :user_id
+            AND date(start_time, 'unixepoch', 'localtime') = :today
+            LIMIT 20
+        )");
+        unmatchedQuery.bindValue(":user_id", m_currentUserId);
+        unmatchedQuery.bindValue(":today", today);
+
+        if (unmatchedQuery.exec()) {
+            while (unmatchedQuery.next()) {
+                QString appName = unmatchedQuery.value(0).toString();
+                if (!appName.isEmpty() && findBestMatch(appName, productiveApps, false) == 0) {
+                    unmatchedApps.insert(appName);
+                }
+            }
+        }
+
+        int count = 0;
+        for (const QString &app : unmatchedApps) {
+            if (count++ < 5) {
+                qDebug() << QString("  - %1").arg(app);
+            }
+        }
+
+    } else {
+        qWarning() << "Failed to fetch today's logs:" << logQuery.lastError().text();
+    }
+
+    return totalProductiveSeconds;
+}
+void Logger::sendProductiveTimeToAPI()
+{
+    if (m_currentUserId == -1 || m_authToken.isEmpty()) {
+        qWarning() << "Cannot send productive time: Not logged in or missing token";
+        return;
+    }
+
+    int productiveSeconds = calculateTodayProductiveSeconds();
+    qDebug() << "Sending productive time:" << productiveSeconds << "seconds";
+
+    QJsonObject payload;
+    payload["user_id"] = m_currentUserId;
+    payload["productive_time"] = productiveSeconds;
+
+    QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/send-productive-time"));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
+
+    QNetworkReply *reply = m_networkManager->post(request, QJsonDocument(payload).toJson());
+
+    QTimer::singleShot(10000, reply, &QNetworkReply::abort); // Timeout 10 detik
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            qDebug() << "Productive time sent successfully. Response:" << reply->readAll();
+        } else {
+            qWarning() << "Failed to send productive time:" << reply->errorString();
+        }
+        reply->deleteLater();
+    });
+}
 
 
 void Logger::checkTaskStatusBeforeStart()
@@ -584,21 +897,29 @@ QVariantList Logger::getProductivityApps() const {
     if (!ensureProductivityDatabaseOpen() || m_currentUserId == -1) {
         return QVariantList();
     }
+
     QVariantList apps;
     QSqlQuery query(m_productivityDb);
-    query.prepare("SELECT aplikasi, jenis, window_title, for_user FROM aplikasi WHERE (for_user = '0' OR for_user LIKE :userId)");
-    query.bindValue(":userId", QString::number(m_currentUserId));
+    query.prepare(R"(
+        SELECT aplikasi, jenis, window_title, for_user
+        FROM aplikasi
+        WHERE for_user = '0'
+           OR ',' || for_user || ',' LIKE :userPattern
+    )");
+    query.bindValue(":userPattern", "%," + QString::number(m_currentUserId) + ",%");
+
     if (query.exec()) {
         while (query.next()) {
             QVariantMap app;
-            app["appName"] = query.value(0).toString(); // Nama aplikasi
-            app["type"] = query.value(1).toInt(); // Jenis aplikasi
-            app["window_title"] = query.value(2).toString(); // Judul jendela
+            app["appName"] = query.value(0).toString();
+            app["type"] = query.value(1).toInt();
+            app["window_title"] = query.value(2).toString();
             apps.append(app);
         }
     } else {
         qWarning() << "Failed to fetch productivity apps:" << query.lastError().text();
     }
+
     return apps;
 }
 
@@ -804,7 +1125,7 @@ QVariantList Logger::getAvailableApps() const
 
     return apps;
 }
-void Logger::addProductivityApp(const QString &appName, const QString &windowTitle, int productivityType)
+void Logger::addProductivityApp(const QString &appName, const QString &windowTitle, const QString &url, int productivityType)
 {
     if (!ensureProductivityDatabaseOpen()) {
         qWarning() << "Database tidak terbuka";
@@ -813,10 +1134,11 @@ void Logger::addProductivityApp(const QString &appName, const QString &windowTit
 
     // 1. Simpan ke database lokal terlebih dahulu
     QSqlQuery query(m_productivityDb);
-    query.prepare("INSERT INTO aplikasi (aplikasi, window_title, jenis, productivity) "
-                  "VALUES (:app, :window, :type, :prod)");
+    query.prepare("INSERT INTO aplikasi (aplikasi, window_title, url, jenis, productivity) "
+                  "VALUES (:app, :window, :url, :type, :prod)");
     query.bindValue(":app", appName);
     query.bindValue(":window", windowTitle.isEmpty() ? QVariant() : windowTitle);
+    query.bindValue(":url", url.isEmpty() ? QVariant() : url);
     query.bindValue(":type", 0); // 0 = menunggu approval
     query.bindValue(":prod", productivityType);
 
@@ -824,9 +1146,9 @@ void Logger::addProductivityApp(const QString &appName, const QString &windowTit
         qDebug() << "Aplikasi ditambahkan. Menunggu approval admin.";
 
         // 2. Kirim data ke API
-        sendProductivityAppToAPI(appName, windowTitle, productivityType);
+        sendProductivityAppToAPI(appName, windowTitle, url, productivityType);
 
-        // Refresh model
+        // 3. Refresh model
         QString productiveQuery = QString("SELECT aplikasi AS appName, window_title AS windowTitle, jenis AS type FROM aplikasi WHERE jenis = 1 AND (for_user = '0' OR for_user LIKE '%%1%')").arg(m_currentUserId);
         QString nonProductiveQuery = QString("SELECT aplikasi AS appName, window_title AS windowTitle, jenis AS type FROM aplikasi WHERE jenis = 2 AND (for_user = '0' OR for_user LIKE '%%1%')").arg(m_currentUserId);
         m_productiveAppsModel->setQuery(productiveQuery, m_productivityDb);
@@ -837,7 +1159,8 @@ void Logger::addProductivityApp(const QString &appName, const QString &windowTit
     }
 }
 
-void Logger::sendProductivityAppToAPI(const QString &appName, const QString &windowTitle, int productivityType)
+
+void Logger::sendProductivityAppToAPI(const QString &appName, const QString &windowTitle, const QString &url, int productivityType)
 {
     if (m_authToken.isEmpty()) {
         qWarning() << "Cannot send productivity app: No authentication token available";
@@ -851,7 +1174,7 @@ void Logger::sendProductivityAppToAPI(const QString &appName, const QString &win
 
     // Konversi productivityType ke string status
     QString status;
-    switch(productivityType) {
+    switch (productivityType) {
     case 1: status = "productive"; break;
     case 2: status = "non-productive"; break;
     default: status = "neutral"; break;
@@ -862,7 +1185,11 @@ void Logger::sendProductivityAppToAPI(const QString &appName, const QString &win
     payload["application_name"] = appName;
     payload["productivity_status"] = status;
     payload["user_id"] = m_currentUserId;
-    if (!windowTitle.isEmpty()) {
+
+    // Prioritaskan URL jika ada
+    if (!url.isEmpty()) {
+        payload["url"] = url;
+    } else if (!windowTitle.isEmpty()) {
         payload["process_name"] = windowTitle;
     }
 
@@ -889,7 +1216,6 @@ void Logger::sendProductivityAppToAPI(const QString &appName, const QString &win
             qDebug() << "HTTP Status:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
             qDebug() << "Response Body:" << reply->readAll();
 
-            // Jika token expired, beri sinyal untuk login ulang
             if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 401) {
                 emit authTokenError("Authentication token expired");
             }
@@ -897,6 +1223,7 @@ void Logger::sendProductivityAppToAPI(const QString &appName, const QString &win
         reply->deleteLater();
     });
 }
+
 
 void Logger::fetchAndStoreProductivityApps()
 {
@@ -1017,33 +1344,34 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
 
         QJsonObject appObj = appValue.toObject();
 
-        // Validasi field yang diperlukan dengan cara yang lebih fleksibel
         QString appName = appObj.value("application_name").toString();
         QString status = appObj.value("productivity_status").toString("").toLower();
+        int userId = appObj.value("user_id").toInt(-1);
         QString processName = appObj.value("process_name").toString();
+        QString url = appObj.value("url").toString();  // <== Ambil URL dari API response
 
-        if (appName.isEmpty()) {
-            qWarning() << "Skipping invalid productivity app entry (missing application_name):"
+        if (appName.isEmpty() || userId == -1) {
+            qWarning() << "Skipping invalid productivity app entry (missing required fields):"
                        << appObj;
             continue;
         }
 
-        // Konversi status string ke jenis numerik
-        int jenis = 0; // Default = menunggu approval
+        int jenis = 0; // Default = pending approval
         if (status == "productive") {
             jenis = 1;
         } else if (status == "non-productive") {
             jenis = 2;
         }
 
-        // 5. Cek apakah data sudah ada di database
+        // Cek apakah data sudah ada (cek berdasarkan aplikasi + url + user_id)
         query.prepare(
-            "SELECT id FROM aplikasi "
-            "WHERE aplikasi = :app AND "
-            "(window_title = :process OR (window_title IS NULL AND :process IS NULL))"
+            "SELECT id FROM aplikasi WHERE aplikasi = :app AND "
+            "(url = :url OR (url IS NULL AND :url IS NULL)) AND "
+            "for_user = :user"
             );
         query.bindValue(":app", appName);
-        query.bindValue(":process", processName.isEmpty() ? QVariant() : processName);
+        query.bindValue(":url", url.isEmpty() ? QVariant() : url);
+        query.bindValue(":user", QString::number(userId));
 
         if (!query.exec()) {
             qWarning() << "Failed to check existing app:" << query.lastError().text();
@@ -1052,35 +1380,31 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
         }
 
         if (query.next()) {
-            // Data sudah ada, lakukan UPDATE
             int existingId = query.value(0).toInt();
             query.prepare(
-                "UPDATE aplikasi SET "
-                "jenis = :type, "
-                "for_user = '0' "  // Selalu set for_user ke '0'
-                "WHERE id = :id"
+                "UPDATE aplikasi SET jenis = :type WHERE id = :id"
                 );
             query.bindValue(":type", jenis);
             query.bindValue(":id", existingId);
         } else {
-            // Data belum ada, lakukan INSERT
             query.prepare(
-                "INSERT INTO aplikasi "
-                "(aplikasi, window_title, jenis, for_user) "
-                "VALUES (:app, :process, :type, '0')"  // Selalu set for_user ke '0'
+                "INSERT INTO aplikasi (aplikasi, window_title, url, jenis, for_user) "
+                "VALUES (:app, :process, :url, :type, :user)"
                 );
             query.bindValue(":app", appName);
             query.bindValue(":process", processName.isEmpty() ? QVariant() : processName);
+            query.bindValue(":url", url.isEmpty() ? QVariant() : url);
             query.bindValue(":type", jenis);
+            query.bindValue(":user", QString::number(userId));
         }
 
         if (!query.exec()) {
-            qWarning() << "Failed to insert/update productivity app:"
-                       << appName << "-" << query.lastError().text();
+            qWarning() << "Failed to insert/update productivity app:" << query.lastError().text();
             success = false;
             break;
         }
     }
+
 
     // 6. Commit atau rollback transaksi
     if (success) {
@@ -1117,190 +1441,204 @@ void Logger::refreshProductivityModels()
 }
 
 // Di fungsi getAppProductivityType (gunakan kolom jenis untuk pengecekan)
-int Logger::getAppProductivityType(const QString &appName, const QString &windowTitle) const
+int Logger::getAppProductivityType(const QString &appName, const QString &url) const
 {
     if (!ensureProductivityDatabaseOpen() || m_currentUserId == -1) {
         return 0;
     }
 
-    // Fungsi normalisasi yang lebih ringan
+    // Normalisasi string yang lebih ringan
     auto normalizeString = [](const QString &str) {
-        return str.toLower().simplified().remove(' ');
+        return str.toLower()
+        .remove(' ')
+            .remove('-')
+            .remove('_')
+            .remove('.');
     };
 
-    // Fungsi untuk membuat pattern matching yang efisien
-    auto createSearchPatterns = [](const QString &input) -> QStringList {
-        QStringList patterns;
-        QString normalized = input.toLower().simplified();
+    // Fungsi untuk menghitung simple similarity (lebih ringan dari Levenshtein)
+    auto calculateSimpleSimilarity = [](const QString &str1, const QString &str2) -> double {
+        if (str1.isEmpty() || str2.isEmpty()) return 0.0;
 
-        // Pattern 1: Original normalized
-        patterns.append(normalized.remove(' '));
+        int len1 = str1.length();
+        int len2 = str2.length();
 
-        // Pattern 2: Kata-kata individual (hanya jika ada spasi)
-        if (input.contains(' ')) {
-            QStringList words = normalized.split(' ', Qt::SkipEmptyParts);
-            for (const QString &word : words) {
-                if (word.length() >= 3) { // Minimal 3 karakter
-                    patterns.append(word);
-                }
+        // Skip jika perbedaan length terlalu besar
+        if (qAbs(len1 - len2) > qMax(len1, len2) * 0.5) return 0.0;
+
+        int matches = 0;
+        int minLen = qMin(len1, len2);
+
+        // Hitung karakter yang sama di posisi yang sama atau berdekatan
+        for (int i = 0; i < minLen; i++) {
+            if (str1[i] == str2[i]) {
+                matches++;
+            } else if (i > 0 && str1[i] == str2[i-1]) {
+                matches++;
+            } else if (i < minLen - 1 && str1[i] == str2[i+1]) {
+                matches++;
             }
         }
 
-        // Pattern 3: Hapus karakter khusus umum
-        QString cleaned = normalized;
-        cleaned.remove(QRegularExpression("[\\-_\\.\\(\\)\\[\\]]"));
-        if (!cleaned.isEmpty() && cleaned != patterns.first()) {
-            patterns.append(cleaned);
-        }
-
-        return patterns;
+        return (double)matches / qMax(len1, len2);
     };
 
-    // Fungsi matching yang cepat
-    auto fastMatch = [](const QString &target, const QStringList &patterns) -> double {
-        QString normTarget = target.toLower().simplified().remove(' ');
+    // Fungsi untuk ekstrak keyword utama saja
+    auto extractMainKeywords = [](const QString &str) -> QStringList {
+        QStringList keywords;
+        QString normalized = str.toLower();
 
-        // Exact match - score tertinggi
-        for (const QString &pattern : patterns) {
-            if (normTarget == pattern) {
-                return 1.0;
+        // Split hanya dengan spasi dan dash
+        QStringList parts = normalized.split(QRegularExpression("[\\s\\-_]"), Qt::SkipEmptyParts);
+
+        // Ambil hanya kata yang penting (length >= 3)
+        for (const QString &part : parts) {
+            if (part.length() >= 3) {
+                keywords.append(part);
             }
         }
 
-        // Contains match - bi-directional
-        for (const QString &pattern : patterns) {
-            if (normTarget.contains(pattern)) {
-                // Score berdasarkan rasio panjang
-                double ratio = (double)pattern.length() / normTarget.length();
-                return 0.8 + (ratio * 0.15); // 0.8 - 0.95
-            }
-            if (pattern.contains(normTarget)) {
-                double ratio = (double)normTarget.length() / pattern.length();
-                return 0.75 + (ratio * 0.15); // 0.75 - 0.9
-            }
+        // Batasi maksimal 5 keywords untuk performa
+        if (keywords.size() > 5) {
+            keywords = keywords.mid(0, 5);
         }
 
-        // Fuzzy match sederhana - hanya untuk string pendek
-        if (normTarget.length() <= 15) {
-            for (const QString &pattern : patterns) {
-                if (pattern.length() <= 15) {
-                    // Hitung common characters
-                    int commonChars = 0;
-                    int minLen = qMin(normTarget.length(), pattern.length());
-                    int maxLen = qMax(normTarget.length(), pattern.length());
-
-                    for (int i = 0; i < minLen; i++) {
-                        if (normTarget[i] == pattern[i]) {
-                            commonChars++;
-                        }
-                    }
-
-                    double similarity = (double)commonChars / maxLen;
-                    if (similarity > 0.6) {
-                        return similarity * 0.7; // Max 0.7 untuk fuzzy
-                    }
-                }
-            }
-        }
-
-        return 0.0;
+        return keywords;
     };
 
-    // Cache untuk menghindari query berulang
-    static QHash<QString, QVector<QPair<QString, int>>> titleCache;
-    static QHash<QString, QVector<QPair<QString, int>>> appCache;
-    static QString lastUserId;
+    const QString normUrl = normalizeString(url);
+    const QString normApp = normalizeString(appName);
 
-    // Reset cache jika user berubah
-    QString currentUser = QString::number(m_currentUserId);
-    if (lastUserId != currentUser) {
-        titleCache.clear();
-        appCache.clear();
-        lastUserId = currentUser;
-    }
-
-    // Buat pattern dari input
-    QStringList titlePatterns = createSearchPatterns(windowTitle);
-    QStringList appPatterns = createSearchPatterns(appName);
-
-    double bestScore = 0.0;
-    int bestType = 0;
+    // Caching untuk menghindari normalisasi berulang
+    static QMap<QString, QString> normalizationCache;
 
     QSqlQuery query(m_productivityDb);
 
-    // 1. Cek window title (prioritas tinggi)
-    if (!titleCache.contains(currentUser)) {
-        QVector<QPair<QString, int>> titleEntries;
-        query.prepare(
-            "SELECT window_title, jenis, for_user FROM aplikasi "
-            "WHERE window_title IS NOT NULL AND window_title != ''"
-            );
+    // 1. Cek URL terlebih dahulu (sebagai prioritas)
+    query.prepare(
+        "SELECT url, jenis, for_user FROM aplikasi "
+        "WHERE url IS NOT NULL AND url != ''"
+        );
 
-        if (query.exec()) {
-            while (query.next()) {
-                QString dbTitle = query.value(0).toString();
-                int jenis = query.value(1).toInt();
-                QString forUsers = query.value(2).toString();
 
-                // Filter user
-                if (forUsers == "0" || forUsers.split(',').contains(currentUser)) {
-                    titleEntries.append({dbTitle, jenis});
-                }
+    if (query.exec()) {
+        while (query.next()) {
+            QString dbUrl = query.value(0).toString();
+            int jenis = query.value(1).toInt();
+            QString forUsers = query.value(2).toString();
+
+            // Cek user permission (global atau user spesifik)
+            if (!(forUsers == "0" || forUsers.split(',').contains(QString::number(m_currentUserId)))) {
+                continue;
             }
-        }
-        titleCache[currentUser] = titleEntries;
-    }
 
-    // Match dengan title entries
-    for (const auto &entry : titleCache[currentUser]) {
-        double score = fastMatch(entry.first, titlePatterns);
-        if (score > bestScore) {
-            bestScore = score;
-            bestType = entry.second;
-        }
-    }
+            // Gunakan cache untuk normalisasi URL
+            QString normDbUrl;
+            if (normalizationCache.contains(dbUrl)) {
+                normDbUrl = normalizationCache[dbUrl];
+            } else {
+                normDbUrl = normalizeString(dbUrl);
+                normalizationCache[dbUrl] = normDbUrl;
+            }
 
-    // 2. Cek aplikasi umum (hanya jika belum dapat match bagus dari title)
-    if (bestScore < 0.9) {
-        if (!appCache.contains(currentUser)) {
-            QVector<QPair<QString, int>> appEntries;
-            query.prepare(
-                "SELECT aplikasi, jenis, for_user FROM aplikasi "
-                "WHERE window_title IS NULL OR window_title = ''"
-                );
+            // 1. Exact match URL (prioritas utama)
+            if (normUrl == normDbUrl) {
+                return jenis;
+            }
 
-            if (query.exec()) {
-                while (query.next()) {
-                    QString dbApp = query.value(0).toString();
-                    int jenis = query.value(1).toInt();
-                    QString forUsers = query.value(2).toString();
+            // 2. Contains match URL (cek kedua arah)
+            if (normUrl.contains(normDbUrl) || normDbUrl.contains(normUrl)) {
+                return jenis;
+            }
 
-                    // Filter user
-                    if (forUsers == "0" || forUsers.split(',').contains(currentUser)) {
-                        appEntries.append({dbApp, jenis});
+            // 3. Keyword matching pada URL (opsional, jika URL panjang)
+            if (normUrl.length() > 6 && normDbUrl.length() > 6) {
+                QStringList keywords1 = extractMainKeywords(url);
+                QStringList keywords2 = extractMainKeywords(dbUrl);
+
+                int matches = 0;
+                for (const QString &k1 : keywords1) {
+                    for (const QString &k2 : keywords2) {
+                        if (k1 == k2 || k1.contains(k2) || k2.contains(k1)) {
+                            matches++;
+                            break;
+                        }
                     }
                 }
-            }
-            appCache[currentUser] = appEntries;
-        }
 
-        // Match dengan app entries
-        for (const auto &entry : appCache[currentUser]) {
-            double score = fastMatch(entry.first, appPatterns);
-
-            // Penalti sedikit untuk app match vs title match
-            score *= 0.95;
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestType = entry.second;
+                if (matches > 0 && (double)matches / qMax(keywords1.size(), keywords2.size()) > 0.5) {
+                    return jenis;
+                }
             }
         }
     }
 
-    // Return hasil jika score cukup tinggi
-    if (bestScore >= 0.65) {
-        return bestType;
+
+    // 2. Cek aplikasi umum
+    query.prepare(
+        "SELECT aplikasi, jenis, for_user FROM aplikasi "
+        "WHERE window_title IS NULL OR window_title = ''"
+        );
+
+    if (query.exec()) {
+        while (query.next()) {
+            QString dbApp = query.value(0).toString();
+            int jenis = query.value(1).toInt();
+            QString forUsers = query.value(2).toString();
+
+            // Cek user permission
+            if (!(forUsers == "0" || forUsers.split(',').contains(QString::number(m_currentUserId)))) {
+                continue;
+            }
+
+            // Gunakan cache untuk normalisasi
+            QString normDbApp;
+            if (normalizationCache.contains(dbApp)) {
+                normDbApp = normalizationCache[dbApp];
+            } else {
+                normDbApp = normalizeString(dbApp);
+                normalizationCache[dbApp] = normDbApp;
+            }
+
+            // 1. Exact match
+            if (normApp == normDbApp) {
+                return jenis;
+            }
+
+            // 2. Contains match (cek kedua arah)
+            if (normApp.contains(normDbApp) || normDbApp.contains(normApp)) {
+                return jenis;
+            }
+
+            // 3. Keyword matching untuk nama aplikasi yang lebih panjang
+            if (normApp.length() > 6 && normDbApp.length() > 6) {
+                QStringList keywords1 = extractMainKeywords(appName);
+                QStringList keywords2 = extractMainKeywords(dbApp);
+
+                int matches = 0;
+                for (const QString &k1 : keywords1) {
+                    for (const QString &k2 : keywords2) {
+                        if (k1 == k2 || k1.contains(k2) || k2.contains(k1)) {
+                            matches++;
+                            break;
+                        }
+                    }
+                }
+
+                // Threshold sedikit lebih tinggi untuk app name
+                if (matches > 0 && (double)matches / qMax(keywords1.size(), keywords2.size()) > 0.6) {
+                    return jenis;
+                }
+            }
+
+            // 4. Simple similarity sebagai fallback (hanya untuk string yang tidak terlalu panjang)
+            if (normApp.length() <= 20 && normDbApp.length() <= 20) {
+                double similarity = calculateSimpleSimilarity(normApp, normDbApp);
+                if (similarity > 0.8) {
+                    return jenis;
+                }
+            }
+        }
     }
 
     return 0; // Default netral

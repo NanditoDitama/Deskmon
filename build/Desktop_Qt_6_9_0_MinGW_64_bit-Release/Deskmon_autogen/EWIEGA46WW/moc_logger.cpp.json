@@ -239,6 +239,10 @@
                             "type": "QString"
                         },
                         {
+                            "name": "url",
+                            "type": "QString"
+                        },
+                        {
                             "name": "productivityType",
                             "type": "int"
                         }
@@ -344,6 +348,10 @@
                             "type": "QString"
                         },
                         {
+                            "name": "url",
+                            "type": "QString"
+                        },
+                        {
                             "name": "productivityType",
                             "type": "int"
                         }
@@ -362,6 +370,19 @@
                     "access": "public",
                     "index": 64,
                     "name": "checkAndCreateNewDayRecord",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 65,
+                    "isConst": true,
+                    "name": "calculateTodayProductiveSeconds",
+                    "returnType": "int"
+                },
+                {
+                    "access": "public",
+                    "index": 66,
+                    "name": "sendProductiveTimeToAPI",
                     "returnType": "void"
                 }
             ],

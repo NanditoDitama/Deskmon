@@ -318,7 +318,6 @@ C:/Users/prnl2/OneDrive/Documents/window_logger/idlechecker.h
  mdp:C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/wchar.h
  mdp:C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/Deskmon_autogen/moc_predefs.h
  mdp:C:/Users/prnl2/OneDrive/Documents/window_logger/idlechecker.h
-C:/Users/prnl2/OneDrive/Documents/window_logger/main.cpp
 C:/Users/prnl2/OneDrive/Documents/window_logger/logger.h
  mmc:Q_OBJECT
  mdp:C:/Qt/6.9.0/mingw_64/include/QtCore/QDate
@@ -719,6 +718,7 @@ C:/Users/prnl2/OneDrive/Documents/window_logger/logger.h
  mdp:C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/wchar.h
  mdp:C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/Deskmon_autogen/moc_predefs.h
  mdp:C:/Users/prnl2/OneDrive/Documents/window_logger/logger.h
+C:/Users/prnl2/OneDrive/Documents/window_logger/main.cpp
 C:/Users/prnl2/OneDrive/Documents/window_logger/idlechecker.cpp
 C:/Users/prnl2/OneDrive/Documents/window_logger/logger.cpp
 C:/Users/prnl2/OneDrive/Documents/window_logger/networkmanager.h
