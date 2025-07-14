@@ -229,6 +229,8 @@ private:
 
 #ifdef Q_OS_WIN
     WindowInfo getActiveWindowInfoWindows();
+#elif defined(Q_OS_MACOS)
+    WindowInfo getActiveWindowInfoMacOS();
 #else
     WindowInfo getActiveWindowInfoLinux();
 #endif

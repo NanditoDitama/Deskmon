@@ -180,6 +180,21 @@ qint64 IdleChecker::getSystemIdleTimeWindows() const
     qWarning() << "Failed to get last input info";
     return -1;
 }
+#elif defined(Q_OS_MACOS)
+qint64 IdleChecker::getSystemIdleTimeMacOS() const {
+    QProcess process;
+    process.start("ioreg", {"-c", "IOHIDSystem", "-r", "-k", "HIDIdleTime"});
+    if (process.waitForFinished(100)) {
+        QString output = QString(process.readAllStandardOutput());
+        QRegularExpression regex("\"HIDIdleTime\" = (\\d+)");
+        QRegularExpressionMatch match = regex.match(output);
+        if (match.hasMatch()) {
+            // Idle time in nanoseconds, convert to milliseconds
+            return match.captured(1).toLongLong() / 1000000;
+        }
+    }
+    return -1;
+}
 #elif defined(Q_OS_LINUX)
 qint64 IdleChecker::getSystemIdleTimeLinux() const
 {
@@ -203,22 +218,6 @@ qint64 IdleChecker::getSystemIdleTimeLinux() const
     XFree(info);
     XCloseDisplay(display);
     qWarning() << "Failed to query XScreenSaverInfo";
-    return -1;
-}
-#endif
-#ifdef Q_OS_MACOS
-qint64 IdleChecker::getSystemIdleTimeMacOS() const {
-    QProcess process;
-    process.start("ioreg", {"-c", "IOHIDSystem", "-r", "-k", "HIDIdleTime"});
-    if (process.waitForFinished(100)) {
-        QString output = QString(process.readAllStandardOutput());
-        QRegularExpression regex("\"HIDIdleTime\" = (\\d+)");
-        QRegularExpressionMatch match = regex.match(output);
-        if (match.hasMatch()) {
-            // Idle time in nanoseconds, convert to milliseconds
-            return match.captured(1).toLongLong() / 1000000;
-        }
-    }
     return -1;
 }
 #endif

@@ -3108,6 +3108,8 @@ Logger::WindowInfo Logger::getActiveWindowInfo()
 {
 #ifdef Q_OS_WIN
     return getActiveWindowInfoWindows();
+#elif defined(Q_OS_MACOS)
+    return getActiveWindowInfoMacOS();
 #else
     return getActiveWindowInfoLinux();
 #endif
@@ -3148,6 +3150,27 @@ Logger::WindowInfo Logger::getActiveWindowInfoWindows()
 
     return info;
 }
+#elif defined(Q_OS_MACOS)
+Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
+    WindowInfo info;
+
+    // Gunakan AppleScript untuk mendapatkan info window di macOS
+    QProcess process;
+    process.start("osascript", {"-e", "tell application \"System Events\" to get name of first application process whose frontmost is true"});
+    if (process.waitForFinished(100)) {
+        info.appName = QString(process.readAllStandardOutput()).trimmed();
+    }
+
+    process.start("osascript", {"-e", "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"});
+    if (process.waitForFinished(100)) {
+        info.title = QString(process.readAllStandardOutput()).trimmed();
+    }
+
+    if (info.appName.isEmpty()) info.appName = "Unknown";
+    if (info.title.isEmpty()) info.title = "No active window";
+
+    return info;
+}
 #elif defined(Q_OS_LINUX)
 Logger::WindowInfo Logger::getActiveWindowInfoLinux() {
     WindowInfo info;
@@ -3182,27 +3205,6 @@ Logger::WindowInfo Logger::getActiveWindowInfoLinux() {
                 }
             }
         }
-    }
-
-    if (info.appName.isEmpty()) info.appName = "Unknown";
-    if (info.title.isEmpty()) info.title = "No active window";
-
-    return info;
-}
-#elif defined(Q_OS_MACOS)
-Logger::WindowInfo Logger::getActiveWindowInfoLinux() {
-    WindowInfo info;
-
-    // Gunakan AppleScript untuk mendapatkan info window di macOS
-    QProcess process;
-    process.start("osascript", {"-e", "tell application \"System Events\" to get name of first application process whose frontmost is true"});
-    if (process.waitForFinished(100)) {
-        info.appName = QString(process.readAllStandardOutput()).trimmed();
-    }
-
-    process.start("osascript", {"-e", "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"});
-    if (process.waitForFinished(100)) {
-        info.title = QString(process.readAllStandardOutput()).trimmed();
     }
 
     if (info.appName.isEmpty()) info.appName = "Unknown";
