@@ -176,3 +176,17 @@
 460	548	7741887367533951	C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/meta_types/qt6deskmon_release_metatypes.json	c3015f7bd598190f
 548	20663	7741887368418589	CMakeFiles/Deskmon.dir/logger.cpp.obj	799d432eb792dd5e
 20664	22067	7741887569573035	Deskmon.exe	ef9885aaa745bf43
+89	410	7741895278403810	Deskmon_autogen/timestamp	87c699b1ec403b84
+89	410	7741895278403810	Deskmon_autogen/mocs_compilation.cpp	87c699b1ec403b84
+89	410	7741895278403810	C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/Deskmon_autogen/timestamp	87c699b1ec403b84
+89	410	7741895278403810	C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/Deskmon_autogen/mocs_compilation.cpp	87c699b1ec403b84
+412	495	7741895282305573	meta_types/Deskmon_json_file_list.txt	67c311ec8723d856
+412	495	7741895282305573	meta_types/Deskmon_json_file_list.txt.timestamp	67c311ec8723d856
+412	495	7741895282305573	C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/meta_types/Deskmon_json_file_list.txt	67c311ec8723d856
+412	495	7741895282305573	C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/meta_types/Deskmon_json_file_list.txt.timestamp	67c311ec8723d856
+495	598	7741895282455966	meta_types/qt6deskmon_release_metatypes.json.gen	c3015f7bd598190f
+495	598	7741895282455966	meta_types/qt6deskmon_release_metatypes.json	c3015f7bd598190f
+495	598	7741895282455966	C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/meta_types/qt6deskmon_release_metatypes.json.gen	c3015f7bd598190f
+495	598	7741895282455966	C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/meta_types/qt6deskmon_release_metatypes.json	c3015f7bd598190f
+599	24360	7741895283498824	CMakeFiles/Deskmon.dir/logger.cpp.obj	799d432eb792dd5e
+24360	26306	7741895521100660	Deskmon.exe	ef9885aaa745bf43

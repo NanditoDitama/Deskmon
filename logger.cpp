@@ -309,18 +309,15 @@ void Logger::initializeProductivityDatabase()
     migrateProductivityDatabase();
 
     QSqlQuery query(m_productivityDb);
-    // Dalam fungsi initializeProductivityDatabase()
     if (!query.exec("CREATE TABLE IF NOT EXISTS aplikasi ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "aplikasi TEXT NOT NULL, "
                     "window_title TEXT, "
-                    "url TEXT, "  // KOLOM URL SUDAH ADA
                     "jenis INTEGER NOT NULL, "
                     "productivity INTEGER NOT NULL DEFAULT 0, "
-                    "for_user TEXT NOT NULL DEFAULT '0')")) {
+                    "for_user TEXT NOT NULL DEFAULT '0')")) { // '0'=all users, '1,2,3'=specific users
         qWarning() << "Failed to create aplikasi table:" << query.lastError().text();
     }
-
 
     if (!query.exec("CREATE TABLE IF NOT EXISTS task ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -923,6 +920,7 @@ QVariantList Logger::getProductivityApps() const {
     return apps;
 }
 
+
 void Logger::setIdleThreshold(int seconds)
 {
     if (!ensureProductivityDatabaseOpen()) {
@@ -1134,8 +1132,8 @@ void Logger::addProductivityApp(const QString &appName, const QString &windowTit
 
     // 1. Simpan ke database lokal terlebih dahulu
     QSqlQuery query(m_productivityDb);
-    query.prepare("INSERT INTO aplikasi (aplikasi, window_title,  jenis, productivity) "
-                  "VALUES (:app, :window, :url, :type, :prod)");
+    query.prepare("INSERT INTO aplikasi (aplikasi, window_title, jenis, productivity) "
+                  "VALUES (:app, :window, :type, :prod)");
     query.bindValue(":app", appName);
     query.bindValue(":window", windowTitle.isEmpty() ? QVariant() : windowTitle);
     query.bindValue(":type", 0); // 0 = menunggu approval
@@ -1147,7 +1145,7 @@ void Logger::addProductivityApp(const QString &appName, const QString &windowTit
         // 2. Kirim data ke API
         sendProductivityAppToAPI(appName, windowTitle, productivityType);
 
-        // 3. Refresh model
+        // Refresh model
         QString productiveQuery = QString("SELECT aplikasi AS appName, window_title AS windowTitle, jenis AS type FROM aplikasi WHERE jenis = 1 AND (for_user = '0' OR for_user LIKE '%%1%')").arg(m_currentUserId);
         QString nonProductiveQuery = QString("SELECT aplikasi AS appName, window_title AS windowTitle, jenis AS type FROM aplikasi WHERE jenis = 2 AND (for_user = '0' OR for_user LIKE '%%1%')").arg(m_currentUserId);
         m_productiveAppsModel->setQuery(productiveQuery, m_productivityDb);
@@ -1157,7 +1155,6 @@ void Logger::addProductivityApp(const QString &appName, const QString &windowTit
         qWarning() << "Gagal menambahkan aplikasi:" << query.lastError();
     }
 }
-
 
 void Logger::sendProductivityAppToAPI(const QString &appName, const QString &windowTitle, int productivityType)
 {
@@ -1173,7 +1170,7 @@ void Logger::sendProductivityAppToAPI(const QString &appName, const QString &win
 
     // Konversi productivityType ke string status
     QString status;
-    switch (productivityType) {
+    switch(productivityType) {
     case 1: status = "productive"; break;
     case 2: status = "non-productive"; break;
     default: status = "neutral"; break;
@@ -1184,6 +1181,9 @@ void Logger::sendProductivityAppToAPI(const QString &appName, const QString &win
     payload["application_name"] = appName;
     payload["productivity_status"] = status;
     payload["user_id"] = m_currentUserId;
+    if (!windowTitle.isEmpty()) {
+        payload["process_name"] = windowTitle;
+    }
 
     // Konfigurasi request
     QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/app-request/store"));
@@ -1208,6 +1208,7 @@ void Logger::sendProductivityAppToAPI(const QString &appName, const QString &win
             qDebug() << "HTTP Status:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
             qDebug() << "Response Body:" << reply->readAll();
 
+            // Jika token expired, beri sinyal untuk login ulang
             if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 401) {
                 emit authTokenError("Authentication token expired");
             }
@@ -1215,7 +1216,6 @@ void Logger::sendProductivityAppToAPI(const QString &appName, const QString &win
         reply->deleteLater();
     });
 }
-
 
 void Logger::fetchAndStoreProductivityApps()
 {
@@ -1336,11 +1336,11 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
 
         QJsonObject appObj = appValue.toObject();
 
+        // Validasi field yang diperlukan dengan cara yang lebih fleksibel
         QString appName = appObj.value("application_name").toString();
         QString status = appObj.value("productivity_status").toString("").toLower();
         int userId = appObj.value("user_id").toInt(-1);
         QString processName = appObj.value("process_name").toString();
-        QString url = appObj.value("url").toString();  // <== Ambil URL dari API response
 
         if (appName.isEmpty() || userId == -1) {
             qWarning() << "Skipping invalid productivity app entry (missing required fields):"
@@ -1348,21 +1348,22 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
             continue;
         }
 
-        int jenis = 0; // Default = pending approval
+        // Konversi status string ke jenis numerik
+        int jenis = 0; // Default = menunggu approval
         if (status == "productive") {
             jenis = 1;
         } else if (status == "non-productive") {
             jenis = 2;
         }
 
-        // Cek apakah data sudah ada (cek berdasarkan aplikasi + url + user_id)
+        // 5. Cek apakah data sudah ada di database
         query.prepare(
             "SELECT id FROM aplikasi WHERE aplikasi = :app AND "
-            "(url = :url OR (url IS NULL AND :url IS NULL)) AND "
+            "(window_title = :process OR (window_title IS NULL AND :process IS NULL)) AND "
             "for_user = :user"
             );
         query.bindValue(":app", appName);
-        query.bindValue(":url", url.isEmpty() ? QVariant() : url);
+        query.bindValue(":process", processName.isEmpty() ? QVariant() : processName);
         query.bindValue(":user", QString::number(userId));
 
         if (!query.exec()) {
@@ -1372,6 +1373,7 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
         }
 
         if (query.next()) {
+            // Data sudah ada, lakukan UPDATE
             int existingId = query.value(0).toInt();
             query.prepare(
                 "UPDATE aplikasi SET jenis = :type WHERE id = :id"
@@ -1379,13 +1381,14 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
             query.bindValue(":type", jenis);
             query.bindValue(":id", existingId);
         } else {
+            // Data belum ada, lakukan INSERT
             query.prepare(
-                "INSERT INTO aplikasi (aplikasi, window_title, url, jenis, for_user) "
-                "VALUES (:app, :process, :url, :type, :user)"
+                "INSERT INTO aplikasi "
+                "(aplikasi, window_title, jenis, for_user) "
+                "VALUES (:app, :process, :type, :user)"
                 );
             query.bindValue(":app", appName);
             query.bindValue(":process", processName.isEmpty() ? QVariant() : processName);
-            query.bindValue(":url", url.isEmpty() ? QVariant() : url);
             query.bindValue(":type", jenis);
             query.bindValue(":user", QString::number(userId));
         }
@@ -1396,7 +1399,6 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
             break;
         }
     }
-
 
     // 6. Commit atau rollback transaksi
     if (success) {
@@ -1433,7 +1435,7 @@ void Logger::refreshProductivityModels()
 }
 
 // Di fungsi getAppProductivityType (gunakan kolom jenis untuk pengecekan)
-int Logger::getAppProductivityType(const QString &appName, const QString &url) const
+int Logger::getAppProductivityType(const QString &appName, const QString &windowTitle) const
 {
     if (!ensureProductivityDatabaseOpen() || m_currentUserId == -1) {
         return 0;
@@ -1498,7 +1500,7 @@ int Logger::getAppProductivityType(const QString &appName, const QString &url) c
         return keywords;
     };
 
-    const QString normUrl = normalizeString(url);
+    const QString normTitle = normalizeString(windowTitle);
     const QString normApp = normalizeString(appName);
 
     // Caching untuk menghindari normalisasi berulang
@@ -1506,47 +1508,46 @@ int Logger::getAppProductivityType(const QString &appName, const QString &url) c
 
     QSqlQuery query(m_productivityDb);
 
-    // 1. Cek URL terlebih dahulu (sebagai prioritas)
+    // 1. Cek window title terlebih dahulu (prioritas tinggi)
     query.prepare(
-        "SELECT url, jenis, for_user FROM aplikasi "
-        "WHERE url IS NOT NULL AND url != ''"
+        "SELECT window_title, jenis, for_user FROM aplikasi "
+        "WHERE window_title IS NOT NULL AND window_title != ''"
         );
-
 
     if (query.exec()) {
         while (query.next()) {
-            QString dbUrl = query.value(0).toString();
+            QString dbTitle = query.value(0).toString();
             int jenis = query.value(1).toInt();
             QString forUsers = query.value(2).toString();
 
-            // Cek user permission (global atau user spesifik)
+            // Cek user permission
             if (!(forUsers == "0" || forUsers.split(',').contains(QString::number(m_currentUserId)))) {
                 continue;
             }
 
-            // Gunakan cache untuk normalisasi URL
-            QString normDbUrl;
-            if (normalizationCache.contains(dbUrl)) {
-                normDbUrl = normalizationCache[dbUrl];
+            // Gunakan cache untuk normalisasi
+            QString normDbTitle;
+            if (normalizationCache.contains(dbTitle)) {
+                normDbTitle = normalizationCache[dbTitle];
             } else {
-                normDbUrl = normalizeString(dbUrl);
-                normalizationCache[dbUrl] = normDbUrl;
+                normDbTitle = normalizeString(dbTitle);
+                normalizationCache[dbTitle] = normDbTitle;
             }
 
-            // 1. Exact match URL (prioritas utama)
-            if (normUrl == normDbUrl) {
+            // 1. Exact match (return langsung)
+            if (normTitle == normDbTitle) {
                 return jenis;
             }
 
-            // 2. Contains match URL (cek kedua arah)
-            if (normUrl.contains(normDbUrl) || normDbUrl.contains(normUrl)) {
+            // 2. Contains match (cek kedua arah)
+            if (normTitle.contains(normDbTitle) || normDbTitle.contains(normTitle)) {
                 return jenis;
             }
 
-            // 3. Keyword matching pada URL (opsional, jika URL panjang)
-            if (normUrl.length() > 6 && normDbUrl.length() > 6) {
-                QStringList keywords1 = extractMainKeywords(url);
-                QStringList keywords2 = extractMainKeywords(dbUrl);
+            // 3. Keyword matching (hanya jika string cukup panjang)
+            if (normTitle.length() > 6 && normDbTitle.length() > 6) {
+                QStringList keywords1 = extractMainKeywords(windowTitle);
+                QStringList keywords2 = extractMainKeywords(dbTitle);
 
                 int matches = 0;
                 for (const QString &k1 : keywords1) {
@@ -1558,13 +1559,13 @@ int Logger::getAppProductivityType(const QString &appName, const QString &url) c
                     }
                 }
 
+                // Jika lebih dari 50% keyword cocok
                 if (matches > 0 && (double)matches / qMax(keywords1.size(), keywords2.size()) > 0.5) {
                     return jenis;
                 }
             }
         }
     }
-
 
     // 2. Cek aplikasi umum
     query.prepare(
@@ -1635,7 +1636,6 @@ int Logger::getAppProductivityType(const QString &appName, const QString &url) c
 
     return 0; // Default netral
 }
-
 QVariantList Logger::getPendingApplicationRequests() {
     QVariantList requests;
 
