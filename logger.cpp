@@ -267,9 +267,9 @@ void Logger::initializeDatabase()
     QSqlQuery query(m_db);
     if (!query.exec("CREATE TABLE IF NOT EXISTS log ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "id_user INTEGER NOT NULL, "
-                    "start_time INTEGER NOT NULL, "
-                    "end_time INTEGER NOT NULL, "
+                    "id_user INTEGER, "
+                    "start_time INTEGER, "
+                    "end_time INTEGER, "
                     "app_name TEXT, "
                     "title TEXT, "
                     "FOREIGN KEY(id_user) REFERENCES users(id))")) {
@@ -279,8 +279,8 @@ void Logger::initializeDatabase()
     // Dalam fungsi initializeDatabase()
     if (!query.exec("CREATE TABLE IF NOT EXISTS users ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "username TEXT UNIQUE NOT NULL, "
-                    "password TEXT NOT NULL, "
+                    "username TEXT UNIQUE, "
+                    "password TEXT, "
                     "department TEXT, "
                     "profile_image TEXT, "
                     "email TEXT, "
@@ -306,35 +306,35 @@ void Logger::initializeProductivityDatabase()
     QSqlQuery query(m_productivityDb);
     if (!query.exec("CREATE TABLE IF NOT EXISTS aplikasi ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "aplikasi TEXT NOT NULL, "
+                    "aplikasi TEXT, "
                     "window_title TEXT, "
-                    "jenis INTEGER NOT NULL, "
-                    "productivity INTEGER NOT NULL DEFAULT 0, "
-                    "for_user TEXT NOT NULL DEFAULT '0')")) { // '0'=all users, '1,2,3'=specific users
+                    "jenis INTEGER, "
+                    "productivity INTEGER DEFAULT 0, "
+                    "for_user TEXT DEFAULT '0')")) { // '0'=all users, '1,2,3'=specific users
         qWarning() << "Failed to create aplikasi table:" << query.lastError().text();
     }
 
     if (!query.exec("CREATE TABLE IF NOT EXISTS task ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "project_name TEXT NOT NULL, "
+                    "project_name TEXT, "
                     "task TEXT, "
-                    "max_time INTEGER NOT NULL, "
-                    "time_usage INTEGER NOT NULL, "
-                    "active BOOLEAN NOT NULL, "
-                    "status TEXT NOT NULL, "
-                    "paused BOOLEAN NOT NULL DEFAULT 0,"
-                    "user_id INTEGER NOT NULL)")) {
+                    "max_time INTEGER, "
+                    "time_usage INTEGER, "
+                    "active BOOLEAN, "
+                    "status TEXT, "
+                    "paused BOOLEAN DEFAULT 0,"
+                    "user_id INTEGER)")) {
         qWarning() << "Failed to create task table:" << query.lastError().text();
     }
 
     if (!query.exec("CREATE TABLE IF NOT EXISTS completed_tasks ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "project_name TEXT NOT NULL, "
-                    "task TEXT NOT NULL, "
-                    "max_time INTEGER NOT NULL, "
-                    "time_usage INTEGER NOT NULL, "
-                    "completed_time INTEGER NOT NULL)"
-                    "user_id INTEGER NOT NULL)")) {
+                    "project_name TEXT, "
+                    "task TEXT, "
+                    "max_time INTEGER, "
+                    "time_usage INTEGER, "
+                    "completed_time INTEGER)"
+                    "user_id INTEGER)")) {
         qWarning() << "Failed to create completed_tasks table:" << query.lastError().text();
     }
     // Di logger.cpp - fungsi initializeProductivityDatabase()
@@ -345,19 +345,19 @@ void Logger::initializeProductivityDatabase()
     }
     if (!query.exec("CREATE TABLE IF NOT EXISTS log_paused ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "task_id INTEGER NOT NULL, "
-                    "start_reality TEXT NOT NULL, "  // ISO 8601 format: 'YYYY-MM-DDTHH:MM:SS.SSSSSSZ'
-                    "end_reality TEXT NOT NULL, "
-                    "current_status TEXT NOT NULL, "  // 'pause' or 'play'
+                    "task_id INTEGER, "
+                    "start_reality TEXT, "  // ISO 8601 format: 'YYYY-MM-DDTHH:MM:SS.SSSSSSZ'
+                    "end_reality TEXT, "
+                    "current_status TEXT, "  // 'pause' or 'play'
                     "FOREIGN KEY(task_id) REFERENCES task(id))")) {
         qWarning() << "Failed to create log_paused table:" << query.lastError().text();
     }
     // Buat tabel baru untuk "Time at Work"
     if (!query.exec("CREATE TABLE IF NOT EXISTS work_time ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "user_id INTEGER NOT NULL, "
-                    "date TEXT NOT NULL, "
-                    "elapsed_seconds INTEGER NOT NULL DEFAULT 0, "
+                    "user_id INTEGER, "
+                    "date TEXT, "
+                    "elapsed_seconds INTEGER DEFAULT 0, "
                     "UNIQUE(user_id, date))")) {
         qWarning() << "Failed to create work_time table:" << query.lastError().text();
     }
@@ -534,7 +534,7 @@ void Logger::checkTaskStatusBeforeStart()
     }
     // Cari user yang memiliki token login
     QSqlQuery autoLoginQuery(m_db);
-    if (autoLoginQuery.exec("SELECT id, username, email, token FROM users WHERE token IS NOT NULL AND token != '' LIMIT 1")) {
+    if (autoLoginQuery.exec("SELECT id, username, email, token FROM users WHERE token IS AND token != '' LIMIT 1")) {
         if (autoLoginQuery.next()) {
             m_currentUserId = autoLoginQuery.value(0).toInt();
             m_currentUsername = autoLoginQuery.value(1).toString();
@@ -646,7 +646,7 @@ int Logger::logCount() const
         return 0;
     }
 
-    QString queryStr = "SELECT COUNT(*) FROM log WHERE app_name IS NOT NULL AND title IS NOT NULL AND id_user = :id_user";
+    QString queryStr = "SELECT COUNT(*) FROM log WHERE app_name IS AND title IS AND id_user = :id_user";
     if (!m_startDateFilter.isEmpty()) {
         queryStr += QString(" AND date(start_time, 'unixepoch', 'localtime') >= date('%1')")
         .arg(m_startDateFilter);
@@ -684,7 +684,7 @@ QString Logger::logContent() const
 
     QString content;
     QString queryStr = "SELECT start_time, end_time, app_name, title FROM log "
-                       "WHERE app_name IS NOT NULL AND title IS NOT NULL AND id_user = :id_user ";
+                       "WHERE app_name IS AND title IS AND id_user = :id_user ";
 
     if (!m_startDateFilter.isEmpty()) {
         queryStr += QString("AND date(start_time, 'unixepoch', 'localtime') >= date('%1') ")
@@ -740,7 +740,7 @@ QVariantMap Logger::productivityStats() const
     double totalTime = 0;
 
     QString queryStr = "SELECT start_time, end_time, app_name, title FROM log "
-                       "WHERE app_name IS NOT NULL AND title IS NOT NULL AND id_user = :id_user ";
+                       "WHERE app_name IS AND title IS AND id_user = :id_user ";
     if (!m_startDateFilter.isEmpty()) {
         queryStr += QString("AND date(start_time, 'unixepoch', 'localtime') >= date('%1') ")
         .arg(m_startDateFilter);
@@ -1233,7 +1233,7 @@ int Logger::getAppProductivityType(const QString &appName, const QString &window
         QVector<QPair<QString, int>> titleEntries;
         query.prepare(
             "SELECT window_title, jenis, for_user FROM aplikasi "
-            "WHERE window_title IS NOT NULL AND window_title != ''"
+            "WHERE window_title IS AND window_title != ''"
             );
 
         if (query.exec()) {
@@ -1587,7 +1587,7 @@ void Logger::migrateProductivityDatabase()
         }
     }
     if (!hasUserId) {
-        if (!query.exec("ALTER TABLE task ADD COLUMN user_id INTEGER NOT NULL DEFAULT 0")) {
+        if (!query.exec("ALTER TABLE task ADD COLUMN user_id INTEGER DEFAULT 0")) {
             qWarning() << "Failed to add user_id to task table:" << query.lastError().text();
         }
     }
@@ -1602,7 +1602,7 @@ void Logger::migrateProductivityDatabase()
         }
     }
     if (!hasUserId) {
-        if (!query.exec("ALTER TABLE completed_tasks ADD COLUMN user_id INTEGER NOT NULL DEFAULT 0")) {
+        if (!query.exec("ALTER TABLE completed_tasks ADD COLUMN user_id INTEGER DEFAULT 0")) {
             qWarning() << "Failed to add user_id to completed_tasks table:" << query.lastError().text();
         }
     }
@@ -3162,7 +3162,7 @@ Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
             "tell application \"System Events\" to get name of first application process whose frontmost is true"
         });
 
-        if (appProcess.waitForFinished(100)) {
+        if (appProcess.waitForFinished(2000)) {
             info.appName = QString(appProcess.readAllStandardOutput()).trimmed();
             qDebug() << "App name:" << info.appName;
         } else {
@@ -3180,7 +3180,7 @@ Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
             "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"
         });
 
-        if (titleProcess.waitForFinished(100)) {
+        if (titleProcess.waitForFinished(2000)) {
             info.title = QString(titleProcess.readAllStandardOutput()).trimmed();
             qDebug() << "Window title:" << info.title;
         } else {
