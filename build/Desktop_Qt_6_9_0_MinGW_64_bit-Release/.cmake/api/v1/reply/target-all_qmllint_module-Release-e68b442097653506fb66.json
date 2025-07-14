@@ -28,7 +28,7 @@
 			{
 				"command" : 6,
 				"file" : 2,
-				"line" : 48,
+				"line" : 123,
 				"parent" : 0
 			},
 			{
@@ -52,7 +52,7 @@
 			{
 				"command" : 2,
 				"file" : 1,
-				"line" : 1555,
+				"line" : 1557,
 				"parent" : 4
 			},
 			{
@@ -85,15 +85,15 @@
 	[
 		{
 			"backtrace" : 9,
-			"id" : "Deskmon_qmllint_json::@6890427a1f51a3e7e1df"
+			"id" : "Deskmon_qmllint_module::@6890427a1f51a3e7e1df"
 		}
 	],
 	"folder" : 
 	{
 		"name" : "QtInternalTargets/QmlLinter"
 	},
-	"id" : "all_qmllint_json::@6890427a1f51a3e7e1df",
-	"name" : "all_qmllint_json",
+	"id" : "all_qmllint_module::@6890427a1f51a3e7e1df",
+	"name" : "all_qmllint_module",
 	"paths" : 
 	{
 		"build" : ".",

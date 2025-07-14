@@ -88,6 +88,15 @@ bool IdleChecker::isIdle() const
 
 void IdleChecker::checkIdleTime()
 {
+    if (!m_logger || m_logger->currentUserId() == -1) {
+        if (m_isIdle) {
+            m_isIdle = false;
+            m_lastIdleLogTime = 0;
+            m_lastActiveTime = 0;
+        }
+        qDebug() << "Idle check skipped: user not logged in";
+        return;
+    }
     // Skip checking if tracking is not active or task is paused
     if (m_logger && (!m_logger->isTrackingActive() || m_logger->isTaskPaused())) {
         // Ensure idle state is reset when paused or tracking is off

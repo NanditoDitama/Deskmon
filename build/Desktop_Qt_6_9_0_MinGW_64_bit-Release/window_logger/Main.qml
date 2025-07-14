@@ -14,6 +14,7 @@ ApplicationWindow {
     minimumWidth: 900
     minimumHeight: 900
 
+
     Rectangle {
         id: notification
         width: 400
@@ -488,55 +489,80 @@ ApplicationWindow {
 
 
 
-    Popup {
-        id: idleNotificationPopup
-        width: 300
-        height: 220
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
-        modal: true
-        closePolicy: Popup.NoAutoClose
-        visible: showIdleNotification
+        ApplicationWindow {
+            id: idleNotificationWindow
+            width: 300
+            height: 220
+            x: (Screen.width - width) / 2
+            y: (Screen.height - height) / 2
+            flags: Qt.Dialog | Qt.WindowStaysOnTopHint
+            modality: Qt.ApplicationModal
+            title: "Idle Detected"
 
-        background: Rectangle {
-            color: cardColor
-            radius: 8
-            border.color: dividerColor
-            border.width: 1
-        }
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 16
-            spacing: 12
-
-            Label {
-                text: "Idle Detected"
-                font { bold: true; pixelSize: 16 }
-                color: nonProductiveColor
-                Layout.alignment: Qt.AlignHCenter
-            }
-
-            Label {
-                text: idleNotificationText
-                font.pixelSize: 14
-                wrapMode: Text.Wrap
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-            }
-
-            Button {
-                text: "OK"
-                Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: 100
-                Material.background: secondaryColor
-                Material.foreground: "white"
-                onClicked: {
+            // Handle window closing
+            onVisibleChanged: {
+                if (!visible) {
                     showIdleNotification = false
                 }
             }
+
+            // Simple binding approach
+            visible: showIdleNotification
+
+            background: Rectangle {
+                color: cardColor
+                border.color: dividerColor
+                border.width: 1
+            }
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 16
+                spacing: 12
+
+                // SVG Image - Option 2: Using Rectangle container
+                Rectangle {
+                    width: 24
+                    height: 24
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: 4
+                    color: "transparent"
+
+                    Image {
+                        anchors.fill: parent
+                        source: "qrc:/icons/danger.svg" // Ganti dengan path file SVG Anda
+                        fillMode: Image.PreserveAspectFit
+                    }
+                }
+
+                Label {
+                    text: "Idle Detected"
+                    font { bold: true; pixelSize: 16 }
+                    color: nonProductiveColor
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                Label {
+                    text: idleNotificationText
+                    font.pixelSize: 14
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                }
+
+                Button {
+                    text: "OK"
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: 100
+                    Material.background: secondaryColor
+                    Material.foreground: "white"
+                    onClicked: {
+                        showIdleNotification = false
+                        idleNotificationWindow.close()
+                    }
+                }
+            }
         }
-    }
 
     // Tambahkan connection untuk menangani notifikasi idle
     Connections {
@@ -718,7 +744,6 @@ ApplicationWindow {
         }
     }
 
-    // Profile Page
     // Profile Page
     Rectangle {
         anchors.fill: parent
@@ -1107,36 +1132,6 @@ ApplicationWindow {
                             }
                         }
 
-                        // Edit Profile Button
-                        Button {
-                            text: "Edit Profile"
-                            Layout.fillWidth: true
-                            Layout.topMargin: 8
-                            Layout.preferredHeight: 52
-                            Material.background: secondaryColor
-                            Material.foreground: "white"
-                            font {
-                                pixelSize: 16;
-                                bold: true;
-                                family: "Segoe UI Semibold"
-                            }
-                            onClicked: {
-                                tempUsername = logger.currentUsername
-                                tempPassword = ""
-                                editProfileDialog.open()
-                            }
-
-                            background: Rectangle {
-                                radius: 12
-                                color: parent.down ? Qt.darker(secondaryColor, 1.1) :
-                                      parent.hovered ? Qt.lighter(secondaryColor, 1.1) : secondaryColor
-                            }
-
-                            HoverHandler {
-                                cursorShape: Qt.PointingHandCursor
-                            }
-                        }
-
                         // Status Message
                         Label {
                             id: profileErrorLabel
@@ -1152,272 +1147,7 @@ ApplicationWindow {
         }
     }
 
-    // Modern Edit Profile Dialog
-    Dialog {
-        id: editProfileDialog
-        title: "Edit Profile"
-        modal: true
-        anchors.centerIn: parent
-        width: Math.min(parent.width - 40, 500)
-        height: 520
-        padding: 0
-        dim: true
 
-        property color secondaryColor: "#3B82F6" // Example color, adjust as needed
-
-        background: Rectangle {
-            color: cardColor
-            radius: 24
-            layer.enabled: true
-        }
-
-        header: Rectangle {
-            color: "transparent"
-            height: 60
-
-            Label {
-                anchors.centerIn: parent
-                text: "Edit Profile"
-                font {
-                    pixelSize: 20;
-                    bold: true;
-                    family: "Segoe UI Semibold"
-                }
-                color: textColor
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 1
-                anchors.bottom: parent.bottom
-                color: dividerColor // Changed to use theme's dividerColor
-            }
-        }
-
-        contentItem: Rectangle {
-            color: "transparent"
-            radius: 24
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 24
-                spacing: 16
-
-                // Username Field
-                ColumnLayout {
-                    spacing: 6
-                    Layout.fillWidth: true
-
-                    Label {
-                        text: "Username"
-                        font {
-                            pixelSize: 13;
-                            bold: true;
-                            family: "Segoe UI"
-                        }
-                        color: textColor
-                    }
-
-                    TextField {
-                        id: usernameEditField
-                        text: tempUsername
-                        font.pixelSize: 15
-                        padding: 16
-                        Layout.fillWidth: true
-                        placeholderText: "Enter username"
-                        color: textColor
-                        selectionColor: secondaryColor
-                        selectedTextColor: "white"
-
-                        background: Rectangle {
-                            radius: 12
-                            color: cardColor
-                            border.color: dividerColor
-                            border.width: 1
-                        }
-                    }
-                }
-
-                // Password Field
-                ColumnLayout {
-                    spacing: 6
-                    Layout.fillWidth: true
-
-                    Label {
-                        text: "Password"
-                        font {
-                            pixelSize: 13;
-                            bold: true;
-                            family: "Segoe UI"
-                        }
-                        color: textColor
-                    }
-
-                    TextField {
-                        id: passwordEditField
-                        text: tempPassword
-                        font.pixelSize: 15
-                        padding: 16
-                        Layout.fillWidth: true
-                        placeholderText: "Leave empty to keep current"
-                        echoMode: passwordVisible.checked ? TextInput.Normal : TextInput.Password
-                        color: textColor
-                        selectionColor: secondaryColor
-                        selectedTextColor: "white"
-
-                        background: Rectangle {
-                            radius: 12
-                            color: cardColor
-                            border.color: dividerColor
-                            border.width: 1
-                        }
-
-                        RowLayout {
-                            anchors.right: parent.right
-                            anchors.rightMargin: 12
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 0
-
-                            Button {
-                                id: togglePasswordButton
-                                width: 40
-                                height: 40
-                                flat: true
-                                icon.source: passwordVisible.checked ?
-                                    "qrc:/icons/visibility.svg" : "qrc:/icons/visibility_off.svg"
-                                icon.width: 22
-                                icon.height: 22
-                                icon.color: lightTextColor
-                                onClicked: passwordVisible.checked = !passwordVisible.checked
-
-                                background: Rectangle {
-                                    radius: 12
-                                    color: parent.hovered ? Qt.lighter(cardColor, 1.1) : "transparent"
-                                }
-
-                                HoverHandler {
-                                    cursorShape: Qt.PointingHandCursor
-                                }
-                            }
-                        }
-                    }
-
-                    CheckBox {
-                        id: passwordVisible
-                        visible: false
-                    }
-                }
-
-                // Error Message
-                Label {
-                    id: editProfileErrorLabel
-                    text: ""
-                    color: "#EF4444" // Error color
-                    font.pixelSize: 13
-                    Layout.alignment: Qt.AlignHCenter
-                    visible: text !== ""
-                }
-
-                // Button Row
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.topMargin: 8
-                    spacing: 12
-
-                    Button {
-                        text: "Cancel"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        Material.background: "transparent"
-                        Material.foreground: lightTextColor
-                        font {
-                            pixelSize: 16;
-                            bold: true;
-                            family: "Segoe UI Semibold"
-                        }
-
-                        background: Rectangle {
-                            radius: 12
-                            color: parent.hovered ? Qt.lighter(cardColor, 1.1) : "transparent"
-                            border.color: dividerColor
-                            border.width: 1
-                        }
-
-                        onClicked: {
-                            tempUsername = currentUsername
-                            tempPassword = ""
-                            editProfileErrorLabel.text = ""
-                            editProfileDialog.close()
-                        }
-
-                        HoverHandler {
-                            cursorShape: Qt.PointingHandCursor
-                        }
-                    }
-
-                    Button {
-                        text: "Save Changes"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        Material.background: secondaryColor
-                        Material.foreground: "white"
-                        font {
-                            pixelSize: 16;
-                            bold: true;
-                            family: "Segoe UI Semibold"
-                        }
-
-                        background: Rectangle {
-                            radius: 12
-                            color: parent.down ? Qt.darker(secondaryColor, 1.1) :
-                                  parent.hovered ? Qt.lighter(secondaryColor, 1.1) : secondaryColor
-                        }
-
-                        onClicked: {
-                            if (usernameEditField.text === "") {
-                                editProfileErrorLabel.text = "Username cannot be empty"
-                                editProfileErrorLabel.color = "#EF4444"
-                                return
-                            }
-
-                            // Fixed: Call the function with all required arguments
-                            // You'll need to adjust this to match your actual backend requirements
-                            var errorMessage = logger.updateUserProfile(
-                                currentUsername,        // old username
-                                usernameEditField.text, // new username
-                                passwordEditField.text, // new password
-                                "",                    // additional parameter 1 (if needed)
-                                ""                     // additional parameter 2 (if needed)
-                            )
-
-                            if (errorMessage === "") {
-                                currentUsername = usernameEditField.text
-                                tempPassword = ""
-                                editProfileErrorLabel.text = "Profile updated successfully"
-                                editProfileErrorLabel.color = "#10B981" // Success color
-                                editProfileDialog.close()
-                            } else {
-                                editProfileErrorLabel.text = errorMessage
-                                editProfileErrorLabel.color = "#EF4444"
-                            }
-                        }
-
-                        HoverHandler {
-                            cursorShape: Qt.PointingHandCursor
-                        }
-                    }
-                }
-            }
-        }
-
-        function openDialog(username) {
-            currentUsername = username
-            tempUsername = username
-            tempPassword = ""
-            editProfileErrorLabel.text = ""
-            open()
-        }
-    }
 
 
     // Dashboard
@@ -1602,12 +1332,13 @@ ApplicationWindow {
                             }
 
                             onClicked: {
-                                isLoggedIn = false
-                                currentUsername = ""
-                                sortedApps = []
-                                logger.clearLogFilter()
-                                profileImagePath = ":/profilImage.png"
-                            }
+                                    logger.logout(); // Call the new logout function
+                                    isLoggedIn = false
+                                    currentUsername = ""
+                                    sortedApps = []
+                                    logger.clearLogFilter()
+                                    profileImagePath = ":/profilImage.png"
+                                }
                         }
                     }
                 }
@@ -1628,7 +1359,7 @@ ApplicationWindow {
                 Frame {
                     id: combinedCard
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 340
+                    Layout.preferredHeight: 320
                     padding: 16
 
                     background: Rectangle {
@@ -2319,7 +2050,7 @@ ApplicationWindow {
                                     running: chartAnimator.running
                                     onTriggered: productivityCanvas.requestPaint()
                                 }
-                            // Vertical Legend (right side)
+                                // Vertical Legend (right side)
                                 ColumnLayout {
                                     spacing: 12
                                     Layout.alignment: Qt.AlignVCenter
@@ -2442,7 +2173,6 @@ ApplicationWindow {
                                         color: dividerColor
                                     }
 
-                                    // Optional: Add total time summary
                                     // Timer Display
                                     ColumnLayout {
                                         spacing: 8
@@ -2462,8 +2192,10 @@ ApplicationWindow {
                                             Item { Layout.fillWidth: true } // Spacer
 
                                             Label {
+                                                // Menggunakan properti dari workTimer yang sudah disederhanakan
                                                 text: Math.round(workTimer.getProgress() * 100) + "%"
                                                 font { pixelSize: 14; weight: Font.Bold }
+                                                // Logika warna tetap sama
                                                 color: workTimer.elapsedSeconds >= 28800 ? "#27ae60" : "#e74c3c"
                                             }
                                         }
@@ -2474,6 +2206,7 @@ ApplicationWindow {
                                             spacing : 10
 
                                             Label{
+                                                // Menggunakan fungsi dari workTimer yang sudah disederhanakan
                                                 text: workTimer.getFormattedElapsed()
                                                 font { pixelSize: 10; weight: Font.Medium }
                                                 color: workTimer.elapsedSeconds >= 28800 ? "#27ae60" : lightTextColor
@@ -2486,6 +2219,7 @@ ApplicationWindow {
                                                 color: Qt.rgba(0, 0, 0, 0.1)
 
                                                 Rectangle {
+                                                    // Menggunakan progress dari workTimer yang sudah disederhanakan
                                                     width: parent.width * workTimer.getProgress()
                                                     height: parent.height
                                                     radius: 3
@@ -2506,14 +2240,16 @@ ApplicationWindow {
                                         }
                                     }
 
-                                    // Work Timer Object
+                                    // Work Timer Object (Sekarang hanya sebagai penyedia data, logika ada di C++)
                                     QtObject {
                                         id: workTimer
 
-                                        property int elapsedSeconds: 0
-                                        property int totalWorkSeconds: 28800 // 8 hours = 8 * 60 * 60
-                                        property bool running: false
-                                        property int pausedElapsedSeconds: 0 // Store elapsed time when paused
+                                        // Properti ini sekarang terhubung langsung ke backend C++ melalui alias.
+                                        // Ketika logger.workTimeElapsedSeconds berubah di C++, properti ini akan otomatis update.
+                                        property int elapsedSeconds: logger.workTimeElapsedSeconds
+                                        property int totalWorkSeconds: 28800 // 8 jam = 8 * 60 * 60
+
+
 
                                         // Function untuk sinkronisasi dengan status logger
                                         function syncWithLoggerStatus() {
@@ -2631,6 +2367,7 @@ ApplicationWindow {
                                             }
                                         }
                                     }
+
                                 }
                             }
 
@@ -4151,10 +3888,522 @@ ApplicationWindow {
                 columns: 2
                 columnSpacing: 14
                 rowSpacing: 14
+
                 Frame {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 500
                     Layout.maximumWidth: 800
+                    Layout.fillHeight: true
+
+                    padding: 16
+                    background: Rectangle {
+                        color: cardColor
+                        radius: 8
+                        border.color: dividerColor
+                        border.width: 1
+                    }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 12
+
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Label {
+                                text: "Current Task"
+                                font { bold: true; pixelSize: 16; family: "Segoe UI" }
+                                color: primaryColor
+                            }
+                            Item { Layout.fillWidth: true }
+
+                            // Pause/Resume button - hidden when task status is "Review"
+                            Button {
+                                visible: {
+                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                    return logger.activeTaskId === -1 || !(activeTask && activeTask.status === "Review")
+                                }
+                                text: logger.isTaskPaused ? "Play" : "Pause"
+                                Layout.preferredWidth: 100
+                                Layout.preferredHeight: 34
+                                font.pixelSize: 14
+                                background: Rectangle {
+                                    radius: 8
+                                    color: logger.isTaskPaused ? accentColor : productiveColor
+                                }
+                                contentItem: Text {
+                                    text: logger.isTaskPaused ? "Play" : "Pause"
+                                    font: parent.font
+                                    color: "white"
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    anchors.centerIn: parent
+                                }
+                                onClicked: {
+                                    // Toggle task pause (ini akan mengatur logger.isTaskPaused)
+                                    logger.toggleTaskPause()
+                                }
+
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 1
+                            color: dividerColor
+                            Layout.topMargin: 4
+                        }
+
+                        // Active Task Info
+                        ColumnLayout {
+                            visible: logger.activeTaskId !== -1
+                            spacing: 8
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+                                Label {
+                                    text: "Status:"
+                                    font { family: "Segoe UI"; pixelSize: 14 }
+                                    color: lightTextColor
+                                }
+
+                                RowLayout {
+                                    spacing: 6
+
+                                    Rectangle {
+                                        width: 10
+                                        height: 10
+                                        radius: 5
+                                        color: {
+                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                            if (activeTask && activeTask.status === "Review") {
+                                                return "#FF9800" // Orange for review status
+                                            }
+                                            return logger.isTaskPaused ? accentColor : productiveColor
+                                        }
+                                        opacity: {
+                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                            if (activeTask && activeTask.status === "Review") {
+                                                return 0.7 // Static opacity for review
+                                            }
+                                            return logger.isTaskPaused ? 0.8 : 1
+                                        }
+
+                                        // Animasi hanya untuk task non-Review yang aktif
+                                        SequentialAnimation on opacity {
+                                            running: {
+                                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                                return !logger.isTaskPaused && !(activeTask && activeTask.status === "Review")
+                                            }
+                                            loops: Animation.Infinite
+                                            NumberAnimation { from: 0.3; to: 1; duration: 800; easing.type: Easing.InOutQuad }
+                                            NumberAnimation { from: 1; to: 0.3; duration: 800; easing.type: Easing.InOutQuad }
+                                        }
+                                    }
+
+                                    Label {
+                                        text: {
+                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                            if (activeTask && activeTask.status === "Review") {
+                                                return "Review"
+                                            }
+                                            return logger.isTaskPaused ? "Paused" : "Active"
+                                        }
+                                        font { family: "Segoe UI"; pixelSize: 14 }
+                                        color: {
+                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                            if (activeTask && activeTask.status === "Review") {
+                                                return "#FF9800"
+                                            }
+                                            return logger.isTaskPaused ? accentColor : productiveColor
+                                        }
+                                    }
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+
+                                        Label {
+                                            text: ""
+                                            font.pixelSize: 14
+                                            color: lightTextColor
+                                        }
+
+                                        Label {
+                                            text: {
+                                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                                if (activeTask) {
+                                                    // Untuk task Review, waktu tidak bertambah
+                                                    return logger.formatDuration(activeTask.time_usage)
+                                                }
+                                            }
+                                            font.pixelSize: 14
+                                            color: {
+                                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                                if (activeTask && activeTask.time_usage > activeTask.max_time) {
+                                                    return nonProductiveColor
+                                                }
+                                                return lightTextColor
+                                            }
+                                        }
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 6
+                                            radius: 3
+                                            color: Qt.rgba(dividerColor.r, dividerColor.g, dividerColor.b, 0.3)
+
+                                            Rectangle {
+                                                width: {
+                                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                                    if (activeTask) {
+                                                        return parent.width * Math.min(1, activeTask.time_usage / activeTask.max_time)
+                                                    }
+                                                    return parent.width * Math.min(1, logger.globalTimeUsage / (8 * 3600))
+                                                }
+                                                height: parent.height
+                                                radius: 3
+                                                color: {
+                                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                                    if (activeTask && activeTask.time_usage > activeTask.max_time) {
+                                                        return nonProductiveColor
+                                                    }
+                                                    return secondaryColor
+                                                }
+
+                                                // Nonaktifkan animasi untuk task Review
+                                                Behavior on width {
+                                                    enabled: {
+                                                        var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                                        return !(activeTask && activeTask.status === "Review")
+                                                    }
+                                                    NumberAnimation { duration: 500 }
+                                                }
+                                            }
+                                        }
+                                        Label {
+                                            text: {
+                                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                                if (activeTask) {
+                                                    // Untuk task Review, waktu tidak bertambah
+                                                    return logger.formatDuration(activeTask.max_time)
+                                                }
+                                            }
+                                            font.pixelSize: 14
+                                            color: {
+                                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                                if (activeTask && activeTask.time_usage > activeTask.max_time) {
+                                                    return nonProductiveColor
+                                                }
+                                                return lightTextColor
+                                            }
+                                        }
+                                    }
+                                }
+
+
+                            }
+
+
+                        }
+
+                        Label {
+                            visible: logger.activeTaskId === -1
+                            text: "No active task"
+                            font.pixelSize: 14
+                            color: lightTextColor
+                            Layout.alignment: Qt.AlignHCenter
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 1
+                            color: dividerColor
+                            visible: taskListView.count > 0
+                        }
+
+                        ScrollView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            visible: taskListView.count > 0
+
+                            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+                            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
+                            ListView {
+                                id: taskListView
+
+                                // Properti untuk menyimpan posisi scroll
+                                property real savedContentY: 0
+                                property bool preservePosition: false
+
+                                model: {
+                                    if (!logger.taskList) return []
+
+                                    // Simpan posisi sebelum update model
+                                    if (taskListView.count > 0) {
+                                        taskListView.savedContentY = taskListView.contentY
+                                        taskListView.preservePosition = true
+                                    }
+
+                                    var sorted = logger.taskList.slice() // Copy array
+                                    sorted.sort(function(a, b) {
+                                        // Active task selalu di atas
+                                        if (a.active && !b.active) return -1
+                                        if (b.active && !a.active) return 1
+                                        return a.id - b.id
+                                    })
+
+                                    return sorted
+                                }
+
+                                spacing: 8
+                                width: parent.width
+
+                                boundsBehavior: Flickable.StopAtBounds
+                                flickableDirection: Flickable.VerticalFlick
+                                highlightFollowsCurrentItem: false
+                                keyNavigationEnabled: false
+
+                                // Restore posisi setelah model berubah
+                                onCountChanged: {
+                                    if (preservePosition && count > 0) {
+                                        Qt.callLater(function() {
+                                            taskListView.contentY = taskListView.savedContentY
+                                            taskListView.preservePosition = false
+                                        })
+                                    }
+                                }
+
+                                // Alternative: menggunakan onModelChanged jika onCountChanged tidak bekerja
+                                onModelChanged: {
+                                    if (preservePosition && model && model.length > 0) {
+                                        Qt.callLater(function() {
+                                            taskListView.contentY = taskListView.savedContentY
+                                            taskListView.preservePosition = false
+                                        })
+                                    }
+                                }
+
+                                delegate: Rectangle {
+                                    id: delegateRoot
+                                    width: taskListView.width
+                                    height: column.implicitHeight + 20
+                                    radius: 8
+
+                                    readonly property bool isReview: modelData.status === "Review"
+                                    readonly property bool isActive: modelData.active
+
+                                    color: {
+                                        if (isReview) {
+                                            return Qt.rgba(255/255, 152/255, 0/255, 0.08) // Subtle orange for review
+                                        }
+                                        return isActive ? Qt.lighter(cardColor, 1.6) : cardColor
+                                    }
+                                    border.color: {
+                                        if (isReview) {
+                                            return Qt.rgba(255/255, 152/255, 0/255, 0.3) // Soft orange border
+                                        }
+                                        return isActive ? secondaryColor : Qt.rgba(dividerColor.r, dividerColor.g, dividerColor.b, 0.3)
+                                    }
+                                    border.width: 1
+                                    opacity: isReview ? 0.85 : 1
+
+                                    // Subtle shadow effect
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        anchors.topMargin: 1
+                                        radius: parent.radius
+                                        color: Qt.rgba(0, 0, 0, 0.02)
+                                        z: -1
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        enabled: !delegateRoot.isReview
+                                        onClicked: {
+                                            if (!delegateRoot.isActive && logger.activeTaskId !== -1) {
+                                                confirmSwitchDialog.taskId = modelData.id
+                                                confirmSwitchDialog.open()
+                                            } else if (!delegateRoot.isActive) {
+                                                logger.setActiveTask(modelData.id)
+                                            }
+                                        }
+                                    }
+
+                                    ColumnLayout {
+                                        id: column
+                                        anchors.fill: parent
+                                        anchors.margins: 12
+                                        spacing: 6
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 8
+
+                                            Label {
+                                                id: projectLabel
+                                                text: modelData.project_name
+                                                font { bold: true; pixelSize: 14 }
+                                                color: delegateRoot.isReview ? "#FF9800" : textColor
+                                                elide: Text.ElideRight
+                                                Layout.fillWidth: true
+                                                maximumLineCount: 1
+                                            }
+                                            Rectangle {
+                                                Layout.preferredWidth: 32
+                                                Layout.preferredHeight: 12
+                                                radius: 16
+                                                color: menuMouseArea.containsMouse ? Qt.rgba(0, 0, 0, 0.1) : "transparent"
+                                                visible: !delegateRoot.isReview
+
+                                                Rectangle {
+                                                    anchors.centerIn: parent
+                                                    width: 20
+                                                    height: 10
+                                                    radius: 10
+                                                    color: "transparent"
+                                                    border.color: Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.6)
+                                                    border.width: 1
+
+                                                    // Three dots
+                                                    Row {
+                                                        anchors.centerIn: parent
+                                                        spacing: 2
+
+                                                        Repeater {
+                                                            model: 3
+                                                            Rectangle {
+                                                                width: 2
+                                                                height: 2
+                                                                radius: 1
+                                                                color: Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.8)
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                MouseArea {
+                                                    id: menuMouseArea
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+
+                                                    onClicked: {
+                                                        // Simpan data yang diperlukan
+                                                        stableTaskMenu.taskId = modelData.id
+                                                        stableTaskMenu.userId = logger.currentUserId
+                                                        stableTaskMenu.authToken = logger.authToken
+
+                                                        // Popup menu (ini akan bekerja karena Menu memiliki method popup)
+                                                        stableTaskMenu.popup()
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 8
+
+                                            Label {
+                                                id: taskLabel
+                                                text: modelData.task
+                                                font.pixelSize: 12
+                                                color: delegateRoot.isReview ? Qt.rgba(255/255, 152/255, 0/255, 0.8) : lightTextColor
+                                                elide: Text.ElideRight
+                                                maximumLineCount: 1
+                                                Layout.fillWidth: true
+                                            }
+
+                                            // Modern "View All" button
+                                            Rectangle {
+                                                visible: projectLabel.truncated || taskLabel.truncated
+                                                Layout.preferredWidth: 56
+                                                Layout.preferredHeight: 20
+                                                radius: 10
+                                                color: viewAllArea.pressed ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.2) :
+                                                       viewAllArea.containsMouse ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1) :
+                                                       Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.05)
+
+                                                border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.3)
+                                                border.width: 1
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: "View All"
+                                                    font.pixelSize: 9
+                                                    font.bold: true
+                                                    color: primaryColor
+                                                }
+
+                                                MouseArea {
+                                                    id: viewAllArea
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: taskDetailPopup.show(modelData.project_name, modelData.task)
+                                                }
+                                            }
+                                        }
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+
+                                            // Status badge
+                                            Rectangle {
+                                                Layout.preferredHeight: 18
+                                                Layout.preferredWidth: statusText.implicitWidth + 12
+                                                radius: 9
+                                                color: modelData.status === "Review" ?
+                                                       Qt.rgba(255/255, 152/255, 0/255, 0.15) :
+                                                       Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.1)
+
+                                                border.color: modelData.status === "Review" ?
+                                                              Qt.rgba(255/255, 152/255, 0/255, 0.4) :
+                                                              Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.2)
+                                                border.width: 1
+
+                                                Label {
+                                                    id: statusText
+                                                    anchors.centerIn: parent
+                                                    text: modelData.status
+                                                    font.pixelSize: 10
+                                                    font.bold: true
+                                                    color: modelData.status === "Review" ? "#FF9800" : lightTextColor
+                                                }
+                                            }
+
+                                            Item { Layout.fillWidth: true }
+
+                                            // Time display with subtle background
+                                            Rectangle {
+                                                Layout.preferredWidth: timeLabel.implicitWidth + 8
+                                                Layout.preferredHeight: 18
+                                                radius: 4
+                                                color: Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.05)
+
+                                                Label {
+                                                    id: timeLabel
+                                                    anchors.centerIn: parent
+                                                    text: logger.formatDuration(modelData.time_usage)
+                                                    font.pixelSize: 11
+                                                    font.bold: true
+                                                    color: delegateRoot.isReview ? "#FF9800" : lightTextColor
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Frame {
+                    Layout.fillWidth: true
                     Layout.fillHeight: true
                     padding: 16
                     background: Rectangle {
@@ -4406,540 +4655,53 @@ ApplicationWindow {
                                 }
                             }
 
-                Frame {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    padding: 16
+            }
+
+            Menu {
+                id: stableTaskMenu
+
+                property int taskId: -1
+                property int userId: -1
+                property string authToken: ""
+
+                MenuItem {
+                    text: "Mark as Need Review"
+                    font.pixelSize: 13
+
                     background: Rectangle {
-                        color: cardColor
-                        radius: 8
-                        border.color: dividerColor
-                        border.width: 1
+                        color: parent.hovered ? Qt.rgba(255/255, 152/255, 0/255, 0.1) : "transparent"
+                        radius: 4
                     }
 
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 12
-
-                        Label {
-                            text: "Current Task"
-                            font { bold: true; pixelSize: 16; family: "Segoe UI" }
-                            color: primaryColor
+                    onTriggered: {
+                        var payload = {
+                            "status": "need-review"
                         }
 
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 1
-                            color: dividerColor
-                            Layout.topMargin: 4
-                        }
+                        var apiUrl = "https://deskmon.pranala-dt.co.id/api/update-status-task/" +
+                                    stableTaskMenu.taskId + "/" + stableTaskMenu.userId;
 
-                        // Active Task Info
-                        ColumnLayout {
-                            visible: logger.activeTaskId !== -1
-                            spacing: 8
+                        var request = new XMLHttpRequest()
+                        request.open("POST", apiUrl)
+                        request.setRequestHeader("Content-Type", "application/json")
+                        request.setRequestHeader("Authorization", "Bearer " + stableTaskMenu.authToken)
 
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 8
-                                Label {
-                                    text: "Status:"
-                                    font { family: "Segoe UI"; pixelSize: 14 }
-                                    color: lightTextColor
-                                }
-
-                                RowLayout {
-                                    spacing: 6
-
-                                    Rectangle {
-                                        width: 10
-                                        height: 10
-                                        radius: 5
-                                        color: {
-                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            if (activeTask && activeTask.status === "Review") {
-                                                return "#FF9800" // Orange for review status
-                                            }
-                                            return logger.isTaskPaused ? accentColor : productiveColor
-                                        }
-                                        opacity: {
-                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            if (activeTask && activeTask.status === "Review") {
-                                                return 0.7 // Static opacity for review
-                                            }
-                                            return logger.isTaskPaused ? 0.8 : 1
-                                        }
-
-                                        // Animasi hanya untuk task non-Review yang aktif
-                                        SequentialAnimation on opacity {
-                                            running: {
-                                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                                return !logger.isTaskPaused && !(activeTask && activeTask.status === "Review")
-                                            }
-                                            loops: Animation.Infinite
-                                            NumberAnimation { from: 0.3; to: 1; duration: 800; easing.type: Easing.InOutQuad }
-                                            NumberAnimation { from: 1; to: 0.3; duration: 800; easing.type: Easing.InOutQuad }
-                                        }
-                                    }
-
-                                    Label {
-                                        text: {
-                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            if (activeTask && activeTask.status === "Review") {
-                                                return "Review"
-                                            }
-                                            return logger.isTaskPaused ? "Paused" : "Active"
-                                        }
-                                        font { family: "Segoe UI"; pixelSize: 14 }
-                                        color: {
-                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            if (activeTask && activeTask.status === "Review") {
-                                                return "#FF9800"
-                                            }
-                                            return logger.isTaskPaused ? accentColor : productiveColor
-                                        }
-                                    }
-                                }
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-                                    Item { Layout.fillWidth: true }
-
-                                    // Pause/Resume button - hidden when task status is "Review"
-                                    Button {
-                                        visible: {
-                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            // Tampilkan tombol jika:
-                                            // 1. Tidak ada task aktif (activeTaskId === -1), ATAU
-                                            // 2. Ada task aktif dan statusnya bukan "Review"
-                                            return logger.activeTaskId === -1 || !(activeTask && activeTask.status === "Review")
-                                        }
-                                        text: logger.isTaskPaused ? "Play" : "Pause"
-                                        Layout.preferredWidth: 100
-                                        Layout.preferredHeight: 34
-                                        font.pixelSize: 14
-                                        background: Rectangle {
-                                            radius: 8
-                                            color: logger.isTaskPaused ? accentColor : productiveColor
-                                        }
-                                        contentItem: Text {
-                                            text: logger.isTaskPaused ? "Play" : "Pause"
-                                            font: parent.font
-                                            color: "white"
-                                            horizontalAlignment: Text.AlignHCenter
-                                            verticalAlignment: Text.AlignVCenter
-                                            anchors.centerIn: parent
-                                        }
-                                        onClicked: {
-                                            // Toggle task pause (ini akan mengatur logger.isTaskPaused)
-                                            logger.toggleTaskPause()
-                                        }
-
-                                    }
-                                }
-                            }
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 8
-
-                                Label {
-                                    text: "Time:"
-                                    font.pixelSize: 14
-                                    color: lightTextColor
-                                }
-
-                                Label {
-                                    text: {
-                                        var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                        if (activeTask) {
-                                            // Untuk task Review, waktu tidak bertambah
-                                            return logger.formatDuration(activeTask.time_usage) + " / " +
-                                                   logger.formatDuration(activeTask.max_time)
-                                        }
-                                        return logger.formatDuration(logger.globalTimeUsage) + " / 8h"
-                                    }
-                                    font.pixelSize: 14
-                                    color: {
-                                        var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                        if (activeTask && activeTask.time_usage > activeTask.max_time) {
-                                            return nonProductiveColor
-                                        }
-                                        return lightTextColor
-                                    }
-                                }
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    height: 6
-                                    radius: 3
-                                    color: Qt.rgba(dividerColor.r, dividerColor.g, dividerColor.b, 0.3)
-
-                                    Rectangle {
-                                        width: {
-                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            if (activeTask) {
-                                                return parent.width * Math.min(1, activeTask.time_usage / activeTask.max_time)
-                                            }
-                                            return parent.width * Math.min(1, logger.globalTimeUsage / (8 * 3600))
-                                        }
-                                        height: parent.height
-                                        radius: 3
-                                        color: {
-                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            if (activeTask && activeTask.time_usage > activeTask.max_time) {
-                                                return nonProductiveColor
-                                            }
-                                            return secondaryColor
-                                        }
-
-                                        // Nonaktifkan animasi untuk task Review
-                                        Behavior on width {
-                                            enabled: {
-                                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                                return !(activeTask && activeTask.status === "Review")
-                                            }
-                                            NumberAnimation { duration: 500 }
-                                        }
-                                    }
+                        request.onreadystatechange = function() {
+                            if (request.readyState === XMLHttpRequest.DONE) {
+                                if (request.status === 200) {
+                                    console.log("Task status updated to 'need review'")
+                                    logger.fetchAndStoreTasks()
+                                } else {
+                                    console.error("Failed to update task status:", request.status, request.responseText)
                                 }
                             }
                         }
 
-                        Label {
-                            visible: logger.activeTaskId === -1
-                            text: "No active task"
-                            font.pixelSize: 14
-                            color: lightTextColor
-                            Layout.alignment: Qt.AlignHCenter
-                        }
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 1
-                            color: dividerColor
-                            visible: taskListView.count > 0
-                        }
-
-                        Label {
-                            text: "Task List"
-                            font { bold: true; pixelSize: 14; family: "Segoe UI" }
-                            color: primaryColor
-                            visible: taskListView.count > 0
-                        }
-
-                        ScrollView {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            clip: true
-                            visible: taskListView.count > 0
-
-                            ScrollBar.vertical.policy: ScrollBar.AsNeeded
-                            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-
-                            ListView {
-                                id: taskListView
-
-                                // Properti untuk menyimpan posisi scroll
-                                property real savedContentY: 0
-                                property bool preservePosition: false
-
-                                model: {
-                                    if (!logger.taskList) return []
-
-                                    // Simpan posisi sebelum update model
-                                    if (taskListView.count > 0) {
-                                        taskListView.savedContentY = taskListView.contentY
-                                        taskListView.preservePosition = true
-                                    }
-
-                                    var sorted = logger.taskList.slice() // Copy array
-                                    sorted.sort(function(a, b) {
-                                        // Active task selalu di atas
-                                        if (a.active && !b.active) return -1
-                                        if (b.active && !a.active) return 1
-                                        return a.id - b.id
-                                    })
-
-                                    return sorted
-                                }
-
-                                spacing: 8
-                                width: parent.width
-
-                                boundsBehavior: Flickable.StopAtBounds
-                                flickableDirection: Flickable.VerticalFlick
-                                highlightFollowsCurrentItem: false
-                                keyNavigationEnabled: false
-
-                                // Restore posisi setelah model berubah
-                                onCountChanged: {
-                                    if (preservePosition && count > 0) {
-                                        Qt.callLater(function() {
-                                            taskListView.contentY = taskListView.savedContentY
-                                            taskListView.preservePosition = false
-                                        })
-                                    }
-                                }
-
-                                // Alternative: menggunakan onModelChanged jika onCountChanged tidak bekerja
-                                onModelChanged: {
-                                    if (preservePosition && model && model.length > 0) {
-                                        Qt.callLater(function() {
-                                            taskListView.contentY = taskListView.savedContentY
-                                            taskListView.preservePosition = false
-                                        })
-                                    }
-                                }
-
-                                delegate: Rectangle {
-                                    id: delegateRoot
-                                    width: taskListView.width
-                                    height: column.implicitHeight + 20
-                                    radius: 8
-
-                                    readonly property bool isReview: modelData.status === "Review"
-                                    readonly property bool isActive: modelData.active
-
-                                    color: {
-                                        if (isReview) {
-                                            return Qt.rgba(255/255, 152/255, 0/255, 0.08) // Subtle orange for review
-                                        }
-                                        return isActive ? Qt.lighter(cardColor, 1.6) : cardColor
-                                    }
-                                    border.color: {
-                                        if (isReview) {
-                                            return Qt.rgba(255/255, 152/255, 0/255, 0.3) // Soft orange border
-                                        }
-                                        return isActive ? secondaryColor : Qt.rgba(dividerColor.r, dividerColor.g, dividerColor.b, 0.3)
-                                    }
-                                    border.width: 1
-                                    opacity: isReview ? 0.85 : 1
-
-                                    // Subtle shadow effect
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        anchors.topMargin: 1
-                                        radius: parent.radius
-                                        color: Qt.rgba(0, 0, 0, 0.02)
-                                        z: -1
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        enabled: !delegateRoot.isReview
-                                        onClicked: {
-                                            if (!delegateRoot.isActive && logger.activeTaskId !== -1) {
-                                                confirmSwitchDialog.taskId = modelData.id
-                                                confirmSwitchDialog.open()
-                                            } else if (!delegateRoot.isActive) {
-                                                logger.setActiveTask(modelData.id)
-                                            }
-                                        }
-                                    }
-
-                                    ColumnLayout {
-                                        id: column
-                                        anchors.fill: parent
-                                        anchors.margins: 12
-                                        spacing: 6
-
-                                        RowLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 8
-
-                                            Label {
-                                                id: projectLabel
-                                                text: modelData.project_name
-                                                font { bold: true; pixelSize: 14 }
-                                                color: delegateRoot.isReview ? "#FF9800" : textColor
-                                                elide: Text.ElideRight
-                                                Layout.fillWidth: true
-                                                maximumLineCount: 1
-                                            }
-                                            Rectangle {
-                                                Layout.preferredWidth: 32
-                                                Layout.preferredHeight: 12
-                                                radius: 16
-                                                color: menuMouseArea.containsMouse ? Qt.rgba(0, 0, 0, 0.1) : "transparent"
-                                                visible: !delegateRoot.isReview
-
-                                                Rectangle {
-                                                    anchors.centerIn: parent
-                                                    width: 20
-                                                    height: 10
-                                                    radius: 10
-                                                    color: "transparent"
-                                                    border.color: Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.6)
-                                                    border.width: 1
-
-                                                    // Three dots
-                                                    Row {
-                                                        anchors.centerIn: parent
-                                                        spacing: 2
-
-                                                        Repeater {
-                                                            model: 3
-                                                            Rectangle {
-                                                                width: 2
-                                                                height: 2
-                                                                radius: 1
-                                                                color: Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.8)
-                                                            }
-                                                        }
-                                                    }
-                                                }
-
-                                                MouseArea {
-                                                    id: menuMouseArea
-                                                    anchors.fill: parent
-                                                    hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
-
-                                                    onClicked: {
-                                                        taskMenu.popup(parent)
-                                                    }
-                                                }
-
-                                                Menu {
-                                                    id: taskMenu
-
-                                                    MenuItem {
-                                                        text: "Mark as Need Review"
-                                                        font.pixelSize: 13
-
-                                                        background: Rectangle {
-                                                            color: parent.hovered ? Qt.rgba(255/255, 152/255, 0/255, 0.1) : "transparent"
-                                                            radius: 4
-                                                        }
-
-                                                        onTriggered: {
-                                                            var payload = {
-                                                                "task_id": modelData.id,
-                                                                "status": "need review"
-                                                            }
-
-                                                            var request = new XMLHttpRequest()
-                                                            request.open("PUT", "https://task-planner.bayueka.com/api/update-task-status")
-                                                            request.setRequestHeader("Content-Type", "application/json")
-                                                            request.setRequestHeader("Authorization", "Bearer " + logger.getCurrentToken())
-
-                                                            request.onreadystatechange = function() {
-                                                                if (request.readyState === XMLHttpRequest.DONE) {
-                                                                    if (request.status === 200) {
-                                                                        console.log("Task status updated to 'need review'")
-                                                                        logger.fetchAndStoreTasks()
-                                                                    } else {
-                                                                        console.error("Failed to update task status:", request.status, request.responseText)
-                                                                    }
-                                                                }
-                                                            }
-
-                                                            request.send(JSON.stringify(payload))
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        RowLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 8
-
-                                            Label {
-                                                id: taskLabel
-                                                text: modelData.task
-                                                font.pixelSize: 12
-                                                color: delegateRoot.isReview ? Qt.rgba(255/255, 152/255, 0/255, 0.8) : lightTextColor
-                                                elide: Text.ElideRight
-                                                maximumLineCount: 1
-                                                Layout.fillWidth: true
-                                            }
-
-                                            // Modern "View All" button
-                                            Rectangle {
-                                                visible: projectLabel.truncated || taskLabel.truncated
-                                                Layout.preferredWidth: 56
-                                                Layout.preferredHeight: 20
-                                                radius: 10
-                                                color: viewAllArea.pressed ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.2) :
-                                                       viewAllArea.containsMouse ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1) :
-                                                       Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.05)
-
-                                                border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.3)
-                                                border.width: 1
-
-                                                Text {
-                                                    anchors.centerIn: parent
-                                                    text: "View All"
-                                                    font.pixelSize: 9
-                                                    font.bold: true
-                                                    color: primaryColor
-                                                }
-
-                                                MouseArea {
-                                                    id: viewAllArea
-                                                    anchors.fill: parent
-                                                    hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: taskDetailPopup.show(modelData.project_name, modelData.task)
-                                                }
-                                            }
-                                        }
-
-                                        RowLayout {
-                                            Layout.fillWidth: true
-
-                                            // Status badge
-                                            Rectangle {
-                                                Layout.preferredHeight: 18
-                                                Layout.preferredWidth: statusText.implicitWidth + 12
-                                                radius: 9
-                                                color: modelData.status === "Review" ?
-                                                       Qt.rgba(255/255, 152/255, 0/255, 0.15) :
-                                                       Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.1)
-
-                                                border.color: modelData.status === "Review" ?
-                                                              Qt.rgba(255/255, 152/255, 0/255, 0.4) :
-                                                              Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.2)
-                                                border.width: 1
-
-                                                Label {
-                                                    id: statusText
-                                                    anchors.centerIn: parent
-                                                    text: modelData.status
-                                                    font.pixelSize: 10
-                                                    font.bold: true
-                                                    color: modelData.status === "Review" ? "#FF9800" : lightTextColor
-                                                }
-                                            }
-
-                                            Item { Layout.fillWidth: true }
-
-                                            // Time display with subtle background
-                                            Rectangle {
-                                                Layout.preferredWidth: timeLabel.implicitWidth + 8
-                                                Layout.preferredHeight: 18
-                                                radius: 4
-                                                color: Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.05)
-
-                                                Label {
-                                                    id: timeLabel
-                                                    anchors.centerIn: parent
-                                                    text: logger.formatDuration(modelData.time_usage)
-                                                    font.pixelSize: 11
-                                                    font.bold: true
-                                                    color: delegateRoot.isReview ? "#FF9800" : lightTextColor
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        request.send(JSON.stringify(payload))
                     }
                 }
             }
+
                 // Add these popups at the root level of your QML file
                 Popup {
                     id: taskDetailPopup

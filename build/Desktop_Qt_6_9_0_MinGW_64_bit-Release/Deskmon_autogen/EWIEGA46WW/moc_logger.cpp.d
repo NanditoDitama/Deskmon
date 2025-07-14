@@ -1,5 +1,6 @@
 C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/Deskmon_autogen/EWIEGA46WW/moc_logger.cpp: C:/Users/prnl2/OneDrive/Documents/window_logger/logger.h \
   C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/Deskmon_autogen/moc_predefs.h \
+  C:/Qt/6.9.0/mingw_64/include/QtCore/QDate \
   C:/Qt/6.9.0/mingw_64/include/QtCore/QEventLoop \
   C:/Qt/6.9.0/mingw_64/include/QtCore/QFlags \
   C:/Qt/6.9.0/mingw_64/include/QtCore/QIODevice \

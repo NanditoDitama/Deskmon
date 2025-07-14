@@ -15,6 +15,7 @@
 #include <QJsonArray>
 #include <QVariant>
 #include <QBuffer>
+#include <QRegularExpression>
 
 
 
@@ -48,7 +49,7 @@ Logger::Logger(QObject *parent) : QObject(parent)
     m_taskTimer.setInterval(1000);
     connect(&m_taskTimer, &QTimer::timeout, this, &Logger::updateTaskTime);
     m_taskTimer.start();
-    m_isTrackingActive = true; // Tracking nonaktif saat inisialisasi
+    m_isTrackingActive = true;
     m_networkManager = new QNetworkAccessManager(this);
 
     m_pingTimer.setInterval(60000); // 1 menit
@@ -58,19 +59,31 @@ Logger::Logger(QObject *parent) : QObject(parent)
         }
     });
 
-
+    // Inisialisasi dan mulai timer untuk "Time at Work"
+    connect(&m_workTimer, &QTimer::timeout, this, &Logger::updateWorkTimeAndSave);
+    m_workTimer.start(1000); // Update setiap detik
 }
 Logger::~Logger()
 {
+    // Pastikan data terakhir disimpan sebelum aplikasi ditutup
+    saveWorkTimeData();
+    sendWorkTimeToAPI();
     if (m_db.isOpen()) {
         m_db.close();
     }
     if (m_productivityDb.isOpen()) {
         m_productivityDb.close();
     }
-    delete m_productiveAppsModel; // Bersihkan model
+    delete m_productiveAppsModel;
     delete m_nonProductiveAppsModel;
 }
+
+// Implementasi getter untuk properti baru
+int Logger::workTimeElapsedSeconds() const
+{
+    return m_workTimeElapsedSeconds;
+}
+
 
 void Logger::startGlobalTimer()
 {
@@ -104,6 +117,10 @@ bool Logger::ensureProductivityDatabaseOpen() const
 
 void Logger::refreshAll()
 {
+    // 1. Simpan status pause/play saat ini
+    bool wasPaused = m_isTaskPaused;
+    int activeTaskBeforeRefresh = m_activeTaskId;
+
     if (!ensureDatabaseOpen() || !ensureProductivityDatabaseOpen()) {
         qWarning() << "Cannot refresh: One or both databases are not open";
         return;
@@ -114,8 +131,12 @@ void Logger::refreshAll()
         return;
     }
 
+    // 2. Lakukan refresh data tanpa mempengaruhi status pause/play
     qDebug() << "Memanggil fetchAndStoreTasks untuk menyinkronkan task dari server";
     fetchAndStoreTasks();
+
+    qDebug() << "Memanggil fetchAndStoreProductivityApps untuk menyinkronkan aplikasi produktivitas";
+    fetchAndStoreProductivityApps();
 
     // Perbarui status task aktif jika ada
     if (m_activeTaskId != -1) {
@@ -126,15 +147,13 @@ void Logger::refreshAll()
     // Sinkronkan tugas aktif
     syncActiveTask();
 
-    // Panggil fetchAndStoreTasks untuk memastikan task terbaru ada di database
-
-
-    // Tes dengan taskId = 4 secara langsung untuk verifikasi
-    qDebug() << "Menguji taskId spesifik: 4";
-    updateTaskStatus(4);
-
     // Perbarui status jendela aktif
     logActiveWindow();
+
+    // 3. Kembalikan status pause/play ke keadaan semula
+    m_isTaskPaused = wasPaused;
+    m_activeTaskId = activeTaskBeforeRefresh;
+
 
     // Memicu pembaruan semua data yang relevan dengan UI
     emit taskListChanged();
@@ -150,6 +169,62 @@ void Logger::refreshAll()
 
     qDebug() << "Refresh all completed for user_id:" << m_currentUserId;
 }
+
+
+
+
+void Logger::logout()
+{
+    saveWorkTimeData();
+    sendWorkTimeToAPI();
+
+    // Stop all active tracking
+    if (m_activeTaskId != -1) {
+        setActiveTask(-1); // This will stop the current task
+    }
+
+
+    // Stop all timers
+    m_taskTimer.stop();
+    m_pingTimer.stop();
+
+    // Reset tracking state
+    m_isTrackingActive = false;
+    m_isTaskPaused = true;
+    m_activeTaskId = -1;
+    m_taskTimeOffset = 0;
+    m_taskStartTime = 0;
+    m_pauseStartTime = 0;
+
+    // Clear user data
+    m_currentUserId = -1;
+    m_currentUsername.clear();
+    m_currentUserEmail.clear();
+    m_userEmail.clear();
+    m_authToken.clear();
+    m_workTimeElapsedSeconds = 0; // Reset waktu kerja di memori
+    QSqlQuery clearTokenQuery(m_db);
+    clearTokenQuery.prepare("UPDATE users SET token = '' WHERE id = :id");
+    clearTokenQuery.bindValue(":id", m_currentUserId);
+    clearTokenQuery.exec();
+
+
+
+    // Emit signals to update UI
+    emit activeTaskChanged();
+    emit taskPausedChanged();
+    emit trackingActiveChanged();
+    emit currentUserIdChanged();
+    emit currentUsernameChanged();
+    emit currentUserEmailChanged();
+    emit userEmailChanged();
+    emit taskListChanged();
+
+
+
+    qDebug() << "User logged out, all tracking stopped";
+}
+
 bool Logger::validateFilePath(const QString &filePath)
 {
     QString localPath = filePath;
@@ -277,9 +352,138 @@ void Logger::initializeProductivityDatabase()
                     "FOREIGN KEY(task_id) REFERENCES task(id))")) {
         qWarning() << "Failed to create log_paused table:" << query.lastError().text();
     }
-
+    // Buat tabel baru untuk "Time at Work"
+    if (!query.exec("CREATE TABLE IF NOT EXISTS work_time ("
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "user_id INTEGER NOT NULL, "
+                    "date TEXT NOT NULL, "
+                    "elapsed_seconds INTEGER NOT NULL DEFAULT 0, "
+                    "UNIQUE(user_id, date))")) {
+        qWarning() << "Failed to create work_time table:" << query.lastError().text();
+    }
 }
 
+
+void Logger::checkAndCreateNewDayRecord()
+{
+    if (m_currentUserId == -1 || !ensureProductivityDatabaseOpen()) return;
+
+    QString today = QDate::currentDate().toString("yyyy-MM-dd");
+
+    QSqlQuery query(m_productivityDb);
+    // Cek apakah ada record untuk hari ini
+    query.prepare("SELECT elapsed_seconds FROM work_time WHERE user_id = :user_id AND date = :date");
+    query.bindValue(":user_id", m_currentUserId);
+    query.bindValue(":date", today);
+
+    if (query.exec() && query.next()) {
+        // Record untuk hari ini sudah ada, tidak perlu melakukan apa-apa
+        return;
+    } else {
+        // Tidak ada record untuk hari ini, buat record baru dengan waktu 0
+        m_workTimeElapsedSeconds = 0;
+        emit workTimeElapsedSecondsChanged();
+        saveWorkTimeData(); // Simpan nilai awal 0
+        qDebug() << "New day detected. Work time reset for user:" << m_currentUserId;
+    }
+}
+
+void Logger::loadWorkTimeData()
+{
+    if (m_currentUserId == -1 || !ensureProductivityDatabaseOpen()) {
+        m_workTimeElapsedSeconds = 0;
+        emit workTimeElapsedSecondsChanged();
+        return;
+    }
+
+    QString today = QDate::currentDate().toString("yyyy-MM-dd");
+    QSqlQuery query(m_productivityDb);
+    query.prepare("SELECT elapsed_seconds FROM work_time WHERE user_id = :user_id AND date = :date");
+    query.bindValue(":user_id", m_currentUserId);
+    query.bindValue(":date", today);
+
+    if (query.exec() && query.next()) {
+        m_workTimeElapsedSeconds = query.value(0).toInt();
+    } else {
+        // Tidak ada record untuk hari ini, berarti waktu kerja adalah 0
+        m_workTimeElapsedSeconds = 0;
+        // Buat record untuk hari baru
+        saveWorkTimeData();
+    }
+    qDebug() << "Loaded work time for" << today << ":" << m_workTimeElapsedSeconds << "seconds";
+    emit workTimeElapsedSecondsChanged();
+}
+
+void Logger::saveWorkTimeData()
+{
+    if (m_currentUserId == -1 || !ensureProductivityDatabaseOpen()) return;
+
+    QString today = QDate::currentDate().toString("yyyy-MM-dd");
+    QSqlQuery query(m_productivityDb);
+    // Gunakan INSERT OR REPLACE untuk menyederhanakan (membuat baru atau memperbarui yang sudah ada)
+    query.prepare("INSERT OR REPLACE INTO work_time (user_id, date, elapsed_seconds) "
+                  "VALUES (:user_id, :date, :seconds)");
+    query.bindValue(":user_id", m_currentUserId);
+    query.bindValue(":date", today);
+    query.bindValue(":seconds", m_workTimeElapsedSeconds);
+
+    if (!query.exec()) {
+        qWarning() << "Failed to save work time:" << query.lastError().text();
+    }
+}
+
+void Logger::sendWorkTimeToAPI()
+{
+    if (m_currentUserId == -1 || m_authToken.isEmpty()) {
+        qWarning() << "Cannot send work time: No user logged in or no auth token";
+        return;
+    }
+
+    // Prepare payload
+    QJsonObject payload;
+    payload["user_id"] = m_currentUserId;
+    payload["time_at_work"] = m_workTimeElapsedSeconds;
+
+    // Configure request
+    QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/send-time-at-work"));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
+
+    qDebug() << "Sending work time to API:" << QJsonDocument(payload).toJson();
+
+    // Send POST request
+    QNetworkReply* reply = m_networkManager->post(request, QJsonDocument(payload).toJson());
+
+    // Handle timeout (10 seconds)
+    QTimer::singleShot(10000, reply, &QNetworkReply::abort);
+
+    // Handle response
+    connect(reply, &QNetworkReply::finished, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray response = reply->readAll();
+            qDebug() << "Work time successfully sent to API. Response:" << response;
+        } else {
+            qWarning() << "Failed to send work time to API:" << reply->errorString();
+            qDebug() << "HTTP Status:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            qDebug() << "Response Body:" << reply->readAll();
+        }
+        reply->deleteLater();
+    });
+}
+
+void Logger::updateWorkTimeAndSave()
+{
+    // Waktu kerja hanya bertambah jika ada task yang berjalan (tidak di-pause)
+    if (m_activeTaskId != -1 && !m_isTaskPaused) {
+        m_workTimeElapsedSeconds++;
+        emit workTimeElapsedSecondsChanged();
+
+        // Simpan ke DB setiap 10 detik untuk mengurangi operasi I/O
+        if (m_workTimeElapsedSeconds % 10 == 0) {
+            saveWorkTimeData();
+        }
+    }
+}
 
 
 
@@ -328,6 +532,22 @@ void Logger::checkTaskStatusBeforeStart()
         m_isTrackingActive = true;
         qDebug() << "No active task found for user_id:" << m_currentUserId;
     }
+    // Cari user yang memiliki token login
+    QSqlQuery autoLoginQuery(m_db);
+    if (autoLoginQuery.exec("SELECT id, username, email, token FROM users WHERE token IS NOT NULL AND token != '' LIMIT 1")) {
+        if (autoLoginQuery.next()) {
+            m_currentUserId = autoLoginQuery.value(0).toInt();
+            m_currentUsername = autoLoginQuery.value(1).toString();
+            m_currentUserEmail = autoLoginQuery.value(2).toString();
+            m_authToken = autoLoginQuery.value(3).toString();
+            qDebug() << "Auto login as user ID:" << m_currentUserId << "Username:" << m_currentUsername;
+            emit currentUserIdChanged();
+            emit currentUsernameChanged();
+            emit currentUserEmailChanged();
+            emit userEmailChanged();
+        }
+    }
+
 
     emit activeTaskChanged();
     emit taskPausedChanged();
@@ -381,7 +601,6 @@ QVariantList Logger::getProductivityApps() const {
     }
     return apps;
 }
-
 
 void Logger::setIdleThreshold(int seconds)
 {
@@ -573,15 +792,18 @@ QVariantMap Logger::productivityStats() const
 QVariantList Logger::getAvailableApps() const
 {
     QVariantList apps = {
-        "Other","Chrome", "Firefox", "Edge", "Safari", "Opera",
-        "Visual Studio Code", "Qt Creator", "Android Studio",
-        "Microsoft Word", "Microsoft Excel", "Microsoft PowerPoint",
-        "Photoshop", "GIMP", "Terminal", "Deskmon","Explorer","Desklog-Client"
-
+        "Other", "Chrome", "Firefox", "Edge", "Safari", "Opera",
+        "Visual Studio Code", "Qt Creator", "Android Studio", "IntelliJ IDEA", "PyCharm", "Xcode",
+        "Microsoft Word", "Excel", "PowerPoint", "WPS Office", "LibreOffice", "OneNote", "Obsidian",
+        "Photoshop", "GIMP", "Figma", "Canva", "Blender", "Premiere Pro", "After Effects",
+        "Slack", "Microsoft Teams", "Zoom", "Google Meet", "Discord", "Skype",
+        "Notion", "Trello", "Jira", "Asana", "ClickUp",
+        "Postman", "FileZilla", "Docker", "GitHub Desktop", "GitKraken", "Terminal",
+        "Deskmon", "Desklog-Client", "Explorer", "Outlook", "Thunderbird"
     };
+
     return apps;
 }
-
 void Logger::addProductivityApp(const QString &appName, const QString &windowTitle, int productivityType)
 {
     if (!ensureProductivityDatabaseOpen()) {
@@ -589,16 +811,21 @@ void Logger::addProductivityApp(const QString &appName, const QString &windowTit
         return;
     }
 
+    // 1. Simpan ke database lokal terlebih dahulu
     QSqlQuery query(m_productivityDb);
     query.prepare("INSERT INTO aplikasi (aplikasi, window_title, jenis, productivity) "
                   "VALUES (:app, :window, :type, :prod)");
     query.bindValue(":app", appName);
     query.bindValue(":window", windowTitle.isEmpty() ? QVariant() : windowTitle);
-    query.bindValue(":type", 0);
+    query.bindValue(":type", 0); // 0 = menunggu approval
     query.bindValue(":prod", productivityType);
 
     if (query.exec()) {
         qDebug() << "Aplikasi ditambahkan. Menunggu approval admin.";
+
+        // 2. Kirim data ke API
+        sendProductivityAppToAPI(appName, windowTitle, productivityType);
+
         // Refresh model
         QString productiveQuery = QString("SELECT aplikasi AS appName, window_title AS windowTitle, jenis AS type FROM aplikasi WHERE jenis = 1 AND (for_user = '0' OR for_user LIKE '%%1%')").arg(m_currentUserId);
         QString nonProductiveQuery = QString("SELECT aplikasi AS appName, window_title AS windowTitle, jenis AS type FROM aplikasi WHERE jenis = 2 AND (for_user = '0' OR for_user LIKE '%%1%')").arg(m_currentUserId);
@@ -610,6 +837,285 @@ void Logger::addProductivityApp(const QString &appName, const QString &windowTit
     }
 }
 
+void Logger::sendProductivityAppToAPI(const QString &appName, const QString &windowTitle, int productivityType)
+{
+    if (m_authToken.isEmpty()) {
+        qWarning() << "Cannot send productivity app: No authentication token available";
+        return;
+    }
+
+    if (m_currentUserId == -1) {
+        qWarning() << "Cannot send productivity app: No user logged in";
+        return;
+    }
+
+    // Konversi productivityType ke string status
+    QString status;
+    switch(productivityType) {
+    case 1: status = "productive"; break;
+    case 2: status = "non-productive"; break;
+    default: status = "neutral"; break;
+    }
+
+    // Siapkan payload
+    QJsonObject payload;
+    payload["application_name"] = appName;
+    payload["productivity_status"] = status;
+    payload["user_id"] = m_currentUserId;
+    if (!windowTitle.isEmpty()) {
+        payload["process_name"] = windowTitle;
+    }
+
+    // Konfigurasi request
+    QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/app-request/store"));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
+
+    qDebug() << "Sending productivity app to API:" << QJsonDocument(payload).toJson();
+
+    // Kirim request POST
+    QNetworkReply* reply = m_networkManager->post(request, QJsonDocument(payload).toJson());
+
+    // Handle timeout (30 detik)
+    QTimer::singleShot(30000, reply, &QNetworkReply::abort);
+
+    // Handle response
+    connect(reply, &QNetworkReply::finished, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray response = reply->readAll();
+            qDebug() << "Productivity app successfully sent to API. Response:" << response;
+        } else {
+            qWarning() << "Failed to send productivity app to API:" << reply->errorString();
+            qDebug() << "HTTP Status:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            qDebug() << "Response Body:" << reply->readAll();
+
+            // Jika token expired, beri sinyal untuk login ulang
+            if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 401) {
+                emit authTokenError("Authentication token expired");
+            }
+        }
+        reply->deleteLater();
+    });
+}
+
+void Logger::fetchAndStoreProductivityApps()
+{
+    // 1. Pastikan database terbuka dan user login
+    if (!ensureProductivityDatabaseOpen()) {
+        qWarning() << "Cannot fetch productivity apps: Database is not open";
+        return;
+    }
+
+    if (m_currentUserId == -1) {
+        qWarning() << "Cannot fetch productivity apps: No user logged in";
+        return;
+    }
+
+    if (m_authToken.isEmpty()) {
+        qWarning() << "Cannot fetch productivity apps: No auth token";
+        return;
+    }
+
+    // 2. Buat request ke API
+    QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/app-request/all"));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
+
+    qDebug() << "Fetching productivity apps from API for user:" << m_currentUserId;
+
+    // 3. Kirim GET request dengan timeout
+    QNetworkReply *reply = m_networkManager->get(request);
+    QTimer::singleShot(30000, reply, &QNetworkReply::abort); // Timeout 30 detik
+
+    // Debug raw request
+    qDebug() << "Request URL:" << request.url().toString();
+    qDebug() << "Request Headers:" << request.rawHeaderList();
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        handleProductivityAppsResponse(reply);
+    });
+}
+
+void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
+{
+    // Pastikan reply dihapus setelah fungsi selesai
+    QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> replyPtr(reply);
+
+    // 1. Handle error response
+    if (reply->error() != QNetworkReply::NoError) {
+        qWarning() << "Failed to fetch productivity apps:" << reply->errorString();
+
+        // Cek jika error karena token expired (HTTP 401)
+        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (statusCode == 401) {
+            qWarning() << "Authentication token expired, emitting signal";
+            emit authTokenError("Authentication token expired");
+        }
+        return;
+    }
+
+    // 2. Baca dan parse response
+    QByteArray responseData = reply->readAll();
+    qDebug() << "Raw API response:" << responseData;
+
+    // Debug HTTP status code
+    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    qDebug() << "HTTP status code:" << statusCode;
+
+    QJsonParseError parseError;
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
+
+    if (parseError.error != QJsonParseError::NoError) {
+        qWarning() << "JSON parse error:" << parseError.errorString()
+        << "at offset" << parseError.offset;
+        return;
+    }
+
+    // Cek jika response adalah object dengan format {success: bool, data: array}
+    if (jsonDoc.isObject()) {
+        QJsonObject jsonObj = jsonDoc.object();
+
+        // Cek jika response mengandung error
+        if (jsonObj.contains("error") || !jsonObj["success"].toBool()) {
+            QString errorMsg = jsonObj["message"].toString();
+            qWarning() << "API returned error:" << errorMsg;
+            return;
+        }
+
+        // Ambil data array dari field "data" jika ada
+        if (jsonObj.contains("data") && jsonObj["data"].isArray()) {
+            jsonDoc = QJsonDocument(jsonObj["data"].toArray());
+        }
+    }
+
+    if (!jsonDoc.isArray()) {
+        qWarning() << "Invalid JSON format - expected array, got:" << jsonDoc.toJson();
+        return;
+    }
+
+    QJsonArray appsArray = jsonDoc.array();
+    if (appsArray.isEmpty()) {
+        qDebug() << "No productivity apps received from API";
+        return;
+    }
+
+    // 3. Mulai transaksi database
+    if (!m_productivityDb.transaction()) {
+        qWarning() << "Failed to start database transaction:" << m_productivityDb.lastError().text();
+        return;
+    }
+
+    QSqlQuery query(m_productivityDb);
+    bool success = true;
+
+    // 4. Proses setiap aplikasi dari API
+    for (const QJsonValue &appValue : appsArray) {
+        if (!appValue.isObject()) {
+            qWarning() << "Skipping invalid app entry (not an object)";
+            continue;
+        }
+
+        QJsonObject appObj = appValue.toObject();
+
+        // Validasi field yang diperlukan dengan cara yang lebih fleksibel
+        QString appName = appObj.value("application_name").toString();
+        QString status = appObj.value("productivity_status").toString("").toLower();
+        QString processName = appObj.value("process_name").toString();
+
+        if (appName.isEmpty()) {
+            qWarning() << "Skipping invalid productivity app entry (missing application_name):"
+                       << appObj;
+            continue;
+        }
+
+        // Konversi status string ke jenis numerik
+        int jenis = 0; // Default = menunggu approval
+        if (status == "productive") {
+            jenis = 1;
+        } else if (status == "non-productive") {
+            jenis = 2;
+        }
+
+        // 5. Cek apakah data sudah ada di database
+        query.prepare(
+            "SELECT id FROM aplikasi "
+            "WHERE aplikasi = :app AND "
+            "(window_title = :process OR (window_title IS NULL AND :process IS NULL))"
+            );
+        query.bindValue(":app", appName);
+        query.bindValue(":process", processName.isEmpty() ? QVariant() : processName);
+
+        if (!query.exec()) {
+            qWarning() << "Failed to check existing app:" << query.lastError().text();
+            success = false;
+            break;
+        }
+
+        if (query.next()) {
+            // Data sudah ada, lakukan UPDATE
+            int existingId = query.value(0).toInt();
+            query.prepare(
+                "UPDATE aplikasi SET "
+                "jenis = :type, "
+                "for_user = '0' "  // Selalu set for_user ke '0'
+                "WHERE id = :id"
+                );
+            query.bindValue(":type", jenis);
+            query.bindValue(":id", existingId);
+        } else {
+            // Data belum ada, lakukan INSERT
+            query.prepare(
+                "INSERT INTO aplikasi "
+                "(aplikasi, window_title, jenis, for_user) "
+                "VALUES (:app, :process, :type, '0')"  // Selalu set for_user ke '0'
+                );
+            query.bindValue(":app", appName);
+            query.bindValue(":process", processName.isEmpty() ? QVariant() : processName);
+            query.bindValue(":type", jenis);
+        }
+
+        if (!query.exec()) {
+            qWarning() << "Failed to insert/update productivity app:"
+                       << appName << "-" << query.lastError().text();
+            success = false;
+            break;
+        }
+    }
+
+    // 6. Commit atau rollback transaksi
+    if (success) {
+        if (!m_productivityDb.commit()) {
+            qWarning() << "Failed to commit transaction:" << m_productivityDb.lastError().text();
+        } else {
+            qDebug() << "Successfully processed" << appsArray.size() << "productivity apps from API";
+            // 7. Refresh model dan emit signal
+            refreshProductivityModels();
+            emit productivityAppsChanged();
+        }
+    } else {
+        m_productivityDb.rollback();
+        qCritical() << "Error processing productivity apps, transaction rolled back";
+    }
+}
+
+void Logger::refreshProductivityModels()
+{
+    if (!ensureProductivityDatabaseOpen()) return;
+
+    QString productiveQuery = QString(
+                                  "SELECT aplikasi AS appName, window_title AS windowTitle, jenis AS type "
+                                  "FROM aplikasi WHERE jenis = 1 AND (for_user = '0' OR for_user LIKE '%%1%')"
+                                  ).arg(m_currentUserId);
+
+    QString nonProductiveQuery = QString(
+                                     "SELECT aplikasi AS appName, window_title AS windowTitle, jenis AS type "
+                                     "FROM aplikasi WHERE jenis = 2 AND (for_user = '0' OR for_user LIKE '%%1%')"
+                                     ).arg(m_currentUserId);
+
+    m_productiveAppsModel->setQuery(productiveQuery, m_productivityDb);
+    m_nonProductiveAppsModel->setQuery(nonProductiveQuery, m_productivityDb);
+}
+
 // Di fungsi getAppProductivityType (gunakan kolom jenis untuk pengecekan)
 int Logger::getAppProductivityType(const QString &appName, const QString &windowTitle) const
 {
@@ -617,59 +1123,184 @@ int Logger::getAppProductivityType(const QString &appName, const QString &window
         return 0;
     }
 
+    // Fungsi normalisasi yang lebih ringan
     auto normalizeString = [](const QString &str) {
-        return str.toLower().remove(' ');
+        return str.toLower().simplified().remove(' ');
     };
 
-    const QString normTitle = normalizeString(windowTitle);
-    const QString normApp = normalizeString(appName);
+    // Fungsi untuk membuat pattern matching yang efisien
+    auto createSearchPatterns = [](const QString &input) -> QStringList {
+        QStringList patterns;
+        QString normalized = input.toLower().simplified();
+
+        // Pattern 1: Original normalized
+        patterns.append(normalized.remove(' '));
+
+        // Pattern 2: Kata-kata individual (hanya jika ada spasi)
+        if (input.contains(' ')) {
+            QStringList words = normalized.split(' ', Qt::SkipEmptyParts);
+            for (const QString &word : words) {
+                if (word.length() >= 3) { // Minimal 3 karakter
+                    patterns.append(word);
+                }
+            }
+        }
+
+        // Pattern 3: Hapus karakter khusus umum
+        QString cleaned = normalized;
+        cleaned.remove(QRegularExpression("[\\-_\\.\\(\\)\\[\\]]"));
+        if (!cleaned.isEmpty() && cleaned != patterns.first()) {
+            patterns.append(cleaned);
+        }
+
+        return patterns;
+    };
+
+    // Fungsi matching yang cepat
+    auto fastMatch = [](const QString &target, const QStringList &patterns) -> double {
+        QString normTarget = target.toLower().simplified().remove(' ');
+
+        // Exact match - score tertinggi
+        for (const QString &pattern : patterns) {
+            if (normTarget == pattern) {
+                return 1.0;
+            }
+        }
+
+        // Contains match - bi-directional
+        for (const QString &pattern : patterns) {
+            if (normTarget.contains(pattern)) {
+                // Score berdasarkan rasio panjang
+                double ratio = (double)pattern.length() / normTarget.length();
+                return 0.8 + (ratio * 0.15); // 0.8 - 0.95
+            }
+            if (pattern.contains(normTarget)) {
+                double ratio = (double)normTarget.length() / pattern.length();
+                return 0.75 + (ratio * 0.15); // 0.75 - 0.9
+            }
+        }
+
+        // Fuzzy match sederhana - hanya untuk string pendek
+        if (normTarget.length() <= 15) {
+            for (const QString &pattern : patterns) {
+                if (pattern.length() <= 15) {
+                    // Hitung common characters
+                    int commonChars = 0;
+                    int minLen = qMin(normTarget.length(), pattern.length());
+                    int maxLen = qMax(normTarget.length(), pattern.length());
+
+                    for (int i = 0; i < minLen; i++) {
+                        if (normTarget[i] == pattern[i]) {
+                            commonChars++;
+                        }
+                    }
+
+                    double similarity = (double)commonChars / maxLen;
+                    if (similarity > 0.6) {
+                        return similarity * 0.7; // Max 0.7 untuk fuzzy
+                    }
+                }
+            }
+        }
+
+        return 0.0;
+    };
+
+    // Cache untuk menghindari query berulang
+    static QHash<QString, QVector<QPair<QString, int>>> titleCache;
+    static QHash<QString, QVector<QPair<QString, int>>> appCache;
+    static QString lastUserId;
+
+    // Reset cache jika user berubah
+    QString currentUser = QString::number(m_currentUserId);
+    if (lastUserId != currentUser) {
+        titleCache.clear();
+        appCache.clear();
+        lastUserId = currentUser;
+    }
+
+    // Buat pattern dari input
+    QStringList titlePatterns = createSearchPatterns(windowTitle);
+    QStringList appPatterns = createSearchPatterns(appName);
+
+    double bestScore = 0.0;
+    int bestType = 0;
 
     QSqlQuery query(m_productivityDb);
 
-    // 1. Cek window title (prioritas lebih tinggi)
-    query.prepare(
-        "SELECT window_title, jenis, for_user FROM aplikasi "
-        "WHERE window_title IS NOT NULL"
-        );
+    // 1. Cek window title (prioritas tinggi)
+    if (!titleCache.contains(currentUser)) {
+        QVector<QPair<QString, int>> titleEntries;
+        query.prepare(
+            "SELECT window_title, jenis, for_user FROM aplikasi "
+            "WHERE window_title IS NOT NULL AND window_title != ''"
+            );
 
-    if (query.exec()) {
-        while (query.next()) {
-            QString dbTitle = normalizeString(query.value(0).toString());
-            int jenis = query.value(1).toInt();
-            QString forUsers = query.value(2).toString();
+        if (query.exec()) {
+            while (query.next()) {
+                QString dbTitle = query.value(0).toString();
+                int jenis = query.value(1).toInt();
+                QString forUsers = query.value(2).toString();
 
-            // Cek apakah user saat ini termasuk dalam for_user
-            if ((forUsers == "0") ||
-                (forUsers.split(',').contains(QString::number(m_currentUserId))) )
-            {
-                if (normTitle.contains(dbTitle)) {
-                    return jenis;
+                // Filter user
+                if (forUsers == "0" || forUsers.split(',').contains(currentUser)) {
+                    titleEntries.append({dbTitle, jenis});
                 }
+            }
+        }
+        titleCache[currentUser] = titleEntries;
+    }
+
+    // Match dengan title entries
+    for (const auto &entry : titleCache[currentUser]) {
+        double score = fastMatch(entry.first, titlePatterns);
+        if (score > bestScore) {
+            bestScore = score;
+            bestType = entry.second;
+        }
+    }
+
+    // 2. Cek aplikasi umum (hanya jika belum dapat match bagus dari title)
+    if (bestScore < 0.9) {
+        if (!appCache.contains(currentUser)) {
+            QVector<QPair<QString, int>> appEntries;
+            query.prepare(
+                "SELECT aplikasi, jenis, for_user FROM aplikasi "
+                "WHERE window_title IS NULL OR window_title = ''"
+                );
+
+            if (query.exec()) {
+                while (query.next()) {
+                    QString dbApp = query.value(0).toString();
+                    int jenis = query.value(1).toInt();
+                    QString forUsers = query.value(2).toString();
+
+                    // Filter user
+                    if (forUsers == "0" || forUsers.split(',').contains(currentUser)) {
+                        appEntries.append({dbApp, jenis});
+                    }
+                }
+            }
+            appCache[currentUser] = appEntries;
+        }
+
+        // Match dengan app entries
+        for (const auto &entry : appCache[currentUser]) {
+            double score = fastMatch(entry.first, appPatterns);
+
+            // Penalti sedikit untuk app match vs title match
+            score *= 0.95;
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestType = entry.second;
             }
         }
     }
 
-    // 2. Cek aplikasi umum
-    query.prepare(
-        "SELECT aplikasi, jenis, for_user FROM aplikasi "
-        "WHERE window_title IS NULL"
-        );
-
-    if (query.exec()) {
-        while (query.next()) {
-            QString dbApp = normalizeString(query.value(0).toString());
-            int jenis = query.value(1).toInt();
-            QString forUsers = query.value(2).toString();
-
-            // Cek apakah user saat ini termasuk dalam for_user
-            if ((forUsers == "0") ||
-                (forUsers.split(',').contains(QString::number(m_currentUserId))) )
-            {
-                if (dbApp == normApp) {
-                    return jenis;
-                }
-            }
-        }
+    // Return hasil jika score cukup tinggi
+    if (bestScore >= 0.65) {
+        return bestType;
     }
 
     return 0; // Default netral
@@ -1542,22 +2173,28 @@ void Logger::sendPausePlayDataToAPI(int taskId, const QString& startTime,
         return;
     }
 
-    // 2. Siapkan payload JSON sesuai format yang diinginkan
-    QJsonObject payload;
-    payload["status"] = (status == "pause") ? "stop" : "running"; // Key diubah menjadi "status"
+    // 2. Hanya kirim payload jika status pause (stop)
+    if (status != "pause") {
+        qDebug() << "Skip sending play status to API";
+        return;
+    }
 
-    // 3. Konfigurasi request PUT
+    // 3. Siapkan payload JSON hanya untuk status stop
+    QJsonObject payload;
+    payload["status"] = "stop"; // Hanya kirim status stop
+
+    // 4. Konfigurasi request PUT
     QNetworkRequest request;
     QString url = QString("https://deskmon.pranala-dt.co.id/api/end-implementation/%1").arg(taskId);
     request.setUrl(QUrl(url));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
 
-    // 4. Debug output
+    // 5. Debug output
     qDebug() << "Sending PUT to:" << url;
     qDebug() << "Payload:" << QJsonDocument(payload).toJson(QJsonDocument::Indented);
 
-    // 5. Kirim request PUT
+    // 6. Kirim request PUT
     QBuffer *buffer = new QBuffer();
     buffer->setData(QJsonDocument(payload).toJson());
     buffer->open(QIODevice::ReadOnly);
@@ -1565,21 +2202,78 @@ void Logger::sendPausePlayDataToAPI(int taskId, const QString& startTime,
     QNetworkReply* reply = m_networkManager->put(request, buffer);
     buffer->setParent(reply);  // Auto-delete buffer ketika reply dihapus
 
-    // 6. Handle timeout (30 detik)
+    // 7. Handle timeout (30 detik)
     QTimer::singleShot(30000, reply, &QNetworkReply::abort);
 
-    // 7. Handle response
+    // 8. Handle response
     connect(reply, &QNetworkReply::finished, [=]() {
         if (reply->error() == QNetworkReply::NoError) {
             QByteArray response = reply->readAll();
             qDebug() << "API Response:" << response;
+
+            QJsonDocument jsonDoc = QJsonDocument::fromJson(response);
+            if (!jsonDoc.isNull() && jsonDoc.isObject()) {
+                QJsonObject jsonObj = jsonDoc.object();
+
+                // Handle case when server rejects the request
+                if (!jsonObj["success"].toBool() &&
+                    jsonObj["message"].toString().contains("User already has another task in on-progress status")) {
+                    // Emit signal to show notification in UI
+                    emit showNotification("Silahkan pause task sebelum berpindah ke task lain");
+
+                    // Revert the task change in local database
+                    revertTaskChange();
+                }
+            }
         } else {
             qWarning() << "API Error:" << reply->errorString();
             qDebug() << "HTTP Status:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
             qDebug() << "Response Body:" << reply->readAll();
+
+            // If it's a 400 Bad Request with the specific message
+            if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 400) {
+                QByteArray response = reply->readAll();
+                QJsonDocument jsonDoc = QJsonDocument::fromJson(response);
+                if (!jsonDoc.isNull() && jsonDoc.isObject()) {
+                    QJsonObject jsonObj = jsonDoc.object();
+                    if (jsonObj["message"].toString().contains("User already has another task in on-progress status")) {
+                        emit showNotification("Silahkan pause task sebelum berpindah ke task lain");
+                        revertTaskChange();
+                    }
+                }
+            }
         }
         reply->deleteLater();
     });
+}
+
+void Logger::revertTaskChange()
+{
+    if (!ensureProductivityDatabaseOpen()) {
+        qWarning() << "Cannot revert task change: Database is not open";
+        return;
+    }
+
+    QSqlQuery query(m_productivityDb);
+
+    // Revert the active task to previous state
+    if (m_activeTaskId != -1) {
+        // Reactivate the previous task if it was paused
+        query.prepare("UPDATE task SET active = 1, paused = 1 WHERE id = :id");
+        query.bindValue(":id", m_activeTaskId);
+        if (!query.exec()) {
+            qWarning() << "Failed to reactivate previous task:" << query.lastError().text();
+        }
+
+        // Update local state
+        m_isTaskPaused = true;
+        m_isTrackingActive = false;
+    }
+
+    emit taskListChanged();
+    emit taskPausedChanged();
+    emit trackingActiveChanged();
+    emit activeTaskChanged();
 }
 
 
@@ -1723,6 +2417,8 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
 
+    bool authenticated = false;
+
     // 4. Handle response
     if (reply->error() == QNetworkReply::NoError) {
         QByteArray response = reply->readAll();
@@ -1746,34 +2442,27 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
             // First, insert/update user data
             QSqlQuery userQuery(m_db);
             userQuery.prepare("INSERT OR REPLACE INTO users "
-                              "(id, username, password, department, email, role) "
-                              "VALUES (:id, :username, :password, :department, :email, :role)");
+                              "(id, username, password, department, email, role, token) "
+                              "VALUES (:id, :username, :password, :department, :email, :role, :token)");
             userQuery.bindValue(":id", userId);
             userQuery.bindValue(":username", username);
             userQuery.bindValue(":password", hashPassword(password));
             userQuery.bindValue(":department", role);
             userQuery.bindValue(":email", userEmail);
             userQuery.bindValue(":role", role);
+            userQuery.bindValue(":token", m_authToken);
 
             if (!userQuery.exec()) {
                 qWarning() << "Failed to store user data:" << userQuery.lastError().text();
             }
 
-            // Then, update the token separately
-            QSqlQuery tokenQuery(m_db);
-            tokenQuery.prepare("UPDATE users SET token = ? WHERE id = ?");
-            tokenQuery.addBindValue(m_authToken);
-            tokenQuery.addBindValue(userId);
-            if (!tokenQuery.exec()) {
-                qWarning() << "Failed to store token:" << tokenQuery.lastError().text();
-            } else {
-                qDebug() << "Token successfully stored in database";
-            }
 
             // 7. Set current user info dan emit signals
             setCurrentUserInfo(userId, username, userEmail);
 
             // 8. Start timers and fetch tasks
+            checkAndCreateNewDayRecord();
+            loadWorkTimeData();
             startGlobalTimer();
             syncActiveTask();
             fetchAndStoreTasks(); // This will now properly preserve existing max_time values
@@ -1824,6 +2513,8 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
         // Set current user info dan emit signals
         setCurrentUserInfo(userId, username, userEmail);
 
+        checkAndCreateNewDayRecord();
+        loadWorkTimeData();
         startGlobalTimer();
         syncActiveTask();
 
