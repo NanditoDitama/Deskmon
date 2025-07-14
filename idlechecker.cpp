@@ -94,7 +94,7 @@ void IdleChecker::checkIdleTime()
             m_lastIdleLogTime = 0;
             m_lastActiveTime = 0;
         }
-        qDebug() << "Idle check skipped: user not logged in";
+        // qDebug() << "Idle check skipped: user not logged in";
         return;
     }
     // Skip checking if tracking is not active or task is paused

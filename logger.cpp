@@ -960,7 +960,7 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
 
     // Debug HTTP status code
     int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    qDebug() << "HTTP status code:" << statusCode;
+    qDebug() << "handleProductivityAppsResponse HTTP status code:" << statusCode;
 
     QJsonParseError parseError;
     QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
@@ -1371,7 +1371,7 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
 {
     // 5. Periksa kode status HTTP dari respons
     int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    qDebug() << "HTTP Status Code:" << statusCode;
+    qDebug() << "handleTaskFetchReply HTTP Status Code:" << statusCode;
 
     // 6. Tangani kesalahan jaringan jika ada
     if (reply->error() != QNetworkReply::NoError) {
@@ -1382,7 +1382,7 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
 
     // 7. Baca data respons dari server
     QByteArray responseData = reply->readAll();
-    qDebug() << "Response data:" << responseData;
+    // qDebug() << "Response data:" << responseData;
 
     // 8. Tangani kasus autentikasi gagal (token tidak valid atau kedaluwarsa)
     if (statusCode == 401) {
@@ -1439,7 +1439,7 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
         // Lewati tugas yang sudah selesai
         QString status = taskObj["status"].toString();
         if (status == "completed") {
-            qDebug() << "Skipping completed task ID" << taskObj["id"].toInt();
+            // qDebug() << "Skipping completed task ID" << taskObj["id"].toInt();
             continue;
         }
 
@@ -1457,7 +1457,7 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
 
         // Lewati tugas yang bukan milik pengguna saat ini
         if (userId != m_currentUserId) {
-            qDebug() << "Skipping task ID" << taskId << "for user ID" << userId << "(not current user)";
+            // qDebug() << "Skipping task ID" << taskId << "for user ID" << userId << "(not current user)";
             continue;
         }
 
@@ -1524,11 +1524,11 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
 QVariantList Logger::taskList() const
 {
     if (!ensureProductivityDatabaseOpen()) {
-        qWarning() << "Cannot fetch task list: Database is not open";
+        // qWarning() << "Cannot fetch task list: Database is not open";
         return QVariantList();
     }
     if (m_currentUserId == -1) {
-        qWarning() << "Cannot fetch task list: No user logged in";
+        // qWarning() << "Cannot fetch task list: No user logged in";
         return QVariantList();
     }
     QVariantList tasks;
@@ -3154,16 +3154,40 @@ Logger::WindowInfo Logger::getActiveWindowInfoWindows()
 Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
     WindowInfo info;
 
-    // Gunakan AppleScript untuk mendapatkan info window di macOS
-    QProcess process;
-    process.start("osascript", {"-e", "tell application \"System Events\" to get name of first application process whose frontmost is true"});
-    if (process.waitForFinished(100)) {
-        info.appName = QString(process.readAllStandardOutput()).trimmed();
+    // Get app name
+    {
+        QProcess appProcess;
+        appProcess.start("osascript", {
+            "-e",
+            "tell application \"System Events\" to get name of first application process whose frontmost is true"
+        });
+
+        if (appProcess.waitForFinished(100)) {
+            info.appName = QString(appProcess.readAllStandardOutput()).trimmed();
+            qDebug() << "App name:" << info.appName;
+        } else {
+            appProcess.kill();
+            qDebug() << "App name script timed out";
+            qDebug() << "Error:" << appProcess.readAllStandardError();
+        }
     }
 
-    process.start("osascript", {"-e", "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"});
-    if (process.waitForFinished(100)) {
-        info.title = QString(process.readAllStandardOutput()).trimmed();
+    // Get window title
+    {
+        QProcess titleProcess;
+        titleProcess.start("osascript", {
+            "-e",
+            "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"
+        });
+
+        if (titleProcess.waitForFinished(100)) {
+            info.title = QString(titleProcess.readAllStandardOutput()).trimmed();
+            qDebug() << "Window title:" << info.title;
+        } else {
+            titleProcess.kill();
+            qDebug() << "Window title script timed out";
+            qDebug() << "Error:" << titleProcess.readAllStandardError();
+        }
     }
 
     if (info.appName.isEmpty()) info.appName = "Unknown";
