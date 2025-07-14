@@ -122,7 +122,6 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         "addProductivityApp",
         "appName",
         "windowTitle",
-        "url",
         "productivityType",
         "getProductivityApps",
         "authenticate",
@@ -314,85 +313,85 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         // Method 'getAvailableApps'
         QtMocHelpers::MethodData<QVariantList() const>(79, 2, QMC::AccessPublic, 0x80000000 | 44),
         // Method 'addProductivityApp'
-        QtMocHelpers::MethodData<void(const QString &, const QString &, const QString &, int)>(80, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 81 }, { QMetaType::QString, 82 }, { QMetaType::QString, 83 }, { QMetaType::Int, 84 },
+        QtMocHelpers::MethodData<void(const QString &, const QString &, int)>(80, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 81 }, { QMetaType::QString, 82 }, { QMetaType::Int, 83 },
         }}),
         // Method 'getProductivityApps'
-        QtMocHelpers::MethodData<QVariantList() const>(85, 2, QMC::AccessPublic, 0x80000000 | 44),
+        QtMocHelpers::MethodData<QVariantList() const>(84, 2, QMC::AccessPublic, 0x80000000 | 44),
         // Method 'authenticate'
-        QtMocHelpers::MethodData<bool(const QString &, const QString &)>(86, 2, QMC::AccessPublic, QMetaType::Bool, {{
-            { QMetaType::QString, 87 }, { QMetaType::QString, 88 },
+        QtMocHelpers::MethodData<bool(const QString &, const QString &)>(85, 2, QMC::AccessPublic, QMetaType::Bool, {{
+            { QMetaType::QString, 86 }, { QMetaType::QString, 87 },
         }}),
         // Method 'getUserDepartment'
-        QtMocHelpers::MethodData<QString(const QString &)>(89, 2, QMC::AccessPublic, QMetaType::QString, {{
+        QtMocHelpers::MethodData<QString(const QString &)>(88, 2, QMC::AccessPublic, QMetaType::QString, {{
             { QMetaType::QString, 24 },
         }}),
         // Method 'getCurrentUsername'
-        QtMocHelpers::MethodData<QString() const>(90, 2, QMC::AccessPublic, QMetaType::QString),
+        QtMocHelpers::MethodData<QString() const>(89, 2, QMC::AccessPublic, QMetaType::QString),
         // Method 'getCurrentUserEmail'
-        QtMocHelpers::MethodData<QString() const>(91, 2, QMC::AccessPublic, QMetaType::QString),
+        QtMocHelpers::MethodData<QString() const>(90, 2, QMC::AccessPublic, QMetaType::QString),
         // Method 'getUserEmail'
-        QtMocHelpers::MethodData<QString(const QString &)>(92, 2, QMC::AccessPublic, QMetaType::QString, {{
+        QtMocHelpers::MethodData<QString(const QString &)>(91, 2, QMC::AccessPublic, QMetaType::QString, {{
             { QMetaType::QString, 24 },
         }}),
         // Method 'fetchAndStoreTasks'
-        QtMocHelpers::MethodData<void()>(93, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(92, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'updateTaskStatus'
-        QtMocHelpers::MethodData<void(int)>(94, 2, QMC::AccessPublic, QMetaType::Void, {{
+        QtMocHelpers::MethodData<void(int)>(93, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::Int, 27 },
         }}),
         // Method 'logout'
-        QtMocHelpers::MethodData<void()>(95, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(94, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'sendProductivityAppToAPI'
-        QtMocHelpers::MethodData<void(const QString &, const QString &, const QString &, int)>(96, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 81 }, { QMetaType::QString, 82 }, { QMetaType::QString, 83 }, { QMetaType::Int, 84 },
+        QtMocHelpers::MethodData<void(const QString &, const QString &, int)>(95, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 81 }, { QMetaType::QString, 82 }, { QMetaType::Int, 83 },
         }}),
         // Method 'loadWorkTimeData'
-        QtMocHelpers::MethodData<void()>(97, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(96, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'checkAndCreateNewDayRecord'
-        QtMocHelpers::MethodData<void()>(98, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(97, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'calculateTodayProductiveSeconds'
-        QtMocHelpers::MethodData<int() const>(99, 2, QMC::AccessPublic, QMetaType::Int),
+        QtMocHelpers::MethodData<int() const>(98, 2, QMC::AccessPublic, QMetaType::Int),
         // Method 'sendProductiveTimeToAPI'
-        QtMocHelpers::MethodData<void()>(100, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(99, 2, QMC::AccessPublic, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'currentAppName'
-        QtMocHelpers::PropertyData<QString>(101, QMetaType::QString, QMC::DefaultPropertyFlags, 0),
+        QtMocHelpers::PropertyData<QString>(100, QMetaType::QString, QMC::DefaultPropertyFlags, 0),
         // property 'currentWindowTitle'
-        QtMocHelpers::PropertyData<QString>(102, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
+        QtMocHelpers::PropertyData<QString>(101, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
         // property 'logCount'
-        QtMocHelpers::PropertyData<int>(103, QMetaType::Int, QMC::DefaultPropertyFlags, 2),
+        QtMocHelpers::PropertyData<int>(102, QMetaType::Int, QMC::DefaultPropertyFlags, 2),
         // property 'logContent'
-        QtMocHelpers::PropertyData<QString>(104, QMetaType::QString, QMC::DefaultPropertyFlags, 3),
+        QtMocHelpers::PropertyData<QString>(103, QMetaType::QString, QMC::DefaultPropertyFlags, 3),
         // property 'productivityStats'
-        QtMocHelpers::PropertyData<QVariantMap>(105, 0x80000000 | 106, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 4),
+        QtMocHelpers::PropertyData<QVariantMap>(104, 0x80000000 | 105, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 4),
         // property 'taskList'
-        QtMocHelpers::PropertyData<QVariantList>(107, 0x80000000 | 44, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 5),
+        QtMocHelpers::PropertyData<QVariantList>(106, 0x80000000 | 44, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 5),
         // property 'activeTaskId'
-        QtMocHelpers::PropertyData<int>(108, QMetaType::Int, QMC::DefaultPropertyFlags, 6),
+        QtMocHelpers::PropertyData<int>(107, QMetaType::Int, QMC::DefaultPropertyFlags, 6),
         // property 'isTaskPaused'
-        QtMocHelpers::PropertyData<bool>(109, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
+        QtMocHelpers::PropertyData<bool>(108, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
         // property 'globalTimeUsage'
-        QtMocHelpers::PropertyData<qint64>(110, QMetaType::LongLong, QMC::DefaultPropertyFlags, 8),
+        QtMocHelpers::PropertyData<qint64>(109, QMetaType::LongLong, QMC::DefaultPropertyFlags, 8),
         // property 'isTrackingActive'
-        QtMocHelpers::PropertyData<bool>(111, QMetaType::Bool, QMC::DefaultPropertyFlags, 9),
+        QtMocHelpers::PropertyData<bool>(110, QMetaType::Bool, QMC::DefaultPropertyFlags, 9),
         // property 'currentUserId'
-        QtMocHelpers::PropertyData<int>(112, QMetaType::Int, QMC::DefaultPropertyFlags, 11),
+        QtMocHelpers::PropertyData<int>(111, QMetaType::Int, QMC::DefaultPropertyFlags, 11),
         // property 'productiveAppsModel'
-        QtMocHelpers::PropertyData<QAbstractItemModel*>(113, 0x80000000 | 114, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
+        QtMocHelpers::PropertyData<QAbstractItemModel*>(112, 0x80000000 | 113, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
         // property 'nonProductiveAppsModel'
-        QtMocHelpers::PropertyData<QAbstractItemModel*>(115, 0x80000000 | 114, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
+        QtMocHelpers::PropertyData<QAbstractItemModel*>(114, 0x80000000 | 113, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
         // property 'authToken'
-        QtMocHelpers::PropertyData<QString>(116, QMetaType::QString, QMC::DefaultPropertyFlags, 14),
+        QtMocHelpers::PropertyData<QString>(115, QMetaType::QString, QMC::DefaultPropertyFlags, 14),
         // property 'userEmail'
-        QtMocHelpers::PropertyData<QString>(117, QMetaType::QString, QMC::DefaultPropertyFlags, 15),
+        QtMocHelpers::PropertyData<QString>(116, QMetaType::QString, QMC::DefaultPropertyFlags, 15),
         // property 'currentUsername'
         QtMocHelpers::PropertyData<QString>(52, QMetaType::QString, QMC::DefaultPropertyFlags, 16),
         // property 'currentUserEmail'
-        QtMocHelpers::PropertyData<QString>(118, QMetaType::QString, QMC::DefaultPropertyFlags, 17),
+        QtMocHelpers::PropertyData<QString>(117, QMetaType::QString, QMC::DefaultPropertyFlags, 17),
         // property 'workTimeElapsedSeconds'
-        QtMocHelpers::PropertyData<int>(119, QMetaType::Int, QMC::DefaultPropertyFlags, 24),
+        QtMocHelpers::PropertyData<int>(118, QMetaType::Int, QMC::DefaultPropertyFlags, 24),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -477,7 +476,7 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         case 50: _t->setIdleThreshold((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
         case 51: { QVariantList _r = _t->getAvailableApps();
             if (_a[0]) *reinterpret_cast< QVariantList*>(_a[0]) = std::move(_r); }  break;
-        case 52: _t->addProductivityApp((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[4]))); break;
+        case 52: _t->addProductivityApp((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[3]))); break;
         case 53: { QVariantList _r = _t->getProductivityApps();
             if (_a[0]) *reinterpret_cast< QVariantList*>(_a[0]) = std::move(_r); }  break;
         case 54: { bool _r = _t->authenticate((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])));
@@ -493,7 +492,7 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         case 59: _t->fetchAndStoreTasks(); break;
         case 60: _t->updateTaskStatus((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
         case 61: _t->logout(); break;
-        case 62: _t->sendProductivityAppToAPI((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[4]))); break;
+        case 62: _t->sendProductivityAppToAPI((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[3]))); break;
         case 63: _t->loadWorkTimeData(); break;
         case 64: _t->checkAndCreateNewDayRecord(); break;
         case 65: { int _r = _t->calculateTodayProductiveSeconds();

@@ -331,10 +331,6 @@
                                 "type": "QString"
                             },
                             {
-                                "name": "url",
-                                "type": "QString"
-                            },
-                            {
                                 "name": "productivityType",
                                 "type": "int"
                             }
@@ -437,10 +433,6 @@
                             },
                             {
                                 "name": "windowTitle",
-                                "type": "QString"
-                            },
-                            {
-                                "name": "url",
                                 "type": "QString"
                             },
                             {

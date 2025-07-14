@@ -92,7 +92,9 @@ public:
     Q_INVOKABLE QString getUserPassword(const QString &username);
     Q_INVOKABLE void setIdleThreshold(int seconds);
     Q_INVOKABLE QVariantList getAvailableApps() const;
-    Q_INVOKABLE void addProductivityApp(const QString &appName, const QString &windowTitle, const QString &url, int productivityType);
+    Q_INVOKABLE void addProductivityApp(const QString &appName,
+                                        const QString &windowTitle,
+                                        int productivityType);
     Q_INVOKABLE QVariantList getProductivityApps() const;
 
     QAbstractItemModel* productiveAppsModel() const { return m_productiveAppsModel; }
@@ -114,7 +116,7 @@ public:
     void clearToken();
     Q_INVOKABLE void updateTaskStatus(int taskId);
     Q_INVOKABLE void logout();
-    Q_INVOKABLE void sendProductivityAppToAPI(const QString &appName, const QString &windowTitle, const QString &url, int productivityType);
+    Q_INVOKABLE void sendProductivityAppToAPI(const QString &appName, const QString &windowTitle, int productivityType);
     void fetchAndStoreProductivityApps();
     void refreshProductivityModels();
     void revertTaskChange();

@@ -439,6 +439,47 @@
 				"parent" : 65
 			},
 			{
+				"file" : 1,
+				"line" : -1,
+				"parent" : 0
+			},
+			{
+				"command" : 20,
+				"file" : 23,
+				"line" : 1,
+				"parent" : 67
+			},
+			{
+				"command" : 19,
+				"file" : 0,
+				"line" : 816,
+				"parent" : 68
+			},
+			{
+				"command" : 18,
+				"file" : 0,
+				"line" : 738,
+				"parent" : 69
+			},
+			{
+				"command" : 17,
+				"file" : 0,
+				"line" : 738,
+				"parent" : 70
+			},
+			{
+				"command" : 16,
+				"file" : 12,
+				"line" : 4344,
+				"parent" : 71
+			},
+			{
+				"command" : 13,
+				"file" : 12,
+				"line" : 4119,
+				"parent" : 72
+			},
+			{
 				"command" : 14,
 				"file" : 12,
 				"line" : 3471,
@@ -448,47 +489,6 @@
 				"command" : 13,
 				"file" : 12,
 				"line" : 2870,
-				"parent" : 67
-			},
-			{
-				"file" : 1,
-				"line" : -1,
-				"parent" : 0
-			},
-			{
-				"command" : 20,
-				"file" : 23,
-				"line" : 1,
-				"parent" : 69
-			},
-			{
-				"command" : 19,
-				"file" : 0,
-				"line" : 816,
-				"parent" : 70
-			},
-			{
-				"command" : 18,
-				"file" : 0,
-				"line" : 738,
-				"parent" : 71
-			},
-			{
-				"command" : 17,
-				"file" : 0,
-				"line" : 738,
-				"parent" : 72
-			},
-			{
-				"command" : 16,
-				"file" : 12,
-				"line" : 4344,
-				"parent" : 73
-			},
-			{
-				"command" : 13,
-				"file" : 12,
-				"line" : 4119,
 				"parent" : 74
 			},
 			{
@@ -639,7 +639,7 @@
 				"command" : 31,
 				"file" : 0,
 				"line" : 810,
-				"parent" : 70
+				"parent" : 68
 			},
 			{
 				"command" : 23,
@@ -1313,12 +1313,12 @@
 			"id" : "Deskmon_copy_qml::@6890427a1f51a3e7e1df"
 		},
 		{
-			"backtrace" : 68,
-			"id" : "Deskmon_copy_res::@6890427a1f51a3e7e1df"
+			"backtrace" : 73,
+			"id" : "Deskmon_qmlimportscan::@6890427a1f51a3e7e1df"
 		},
 		{
 			"backtrace" : 75,
-			"id" : "Deskmon_qmlimportscan::@6890427a1f51a3e7e1df"
+			"id" : "Deskmon_copy_res::@6890427a1f51a3e7e1df"
 		},
 		{
 			"id" : "Deskmon_autogen_timestamp_deps::@6890427a1f51a3e7e1df"

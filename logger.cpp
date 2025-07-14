@@ -355,7 +355,7 @@ void Logger::initializeProductivityDatabase()
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "task_id INTEGER NOT NULL, "
                     "start_reality TEXT NOT NULL, "  // ISO 8601 format: 'YYYY-MM-DDTHH:MM:SS.SSSSSSZ'
-                    "end_reality TEXT NOT NULL, "
+                    "end_reality TEXT, "
                     "current_status TEXT NOT NULL, "  // 'pause' or 'play'
                     "FOREIGN KEY(task_id) REFERENCES task(id))")) {
         qWarning() << "Failed to create log_paused table:" << query.lastError().text();
@@ -1125,7 +1125,7 @@ QVariantList Logger::getAvailableApps() const
 
     return apps;
 }
-void Logger::addProductivityApp(const QString &appName, const QString &windowTitle, const QString &url, int productivityType)
+void Logger::addProductivityApp(const QString &appName, const QString &windowTitle, int productivityType)
 {
     if (!ensureProductivityDatabaseOpen()) {
         qWarning() << "Database tidak terbuka";
@@ -1134,11 +1134,10 @@ void Logger::addProductivityApp(const QString &appName, const QString &windowTit
 
     // 1. Simpan ke database lokal terlebih dahulu
     QSqlQuery query(m_productivityDb);
-    query.prepare("INSERT INTO aplikasi (aplikasi, window_title, url, jenis, productivity) "
+    query.prepare("INSERT INTO aplikasi (aplikasi, window_title,  jenis, productivity) "
                   "VALUES (:app, :window, :url, :type, :prod)");
     query.bindValue(":app", appName);
     query.bindValue(":window", windowTitle.isEmpty() ? QVariant() : windowTitle);
-    query.bindValue(":url", url.isEmpty() ? QVariant() : url);
     query.bindValue(":type", 0); // 0 = menunggu approval
     query.bindValue(":prod", productivityType);
 
@@ -1146,7 +1145,7 @@ void Logger::addProductivityApp(const QString &appName, const QString &windowTit
         qDebug() << "Aplikasi ditambahkan. Menunggu approval admin.";
 
         // 2. Kirim data ke API
-        sendProductivityAppToAPI(appName, windowTitle, url, productivityType);
+        sendProductivityAppToAPI(appName, windowTitle, productivityType);
 
         // 3. Refresh model
         QString productiveQuery = QString("SELECT aplikasi AS appName, window_title AS windowTitle, jenis AS type FROM aplikasi WHERE jenis = 1 AND (for_user = '0' OR for_user LIKE '%%1%')").arg(m_currentUserId);
@@ -1160,7 +1159,7 @@ void Logger::addProductivityApp(const QString &appName, const QString &windowTit
 }
 
 
-void Logger::sendProductivityAppToAPI(const QString &appName, const QString &windowTitle, const QString &url, int productivityType)
+void Logger::sendProductivityAppToAPI(const QString &appName, const QString &windowTitle, int productivityType)
 {
     if (m_authToken.isEmpty()) {
         qWarning() << "Cannot send productivity app: No authentication token available";
@@ -1185,13 +1184,6 @@ void Logger::sendProductivityAppToAPI(const QString &appName, const QString &win
     payload["application_name"] = appName;
     payload["productivity_status"] = status;
     payload["user_id"] = m_currentUserId;
-
-    // Prioritaskan URL jika ada
-    if (!url.isEmpty()) {
-        payload["url"] = url;
-    } else if (!windowTitle.isEmpty()) {
-        payload["process_name"] = windowTitle;
-    }
 
     // Konfigurasi request
     QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/app-request/store"));
