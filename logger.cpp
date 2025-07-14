@@ -308,9 +308,9 @@ void Logger::initializeProductivityDatabase()
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "aplikasi TEXT, "
                     "window_title TEXT, "
-                    "jenis INTEGER, "
-                    "productivity INTEGER DEFAULT 0, "
-                    "for_user TEXT DEFAULT '0')")) { // '0'=all users, '1,2,3'=specific users
+                    "jenis INTEGER NOT NULL, "
+                    "productivity INTEGER NOT NULL DEFAULT 0, "
+                    "for_user TEXT NOT NULL DEFAULT '0')")) { // '0'=all users, '1,2,3'=specific users
         qWarning() << "Failed to create aplikasi table:" << query.lastError().text();
     }
 
@@ -601,6 +601,7 @@ QVariantList Logger::getProductivityApps() const {
     }
     return apps;
 }
+
 
 void Logger::setIdleThreshold(int seconds)
 {
@@ -1038,12 +1039,13 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
 
         // 5. Cek apakah data sudah ada di database
         query.prepare(
-            "SELECT id FROM aplikasi "
-            "WHERE aplikasi = :app AND "
-            "(window_title = :process OR (window_title IS NULL AND :process IS NULL))"
+            "SELECT id FROM aplikasi WHERE aplikasi = :app AND "
+            "(window_title = :process OR (window_title IS NULL AND :process IS NULL)) AND "
+            "for_user = :user"
             );
         query.bindValue(":app", appName);
         query.bindValue(":process", processName.isEmpty() ? QVariant() : processName);
+        query.bindValue(":user", QString::number(userId));
 
         if (!query.exec()) {
             qWarning() << "Failed to check existing app:" << query.lastError().text();
@@ -1067,7 +1069,7 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
             query.prepare(
                 "INSERT INTO aplikasi "
                 "(aplikasi, window_title, jenis, for_user) "
-                "VALUES (:app, :process, :type, '0')"  // Selalu set for_user ke '0'
+                "VALUES (:app, :process, :type, :user)"
                 );
             query.bindValue(":app", appName);
             query.bindValue(":process", processName.isEmpty() ? QVariant() : processName);
@@ -1206,10 +1208,8 @@ int Logger::getAppProductivityType(const QString &appName, const QString &window
         return 0.0;
     };
 
-    // Cache untuk menghindari query berulang
-    static QHash<QString, QVector<QPair<QString, int>>> titleCache;
-    static QHash<QString, QVector<QPair<QString, int>>> appCache;
-    static QString lastUserId;
+    const QString normTitle = normalizeString(windowTitle);
+    const QString normApp = normalizeString(appName);
 
     // Reset cache jika user berubah
     QString currentUser = QString::number(m_currentUserId);
@@ -1228,84 +1228,140 @@ int Logger::getAppProductivityType(const QString &appName, const QString &window
 
     QSqlQuery query(m_productivityDb);
 
-    // 1. Cek window title (prioritas tinggi)
-    if (!titleCache.contains(currentUser)) {
-        QVector<QPair<QString, int>> titleEntries;
-        query.prepare(
-            "SELECT window_title, jenis, for_user FROM aplikasi "
-            "WHERE window_title IS AND window_title != ''"
-            );
+    // 1. Cek window title terlebih dahulu (prioritas tinggi)
+    query.prepare(
+        "SELECT window_title, jenis, for_user FROM aplikasi "
+        "WHERE window_title IS NOT NULL AND window_title != ''"
+        );
 
-        if (query.exec()) {
-            while (query.next()) {
-                QString dbTitle = query.value(0).toString();
-                int jenis = query.value(1).toInt();
-                QString forUsers = query.value(2).toString();
+    if (query.exec()) {
+        while (query.next()) {
+            QString dbTitle = query.value(0).toString();
+            int jenis = query.value(1).toInt();
+            QString forUsers = query.value(2).toString();
 
-                // Filter user
-                if (forUsers == "0" || forUsers.split(',').contains(currentUser)) {
-                    titleEntries.append({dbTitle, jenis});
-                }
+            // Cek user permission
+            if (!(forUsers == "0" || forUsers.split(',').contains(QString::number(m_currentUserId)))) {
+                continue;
             }
         }
         titleCache[currentUser] = titleEntries;
     }
 
-    // Match dengan title entries
-    for (const auto &entry : titleCache[currentUser]) {
-        double score = fastMatch(entry.first, titlePatterns);
-        if (score > bestScore) {
-            bestScore = score;
-            bestType = entry.second;
-        }
-    }
+            // Gunakan cache untuk normalisasi
+            QString normDbTitle;
+            if (normalizationCache.contains(dbTitle)) {
+                normDbTitle = normalizationCache[dbTitle];
+            } else {
+                normDbTitle = normalizeString(dbTitle);
+                normalizationCache[dbTitle] = normDbTitle;
+            }
 
-    // 2. Cek aplikasi umum (hanya jika belum dapat match bagus dari title)
-    if (bestScore < 0.9) {
-        if (!appCache.contains(currentUser)) {
-            QVector<QPair<QString, int>> appEntries;
-            query.prepare(
-                "SELECT aplikasi, jenis, for_user FROM aplikasi "
-                "WHERE window_title IS NULL OR window_title = ''"
-                );
+            // 1. Exact match (return langsung)
+            if (normTitle == normDbTitle) {
+                return jenis;
+            }
 
-            if (query.exec()) {
-                while (query.next()) {
-                    QString dbApp = query.value(0).toString();
-                    int jenis = query.value(1).toInt();
-                    QString forUsers = query.value(2).toString();
+            // 2. Contains match (cek kedua arah)
+            if (normTitle.contains(normDbTitle) || normDbTitle.contains(normTitle)) {
+                return jenis;
+            }
 
-                    // Filter user
-                    if (forUsers == "0" || forUsers.split(',').contains(currentUser)) {
-                        appEntries.append({dbApp, jenis});
+            // 3. Keyword matching (hanya jika string cukup panjang)
+            if (normTitle.length() > 6 && normDbTitle.length() > 6) {
+                QStringList keywords1 = extractMainKeywords(windowTitle);
+                QStringList keywords2 = extractMainKeywords(dbTitle);
+
+                int matches = 0;
+                for (const QString &k1 : keywords1) {
+                    for (const QString &k2 : keywords2) {
+                        if (k1 == k2 || k1.contains(k2) || k2.contains(k1)) {
+                            matches++;
+                            break;
+                        }
                     }
                 }
             }
             appCache[currentUser] = appEntries;
         }
 
-        // Match dengan app entries
-        for (const auto &entry : appCache[currentUser]) {
-            double score = fastMatch(entry.first, appPatterns);
-
-            // Penalti sedikit untuk app match vs title match
-            score *= 0.95;
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestType = entry.second;
+                // Jika lebih dari 50% keyword cocok
+                if (matches > 0 && (double)matches / qMax(keywords1.size(), keywords2.size()) > 0.5) {
+                    return jenis;
+                }
             }
         }
     }
 
-    // Return hasil jika score cukup tinggi
-    if (bestScore >= 0.65) {
-        return bestType;
+    // 2. Cek aplikasi umum
+    query.prepare(
+        "SELECT aplikasi, jenis, for_user FROM aplikasi "
+        "WHERE window_title IS NULL OR window_title = ''"
+        );
+
+    if (query.exec()) {
+        while (query.next()) {
+            QString dbApp = query.value(0).toString();
+            int jenis = query.value(1).toInt();
+            QString forUsers = query.value(2).toString();
+
+            // Cek user permission
+            if (!(forUsers == "0" || forUsers.split(',').contains(QString::number(m_currentUserId)))) {
+                continue;
+            }
+
+            // Gunakan cache untuk normalisasi
+            QString normDbApp;
+            if (normalizationCache.contains(dbApp)) {
+                normDbApp = normalizationCache[dbApp];
+            } else {
+                normDbApp = normalizeString(dbApp);
+                normalizationCache[dbApp] = normDbApp;
+            }
+
+            // 1. Exact match
+            if (normApp == normDbApp) {
+                return jenis;
+            }
+
+            // 2. Contains match (cek kedua arah)
+            if (normApp.contains(normDbApp) || normDbApp.contains(normApp)) {
+                return jenis;
+            }
+
+            // 3. Keyword matching untuk nama aplikasi yang lebih panjang
+            if (normApp.length() > 6 && normDbApp.length() > 6) {
+                QStringList keywords1 = extractMainKeywords(appName);
+                QStringList keywords2 = extractMainKeywords(dbApp);
+
+                int matches = 0;
+                for (const QString &k1 : keywords1) {
+                    for (const QString &k2 : keywords2) {
+                        if (k1 == k2 || k1.contains(k2) || k2.contains(k1)) {
+                            matches++;
+                            break;
+                        }
+                    }
+                }
+
+                // Threshold sedikit lebih tinggi untuk app name
+                if (matches > 0 && (double)matches / qMax(keywords1.size(), keywords2.size()) > 0.6) {
+                    return jenis;
+                }
+            }
+
+            // 4. Simple similarity sebagai fallback (hanya untuk string yang tidak terlalu panjang)
+            if (normApp.length() <= 20 && normDbApp.length() <= 20) {
+                double similarity = calculateSimpleSimilarity(normApp, normDbApp);
+                if (similarity > 0.8) {
+                    return jenis;
+                }
+            }
+        }
     }
 
     return 0; // Default netral
 }
-
 QVariantList Logger::getPendingApplicationRequests() {
     QVariantList requests;
 
