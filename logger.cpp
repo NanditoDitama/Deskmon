@@ -3523,16 +3523,40 @@ Logger::WindowInfo Logger::getActiveWindowInfoLinux() {
 Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
     WindowInfo info;
 
-    // Gunakan AppleScript untuk mendapatkan info window di macOS
-    QProcess process;
-    process.start("osascript", {"-e", "tell application \"System Events\" to get name of first application process whose frontmost is true"});
-    if (process.waitForFinished(100)) {
-        info.appName = QString(process.readAllStandardOutput()).trimmed();
+    // Get app name
+    {
+        QProcess appProcess;
+        appProcess.start("osascript", {
+            "-e",
+            "tell application \"System Events\" to get name of first application process whose frontmost is true"
+        });
+
+        if (appProcess.waitForFinished(2000)) {
+            info.appName = QString(appProcess.readAllStandardOutput()).trimmed();
+            qDebug() << "App name:" << info.appName;
+        } else {
+            appProcess.kill();
+            qDebug() << "App name script timed out";
+            qDebug() << "Error:" << appProcess.readAllStandardError();
+        }
     }
 
-    process.start("osascript", {"-e", "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"});
-    if (process.waitForFinished(100)) {
-        info.title = QString(process.readAllStandardOutput()).trimmed();
+    // Get window title
+    {
+        QProcess titleProcess;
+        titleProcess.start("osascript", {
+            "-e",
+            "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"
+        });
+
+        if (titleProcess.waitForFinished(2000)) {
+            info.title = QString(titleProcess.readAllStandardOutput()).trimmed();
+            qDebug() << "Window title:" << info.title;
+        } else {
+            titleProcess.kill();
+            qDebug() << "Window title script timed out";
+            qDebug() << "Error:" << titleProcess.readAllStandardError();
+        }
     }
 
     if (info.appName.isEmpty()) info.appName = "Unknown";
@@ -3540,4 +3564,3 @@ Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
 
     return info;
 }
-#endif
