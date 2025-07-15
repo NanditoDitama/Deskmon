@@ -1,2 +1,0 @@
-C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug/appwindow_logger_autogen/include/../EWIEGA46WW/moc_idlechecker.cpp.json
-C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug/appwindow_logger_autogen/include/../EWIEGA46WW/moc_logger.cpp.json

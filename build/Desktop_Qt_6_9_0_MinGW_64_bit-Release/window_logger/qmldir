@@ -1,5 +1,0 @@
-module window_logger
-typeinfo Deskmon.qmltypes
-prefer :/qt/qml/window_logger/
-Main 1.0 Main.qml
-

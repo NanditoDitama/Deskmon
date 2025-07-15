@@ -1,4 +1,0 @@
-module WindowLogger
-typeinfo WindowLogger.qmltypes
-prefer :/qt/qml/WindowLogger/
-
