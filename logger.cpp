@@ -17,14 +17,23 @@
 #include <QBuffer>
 #include <QRegularExpression>
 
-
-
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <psapi.h>
 #include <shellapi.h>
 #include <shlobj.h>
 #include <shlwapi.h>
+
+#elif defined(Q_OS_MAC)
+#include <AppKit/AppKit.h>
+#include <Foundation/Foundation.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <CoreServices/CoreServices.h>
+#include <Carbon/Carbon.h>
+#include <IOKit/IOKitLib.h>
+#include <IOKit/IOKitKeys.h>
+#include <IOKit/IOKitLib.h>
+
 #else
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -3438,6 +3447,8 @@ Logger::WindowInfo Logger::getActiveWindowInfo()
 {
 #ifdef Q_OS_WIN
     return getActiveWindowInfoWindows();
+#elif defined(Q_OS_MACOS)
+    return getActiveWindowInfoMacOS();
 #else
     return getActiveWindowInfoLinux();
 #endif
@@ -3478,7 +3489,52 @@ Logger::WindowInfo Logger::getActiveWindowInfoWindows()
 
     return info;
 }
-#elif define(Q_OS_LINUX)
+#elif defined(Q_OS_MACOS)
+Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
+    WindowInfo info;
+
+    // Get app name
+    {
+        QProcess appProcess;
+        appProcess.start("osascript", {
+            "-e",
+            "tell application \"System Events\" to get name of first application process whose frontmost is true"
+        });
+
+        if (appProcess.waitForFinished(5000)) {
+            info.appName = QString(appProcess.readAllStandardOutput()).trimmed();
+            qDebug() << "App name:" << info.appName;
+        } else {
+            appProcess.kill();
+            qDebug() << "App name script timed out";
+            qDebug() << "Error:" << appProcess.readAllStandardError();
+        }
+    }
+
+    // Get window title
+    {
+        QProcess titleProcess;
+        titleProcess.start("osascript", {
+            "-e",
+            "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"
+        });
+
+        if (titleProcess.waitForFinished(5000)) {
+            info.title = QString(titleProcess.readAllStandardOutput()).trimmed();
+            qDebug() << "Window title:" << info.title;
+        } else {
+            titleProcess.kill();
+            qDebug() << "Window title script timed out";
+            qDebug() << "Error:" << titleProcess.readAllStandardError();
+        }
+    }
+
+    if (info.appName.isEmpty()) info.appName = "Unknown";
+    if (info.title.isEmpty()) info.title = "No active window";
+
+    return info;
+}
+#elif defined(Q_OS_LINUX)
 Logger::WindowInfo Logger::getActiveWindowInfoLinux() {
     WindowInfo info;
 
@@ -3519,48 +3575,4 @@ Logger::WindowInfo Logger::getActiveWindowInfoLinux() {
 
     return info;
 }
-#elif defined(Q_OS_MACOS)
-Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
-    WindowInfo info;
-
-    // Get app name
-    {
-        QProcess appProcess;
-        appProcess.start("osascript", {
-            "-e",
-            "tell application \"System Events\" to get name of first application process whose frontmost is true"
-        });
-
-        if (appProcess.waitForFinished(2000)) {
-            info.appName = QString(appProcess.readAllStandardOutput()).trimmed();
-            qDebug() << "App name:" << info.appName;
-        } else {
-            appProcess.kill();
-            qDebug() << "App name script timed out";
-            qDebug() << "Error:" << appProcess.readAllStandardError();
-        }
-    }
-
-    // Get window title
-    {
-        QProcess titleProcess;
-        titleProcess.start("osascript", {
-            "-e",
-            "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"
-        });
-
-        if (titleProcess.waitForFinished(2000)) {
-            info.title = QString(titleProcess.readAllStandardOutput()).trimmed();
-            qDebug() << "Window title:" << info.title;
-        } else {
-            titleProcess.kill();
-            qDebug() << "Window title script timed out";
-            qDebug() << "Error:" << titleProcess.readAllStandardError();
-        }
-    }
-
-    if (info.appName.isEmpty()) info.appName = "Unknown";
-    if (info.title.isEmpty()) info.title = "No active window";
-
-    return info;
-}
+#endif
