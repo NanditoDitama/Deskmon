@@ -127,10 +127,6 @@ public:
     void saveWorkTimeData();
     void sendWorkTimeToAPI();
 
-    Q_INVOKABLE int calculateTodayProductiveSeconds() const;
-    Q_INVOKABLE void sendProductiveTimeToAPI();
-
-
 
 
 public slots:
@@ -227,12 +223,14 @@ private:
     void startPingTimer(int taskId);
     void stopPingTimer();
 
-    QTimer m_productivePingTimer;
+    // Fungsi helper baru untuk "Time at Work"
 
 
 
 #ifdef Q_OS_WIN
     WindowInfo getActiveWindowInfoWindows();
+#elif defined(Q_OS_MACOS)
+    WindowInfo getActiveWindowInfoMacOS();
 #else
     WindowInfo getActiveWindowInfoLinux();
 #endif

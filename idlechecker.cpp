@@ -2,9 +2,11 @@
 #include "logger.h"
 #include <QDateTime>
 #include <QDebug>
+#include <QProcess>
+#include <QRegularExpression>
 #ifdef Q_OS_WIN
 #include <windows.h>
-#else
+#elif defined(Q_OS_LINUX)
 #include <X11/Xlib.h>
 #include <X11/extensions/scrnsaver.h>
 #endif
@@ -92,7 +94,7 @@ void IdleChecker::checkIdleTime()
             m_lastIdleLogTime = 0;
             m_lastActiveTime = 0;
         }
-        qDebug() << "Idle check skipped: user not logged in";
+        // qDebug() << "Idle check skipped: user not logged in";
         return;
     }
     // Skip checking if tracking is not active or task is paused
@@ -159,6 +161,8 @@ qint64 IdleChecker::getSystemIdleTime() const
 {
 #ifdef Q_OS_WIN
     return getSystemIdleTimeWindows();
+#elif defined(Q_OS_MACOS)
+    return getSystemIdleTimeMacOS();
 #else
     return getSystemIdleTimeLinux();
 #endif
@@ -176,7 +180,22 @@ qint64 IdleChecker::getSystemIdleTimeWindows() const
     qWarning() << "Failed to get last input info";
     return -1;
 }
-#else
+#elif defined(Q_OS_MACOS)
+qint64 IdleChecker::getSystemIdleTimeMacOS() const {
+    QProcess process;
+    process.start("ioreg", {"-c", "IOHIDSystem", "-r", "-k", "HIDIdleTime"});
+    if (process.waitForFinished(100)) {
+        QString output = QString(process.readAllStandardOutput());
+        QRegularExpression regex("\"HIDIdleTime\" = (\\d+)");
+        QRegularExpressionMatch match = regex.match(output);
+        if (match.hasMatch()) {
+            // Idle time in nanoseconds, convert to milliseconds
+            return match.captured(1).toLongLong() / 1000000;
+        }
+    }
+    return -1;
+}
+#elif defined(Q_OS_LINUX)
 qint64 IdleChecker::getSystemIdleTimeLinux() const
 {
     Display *display = XOpenDisplay(nullptr);
@@ -199,22 +218,6 @@ qint64 IdleChecker::getSystemIdleTimeLinux() const
     XFree(info);
     XCloseDisplay(display);
     qWarning() << "Failed to query XScreenSaverInfo";
-    return -1;
-}
-#endif
-#ifdef Q_OS_MACOS
-qint64 IdleChecker::getSystemIdleTimeMacOS() const {
-    QProcess process;
-    process.start("ioreg", {"-c", "IOHIDSystem", "-r", "-k", "HIDIdleTime"});
-    if (process.waitForFinished(100)) {
-        QString output = QString(process.readAllStandardOutput());
-        QRegularExpression regex("\"HIDIdleTime\" = (\\d+)");
-        QRegularExpressionMatch match = regex.match(output);
-        if (match.hasMatch()) {
-            // Idle time in nanoseconds, convert to milliseconds
-            return match.captured(1).toLongLong() / 1000000;
-        }
-    }
     return -1;
 }
 #endif

@@ -1,0 +1,44 @@
+# Build directories
+/build/
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+*.cmake
+
+# Qt specific files
+*.pro.user
+*.pro.user.* 
+*.moc
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Qt Creator specific files
+*.user
+*.user.* 
+*.kdev4
+*.kdev3
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS specific files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+Thumbs.db
