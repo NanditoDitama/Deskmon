@@ -17,6 +17,12 @@ find_package(Qt6 REQUIRED COMPONENTS
     QuickControls2
 )
 
+# For macOS, set logger.cpp to be compiled as Objective-C++
+if(APPLE)
+    set_source_files_properties(logger.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
+    set_source_files_properties(idlechecker.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
+endif()
+
 qt_standard_project_setup(REQUIRES 6.8)
 
 # Menambahkan sumber daya (resources) dan file QML
