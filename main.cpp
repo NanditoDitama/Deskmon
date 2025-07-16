@@ -27,6 +27,7 @@ int main(int argc, char *argv[])
         qDebug() << "Application is about to quit, saving final data...";
         logger.saveWorkTimeData();
         logger.sendWorkTimeToAPI();
+        logger.logout();
     });
 
 

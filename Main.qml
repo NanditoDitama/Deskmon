@@ -2964,7 +2964,7 @@ ApplicationWindow {
                     padding: 16
                     dim: true
 
-                     property var pendingRequests: logger.getPendingApplicationRequests()
+                    property var pendingRequests: logger.getPendingApplicationRequests()
 
                     background: Rectangle {
                         color: cardColor
@@ -2972,7 +2972,6 @@ ApplicationWindow {
                         border.color: dividerColor
                         border.width: 1
 
-                        // Visual effect without qt5compact
                         Rectangle {
                             anchors.fill: parent
                             radius: parent.radius
@@ -3016,7 +3015,7 @@ ApplicationWindow {
 
                                 delegate: Rectangle {
                                     width: requestListView.width
-                                    height: 80
+                                    height: 100  // Increased height to accommodate more info
                                     radius: 8
                                     color: index % 2 === 0 ? Qt.lighter(cardColor, 1.1) : cardColor
                                     border.color: dividerColor
@@ -3055,25 +3054,71 @@ ApplicationWindow {
                                             Layout.fillWidth: true
                                             spacing: 4
 
-                                            Label {
-                                                text: modelData.app_name
-                                                font {
-                                                    family: "Segoe UI"
-                                                    pixelSize: 16
-                                                    weight: Font.Medium
+                                            // Application name row
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                spacing: 8
+
+                                                Label {
+                                                    text: modelData.app_name
+                                                    font {
+                                                        family: "Segoe UI"
+                                                        pixelSize: 16
+                                                        weight: Font.Medium
+                                                    }
+                                                    color: textColor
+                                                    elide: Text.ElideRight
                                                 }
-                                                color: textColor
-                                                elide: Text.ElideRight
+
+                                                // Productivity type badge
+                                                Rectangle {
+                                                    visible: modelData.productivity_text
+                                                    radius: 4
+                                                    color: {
+                                                        if (modelData.productivity === 1) return "#4CAF50"; // Green for productive
+                                                        if (modelData.productivity === 2) return "#F44336"; // Red for non-productive
+                                                        return "#9E9E9E"; // Gray for neutral
+                                                    }
+                                                    Layout.preferredHeight: 20
+                                                    Layout.preferredWidth: productivityText.width + 12
+                                                    opacity: 0.8
+
+                                                    Label {
+                                                        id: productivityText
+                                                        text: modelData.productivity_text || ""
+                                                        anchors.centerIn: parent
+                                                        font {
+                                                            family: "Segoe UI"
+                                                            pixelSize: 10
+                                                            weight: Font.DemiBold
+                                                        }
+                                                        color: "white"
+                                                    }
+                                                }
                                             }
 
+                                            // URL display
                                             Label {
-                                                text: modelData.window_title
+                                                text: "URL: " + (modelData.url || "Not specified")
                                                 font {
                                                     family: "Segoe UI"
                                                     pixelSize: 12
                                                 }
                                                 color: lightTextColor
+                                                elide: Text.ElideMiddle
+                                                Layout.fillWidth: true
+                                            }
+
+                                            // For users display
+                                            Label {
+                                                text: "For: " + modelData.for_users
+                                                font {
+                                                    family: "Segoe UI"
+                                                    pixelSize: 11
+                                                }
+                                                color: Qt.lighter(lightTextColor, 1.2)
                                                 elide: Text.ElideRight
+                                                Layout.fillWidth: true
                                             }
                                         }
                                     }
@@ -3186,9 +3231,13 @@ ApplicationWindow {
                             }
                             onClicked: {
                                 const prodType = addAppDialog.selectedProductivityType
-                                const appName = appList.model[appList.currentIndex] === "Other" ? txtAppName.text.trim() : appList.model[appList.currentIndex]
-                                const windowTitle = txtWebsite.visible ? txtWebsite.text.trim() : ""
-                                logger.addProductivityApp(appName, windowTitle, prodType)
+                                const appName = appList.model[appList.currentIndex] === "Other" ?
+                                    txtAppName.text.trim() : appList.model[appList.currentIndex]
+                                const windowTitle = txtWindowTitle.visible ? txtWindowTitle.text.trim() : ""
+                                const url = txtWebsite.visible ? txtWebsite.text.trim() : ""
+
+                                // Panggil fungsi dengan parameter URL baru
+                                logger.addProductivityApp(appName, windowTitle, url, prodType)
                                 addAppDialog.close()
                                 notification.show()
                             }
@@ -3333,7 +3382,12 @@ ApplicationWindow {
                                                 }
 
                                                 Text {
-                                                    text: modelData === "Other" ? "Aplikasi Lain" : "Aplikasi"
+                                                    text: {
+                                                        if (modelData === "Other") return "Aplikasi Lain"
+                                                        if (["Chrome", "Firefox", "Edge", "Safari", "Opera"].includes(modelData))
+                                                            return "Browser Web"
+                                                        return "Aplikasi"
+                                                    }
                                                     font.pixelSize: 10
                                                     color: hover || isSelected ? (hover ? primaryColor : "#757575") : "#757575"
                                                     width: parent.width
@@ -3361,6 +3415,7 @@ ApplicationWindow {
                             Layout.leftMargin: 10
                             Layout.rightMargin: 5
 
+                            // Nama Aplikasi Custom
                             Label {
                                 text: "Nama Aplikasi:"
                                 font.pixelSize: 14
@@ -3384,18 +3439,19 @@ ApplicationWindow {
                                 }
                             }
 
+                            // Window Title
                             Label {
-                                text: "Website:"
+                                text: "Judul Window:"
                                 font.pixelSize: 14
                                 color: textColor
                                 Layout.fillWidth: true
-                                visible: txtWebsite.visible
+                                visible: txtWindowTitle.visible
                             }
 
                             TextField {
-                                id: txtWebsite
+                                id: txtWindowTitle
                                 Layout.fillWidth: true
-                                placeholderText: "Masukkan URL Website, contoh: https://www.youtube.com/"
+                                placeholderText: "Masukkan judul window aplikasi (opsional)"
                                 font.pixelSize: 14
                                 visible: false
                                 background: Rectangle {
@@ -3407,12 +3463,41 @@ ApplicationWindow {
                                 }
                             }
 
+                            // URL/Domain
+                            Label {
+                                text: "Domain Website:"
+                                font.pixelSize: 14
+                                color: textColor
+                                Layout.fillWidth: true
+                                visible: txtWebsite.visible
+                            }
+
+                            TextField {
+                                id: txtWebsite
+                                Layout.fillWidth: true
+                                placeholderText: "Masukkan Domain Website (contoh: youtube.com)"
+                                font.pixelSize: 14
+                                visible: false
+                                background: Rectangle {
+                                    radius: 4
+                                    border.color: dividerColor
+                                    border.width: 1
+                                    color: cardColor
+                                    implicitHeight: 36
+                                }
+                                validator: RegularExpressionValidator {
+                                    // Validator sederhana untuk URL/domain
+                                    regularExpression: /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
+                                }
+                            }
+
                             Rectangle {
                                 Layout.fillWidth: true
                                 color: dividerColor
                                 Layout.topMargin: 4
                             }
 
+                            // Tipe Produktivitas
                             ColumnLayout {
                                 spacing: 8
                                 Layout.fillWidth: true
@@ -3501,8 +3586,8 @@ ApplicationWindow {
                                 if (appList.currentItem) {
                                     const appName = appList.model[appList.currentIndex]
                                     txtWebsite.visible = ["Chrome", "Firefox", "Edge", "Safari", "Opera"].includes(appName)
+                                    txtWindowTitle.visible = !txtWebsite.visible
                                     txtAppName.visible = appName === "Other"
-                                    console.log("Selected app:", appName, "Index:", appList.currentIndex, "txtWebsite.visible:", txtWebsite.visible, "txtAppName.visible:", txtAppName.visible)
                                 }
                             }
                         }
@@ -3924,43 +4009,87 @@ ApplicationWindow {
 
 
                         RowLayout {
+                            id: taskControlRow
                             Layout.fillWidth: true
                             spacing: 8
 
+                            property bool isLoading: false
+
                             Label {
                                 text: "Current Task"
-                                font { bold: true; pixelSize: 16; family: "Segoe UI" }
+                                font {
+                                    bold: true
+                                    pixelSize: 16
+                                    family: "Segoe UI"
+                                }
                                 color: primaryColor
                             }
+
                             Item { Layout.fillWidth: true }
 
-                            // Pause/Resume button - hidden when task status is "Review"
+                            BusyIndicator {
+                                visible: taskControlRow.isLoading
+                                running: taskControlRow.isLoading
+                                Layout.preferredWidth: 24
+                                Layout.preferredHeight: 24
+                            }
+
                             Button {
+                                id: pauseResumeButton
                                 visible: {
-                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                    return logger.activeTaskId === -1 || !(activeTask && activeTask.status === "Review")
+                                    if (logger.activeTaskId === -1) return false;
+
+                                    // Find active task
+                                    for (let i = 0; i < logger.taskList.length; i++) {
+                                        if (logger.taskList[i].id === logger.activeTaskId) {
+                                            return logger.taskList[i].status !== "Review";
+                                        }
+                                    }
+                                    return false;
                                 }
+
                                 text: logger.isTaskPaused ? "Play" : "Pause"
                                 Layout.preferredWidth: 100
                                 Layout.preferredHeight: 34
                                 font.pixelSize: 14
+
                                 background: Rectangle {
                                     radius: 8
                                     color: logger.isTaskPaused ? accentColor : productiveColor
                                 }
+
                                 contentItem: Text {
-                                    text: logger.isTaskPaused ? "Play" : "Pause"
-                                    font: parent.font
+                                    text: pauseResumeButton.text
+                                    font: pauseResumeButton.font
                                     color: "white"
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
-                                    anchors.centerIn: parent
-                                }
-                                onClicked: {
-                                    // Toggle task pause (ini akan mengatur logger.isTaskPaused)
-                                    logger.toggleTaskPause()
                                 }
 
+                                onClicked: {
+                                    taskControlRow.isLoading = true;
+
+                                    if (logger.isTaskPaused) {
+                                        // Resume task
+                                        logger.toggleTaskPause(); // Use the existing toggle function
+                                    } else {
+                                        // Pause task
+                                        logger.toggleTaskPause(); // Use the existing toggle function
+                                    }
+                                }
+                            }
+                        }
+
+                        Connections {
+                            target: logger
+
+                            function onTaskPausedChanged() {
+                                taskControlRow.isLoading = false;
+                            }
+
+                            function onAuthTokenError(message) {
+                                taskControlRow.isLoading = false;
+                                console.error("API Error:", message);
                             }
                         }
 
