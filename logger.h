@@ -244,12 +244,10 @@ private:
     void showAuthTokenErrorMessage();
     bool m_isTokenErrorVisible = false;
 
-
-
 #ifdef Q_OS_WIN
     WindowInfo getActiveWindowInfoWindows();
-    QString getBrowserUrlWindows(HWND hwnd);
-    QString getAppNameFromHwnd(HWND hwnd);
+#elif defined(Q_OS_MACOS)
+    WindowInfo getActiveWindowInfoMacOS();
 #else
     WindowInfo getActiveWindowInfoLinux();
     QString getBrowserUrlLinux();
