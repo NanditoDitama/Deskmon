@@ -5,6 +5,7 @@
 #include <QSqlDatabase>
 #include <QTimer>
 #include <QSqlQueryModel>
+#include <QMessageBox>
 
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -14,6 +15,12 @@
 #include <QEventLoop>
 #include <QDate>
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
+#include <QObject>
+#include <QSqlDatabase>
 
 class Logger : public QObject
 {
@@ -49,6 +56,7 @@ public:
     struct WindowInfo {
         QString appName;
         QString title;
+        QString url;  // Tambahkan field untuk URL
     };
     QString currentAppName() const;
     QString currentWindowTitle() const;
@@ -92,9 +100,7 @@ public:
     Q_INVOKABLE QString getUserPassword(const QString &username);
     Q_INVOKABLE void setIdleThreshold(int seconds);
     Q_INVOKABLE QVariantList getAvailableApps() const;
-    Q_INVOKABLE void addProductivityApp(const QString &appName,
-                                        const QString &windowTitle,
-                                        int productivityType);
+    Q_INVOKABLE void addProductivityApp(const QString &appName, const QString &windowTitle, const QString &url, int productivityType);
     Q_INVOKABLE QVariantList getProductivityApps() const;
 
     QAbstractItemModel* productiveAppsModel() const { return m_productiveAppsModel; }
@@ -116,7 +122,7 @@ public:
     void clearToken();
     Q_INVOKABLE void updateTaskStatus(int taskId);
     Q_INVOKABLE void logout();
-    Q_INVOKABLE void sendProductivityAppToAPI(const QString &appName, const QString &windowTitle, int productivityType);
+    Q_INVOKABLE void sendProductivityAppToAPI(const QString &appName, const QString &windowTitle, const QString &url, int productivityType);
     void fetchAndStoreProductivityApps();
     void refreshProductivityModels();
     void revertTaskChange();
@@ -129,7 +135,13 @@ public:
 
     Q_INVOKABLE int calculateTodayProductiveSeconds() const;
     Q_INVOKABLE void sendProductiveTimeToAPI();
+    Q_INVOKABLE void sendDailyUsageReport();
 
+    void sendLogoutToAPI();
+
+    Q_INVOKABLE void sendPing(int taskId);
+    Q_INVOKABLE void sendPausePlayDataToAPI(int taskId, const QString& startTime,
+                                            const QString& endTime, const QString& status);
 
 
 
@@ -141,11 +153,13 @@ public slots:
     void handleTaskStatusReply(QNetworkReply *reply, int taskId);
     Q_INVOKABLE QVariantList getPendingApplicationRequests();
     void handleProductivityAppsResponse(QNetworkReply *reply);
+    void handleDailyUsageReportResponse(QNetworkReply *reply);
 
 
 private slots:
     void handleTaskFetchReply(QNetworkReply *reply);
     void updateWorkTimeAndSave(); // Slot baru untuk timer "Time at Work"
+
 
 
 signals:
@@ -182,6 +196,8 @@ signals:
     void workTimeElapsedSecondsChanged();
 
 
+
+
 private:
     void syncActiveTask();
     void initializeDatabase();
@@ -191,7 +207,7 @@ private:
     QString hashPassword(const QString &password);
     void initializeProductivityDatabase();
     bool ensureProductivityDatabaseOpen() const;
-    int getAppProductivityType(const QString &appName, const QString &windowTitle) const;
+    int getAppProductivityType(const QString &appName, const QString &windowTitle, const QString &url) const;
     void setMaxTimeForTask(int taskId);
     void checkTaskStatusBeforeStart();
     void migrateProductivityDatabase();
@@ -218,23 +234,25 @@ private:
     QDateTime m_lastPlayStartTime;
     QDateTime m_lastPauseStartTime;
 
-
-    void sendPausePlayDataToAPI(int taskId, const QString& startTime,
-                                const QString& endTime, const QString& status);
-
     QTimer m_pingTimer;
-    void sendPing(int taskId);
     void startPingTimer(int taskId);
     void stopPingTimer();
 
     QTimer m_productivePingTimer;
+    QTimer m_usageReportTimer;
+
+    void showAuthTokenErrorMessage();
+    bool m_isTokenErrorVisible = false;
 
 
 
 #ifdef Q_OS_WIN
     WindowInfo getActiveWindowInfoWindows();
+    QString getBrowserUrlWindows(HWND hwnd);
+    QString getAppNameFromHwnd(HWND hwnd);
 #else
     WindowInfo getActiveWindowInfoLinux();
+    QString getBrowserUrlLinux();
 #endif
 
     mutable QSqlDatabase m_db;
