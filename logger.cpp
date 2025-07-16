@@ -3898,27 +3898,6 @@ Logger::WindowInfo Logger::getActiveWindowInfoLinux() {
 
     return info;
 }
-#elif defined(Q_OS_MACOS)
-Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
-    WindowInfo info;
-
-    // Gunakan AppleScript untuk mendapatkan info window di macOS
-    QProcess process;
-    process.start("osascript", {"-e", "tell application \"System Events\" to get name of first application process whose frontmost is true"});
-    if (process.waitForFinished(100)) {
-        info.appName = QString(process.readAllStandardOutput()).trimmed();
-    }
-
-    process.start("osascript", {"-e", "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"});
-    if (process.waitForFinished(100)) {
-        info.title = QString(process.readAllStandardOutput()).trimmed();
-    }
-
-    if (info.appName.isEmpty()) info.appName = "Unknown";
-    if (info.title.isEmpty()) info.title = "No active window";
-
-    return info;
-}
 #endif
 
 
