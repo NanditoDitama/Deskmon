@@ -47,6 +47,20 @@ namespace _qt_qml_window_logger_SaveTombolCropImage_qml {
         reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
     };
 }
+namespace _qt_qml_window_logger_Current_Task_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
+namespace _qt_qml_window_logger_Activity_Monitor_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
 
 }
 namespace {
@@ -67,6 +81,8 @@ Registry::Registry() {
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/Profil_page.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_Profil_page_qml::unit);
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/Productivty.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_Productivty_qml::unit);
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/SaveTombolCropImage.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_SaveTombolCropImage_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/Current_Task.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_Current_Task_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/Activity_Monitor.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_Activity_Monitor_qml::unit);
     QQmlPrivate::RegisterQmlUnitCacheHook registration;
     registration.structVersion = 0;
     registration.lookupCachedQmlUnit = &lookupCachedUnit;

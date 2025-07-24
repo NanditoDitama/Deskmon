@@ -136,6 +136,9 @@ qt_add_qml_module(Deskmon
     QML_FILES Profil_page.qml
     QML_FILES Productivty.qml
     QML_FILES SaveTombolCropImage.qml
+    RESOURCES
+    QML_FILES Current_Task.qml
+    QML_FILES Activity_Monitor.qml
 )
 
 # Menambahkan resource file jika diperlukan

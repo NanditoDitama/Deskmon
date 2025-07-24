@@ -7,4 +7,6 @@ Login_page 1.0 Login_page.qml
 Profil_page 1.0 Profil_page.qml
 Productivty 1.0 Productivty.qml
 SaveTombolCropImage 1.0 SaveTombolCropImage.qml
+Current_Task 1.0 Current_Task.qml
+Activity_Monitor 1.0 Activity_Monitor.qml
 
