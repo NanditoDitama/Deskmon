@@ -132,6 +132,10 @@ qt_add_qml_module(Deskmon
     QML_FILES ${QML_FILES}
     SOURCES
     QML_FILES Pop_up_waktuhabis.qml
+    QML_FILES Login_page.qml
+    QML_FILES Profil_page.qml
+    QML_FILES Productivty.qml
+    QML_FILES SaveTombolCropImage.qml
 )
 
 # Menambahkan resource file jika diperlukan

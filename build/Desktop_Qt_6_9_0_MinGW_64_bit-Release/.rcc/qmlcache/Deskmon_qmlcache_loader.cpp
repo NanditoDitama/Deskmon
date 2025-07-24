@@ -19,6 +19,34 @@ namespace _qt_qml_window_logger_Pop_up_waktuhabis_qml {
         reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
     };
 }
+namespace _qt_qml_window_logger_Login_page_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
+namespace _qt_qml_window_logger_Profil_page_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
+namespace _qt_qml_window_logger_Productivty_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
+namespace _qt_qml_window_logger_SaveTombolCropImage_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
 
 }
 namespace {
@@ -35,6 +63,10 @@ Q_GLOBAL_STATIC(Registry, unitRegistry)
 Registry::Registry() {
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/Main.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_Main_qml::unit);
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/Pop_up_waktuhabis.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_Pop_up_waktuhabis_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/Login_page.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_Login_page_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/Profil_page.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_Profil_page_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/Productivty.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_Productivty_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/SaveTombolCropImage.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_SaveTombolCropImage_qml::unit);
     QQmlPrivate::RegisterQmlUnitCacheHook registration;
     registration.structVersion = 0;
     registration.lookupCachedQmlUnit = &lookupCachedUnit;
