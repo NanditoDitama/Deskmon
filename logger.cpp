@@ -18,9 +18,6 @@
 #include <QRegularExpression>
 #include <QMessageBox>
 
-
-
-
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <psapi.h>
@@ -28,6 +25,18 @@
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <UIAutomation.h>
+
+#elif defined(Q_OS_MAC)
+#include <AppKit/AppKit.h>
+#include <Foundation/Foundation.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <CoreServices/CoreServices.h>
+#include <Carbon/Carbon.h>
+#include <IOKit/IOKitLib.h>
+#include <IOKit/IOKitKeys.h>
+#include <IOKit/IOKitLib.h>
+
+
 #else
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -50,9 +59,9 @@ Logger::Logger(QObject *parent) : QObject(parent)
     m_productiveAppsModel->setQuery("SELECT aplikasi AS appName, window_title AS windowTitle, jenis AS type FROM aplikasi WHERE jenis = 1", m_productivityDb);
     m_nonProductiveAppsModel->setQuery("SELECT aplikasi AS appName, window_title AS windowTitle, jenis AS type FROM aplikasi WHERE jenis = 2", m_productivityDb);
 
-    m_taskTimer.setInterval(1000);
-    connect(&m_taskTimer, &QTimer::timeout, this, &Logger::updateTaskTime);
-    m_taskTimer.start();
+    //m_taskTimer.setInterval(1000);
+    //connect(&m_taskTimer, &QTimer::timeout, this, &Logger::updateTaskTime);
+    //m_taskTimer.start();
     m_isTrackingActive = true;
     m_networkManager = new QNetworkAccessManager(this);
 
@@ -65,7 +74,8 @@ Logger::Logger(QObject *parent) : QObject(parent)
 
     // Inisialisasi dan mulai timer untuk "Time at Work"
     connect(&m_workTimer, &QTimer::timeout, this, &Logger::updateWorkTimeAndSave);
-    m_workTimer.start(1000); // Update setiap detik
+    m_workTimer.start(1000); // 1 detik
+     // Update setiap detik
 
     m_productivePingTimer.setInterval(180000); // 3 menit = 180000 ms
     connect(&m_productivePingTimer, &QTimer::timeout, this, &Logger::sendProductiveTimeToAPI);
@@ -73,6 +83,7 @@ Logger::Logger(QObject *parent) : QObject(parent)
 
     m_usageReportTimer.setInterval(300000); // 5 menit = 300,000 ms
     connect(&m_usageReportTimer, &QTimer::timeout, this, &Logger::sendDailyUsageReport);
+
 
 }
 Logger::~Logger()
@@ -149,6 +160,10 @@ void Logger::showAuthTokenErrorMessage()
 
 void Logger::refreshAll()
 {
+
+    bool wasPaused = m_isTaskPaused;
+    int activeTaskBeforeRefresh = m_activeTaskId;
+
     if (!ensureDatabaseOpen() || !ensureProductivityDatabaseOpen()) {
         qWarning() << "Cannot refresh: One or both databases are not open";
         return;
@@ -165,6 +180,26 @@ void Logger::refreshAll()
     qDebug() << "Fetching tasks and productivity apps from server...";
     fetchAndStoreTasks();
     fetchAndStoreProductivityApps();
+
+    {
+        QSqlQuery query(m_productivityDb);
+        query.prepare("SELECT id FROM task WHERE user_id = :user_id AND status = 'on-progress' LIMIT 1");
+        query.bindValue(":user_id", m_currentUserId);
+        if (query.exec() && query.next()) {
+            int taskId = query.value(0).toInt();
+            setActiveTask(taskId);
+            m_taskStartTime = QDateTime::currentSecsSinceEpoch();
+
+            QSqlQuery timeQuery(m_productivityDb);
+            timeQuery.prepare("SELECT time_usage FROM task WHERE id = :id");
+            timeQuery.bindValue(":id", taskId);
+            if (timeQuery.exec() && timeQuery.next()) {
+                m_taskTimeOffset = timeQuery.value(0).toInt();
+            }
+
+            qDebug() << "Task with status 'on-progress' activated. Task ID:" << taskId;
+        }
+    }
 
     // 2. Sinkronkan ulang status internal aplikasi dari database LOKAL yang sudah diperbarui.
     // Ini menggantikan logika pemulihan status yang keliru dan panggilan syncActiveTask() yang berlebihan.
@@ -203,6 +238,8 @@ void Logger::refreshAll()
             }
         }
     }
+    m_isTaskPaused = wasPaused;
+    m_activeTaskId = activeTaskBeforeRefresh;
 
     // 3. Perbarui info jendela yang sedang aktif.
     logActiveWindow();
@@ -232,27 +269,24 @@ void Logger::sendLogoutToAPI()
 
     QJsonObject payload;
 
-
+    QEventLoop loop;
     QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/logout"));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
 
     qDebug() << "Sending logout to API:" << QJsonDocument(payload).toJson();
 
-    QNetworkReply* reply = m_networkManager->post(request, QJsonDocument(payload).toJson());
+    QNetworkReply* reply = m_networkManager->post(request, QJsonDocument(QJsonObject()).toJson());
+    connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    QTimer::singleShot(5000, &loop, &QEventLoop::quit); // timeout jaga-jaga
+    loop.exec();
 
-    QTimer::singleShot(10000, reply, &QNetworkReply::abort);
-
-    connect(reply, &QNetworkReply::finished, [this, reply]() {
-        if (reply->error() == QNetworkReply::NoError) {
-            qDebug() << "Logout successfully sent to API. Response:" << reply->readAll();
-        } else {
-            qWarning() << "Failed to send logout to API:" << reply->errorString();
-            qDebug() << "HTTP Status:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-            qDebug() << "Response Body:" << reply->readAll();
-        }
-        reply->deleteLater();
-    });
+    if (reply->error() == QNetworkReply::NoError) {
+        qDebug() << "Logout success:" << reply->readAll();
+    } else {
+        qWarning() << "Logout failed:" << reply->errorString();
+    }
+    reply->deleteLater();
 }
 
 void Logger::logout()
@@ -260,11 +294,25 @@ void Logger::logout()
     saveWorkTimeData();
     sendWorkTimeToAPI();
     sendLogoutToAPI();
+    m_workTimer.stop();
 
     // Stop all active tracking
     if (m_activeTaskId != -1) {
         setActiveTask(-1); // This will stop the current task
     }
+
+    if (m_activeTaskId != -1 && !m_isTaskPaused) {
+        QString currentTime = QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
+        sendPausePlayDataToAPI(
+            m_activeTaskId,
+            m_lastPlayStartTime.toString(Qt::ISODateWithMs),
+            currentTime,
+            "pause"
+            );
+        qDebug() << "Sent pause status to server before logout. From" << m_lastPlayStartTime << "to" << currentTime;
+    }
+
+
 
 
     // Stop all timers
@@ -285,7 +333,6 @@ void Logger::logout()
     m_currentUserEmail.clear();
     m_userEmail.clear();
     m_authToken.clear();
-    m_workTimeElapsedSeconds = 0; // Reset waktu kerja di memori
     QSqlQuery clearTokenQuery(m_db);
     clearTokenQuery.prepare("UPDATE users SET token = '' WHERE id = :id");
     clearTokenQuery.bindValue(":id", m_currentUserId);
@@ -560,20 +607,161 @@ void Logger::sendWorkTimeToAPI()
     });
 }
 
-void Logger::updateWorkTimeAndSave()
-{
-    // Waktu kerja hanya bertambah jika ada task yang berjalan (tidak di-pause)
+void Logger::updateWorkTimeAndSave() {
     if (m_activeTaskId != -1 && !m_isTaskPaused) {
         m_workTimeElapsedSeconds++;
         emit workTimeElapsedSecondsChanged();
 
-        // Simpan ke DB setiap 10 detik untuk mengurangi operasi I/O
         if (m_workTimeElapsedSeconds % 10 == 0) {
             saveWorkTimeData();
         }
     }
 }
 
+// Updated getAppProductivityType function
+int Logger::getAppProductivityType(const QString &appName, const QString &url) const
+{
+    if (!ensureProductivityDatabaseOpen() || m_currentUserId == -1) {
+        return 0;
+    }
+
+    // Helper function untuk normalisasi string
+    auto normalizeString = [](const QString &str) {
+        return str.toLower()
+        .remove(' ')
+            .remove('-')
+            .remove('_')
+            .remove('.');
+    };
+
+    // Helper function untuk cek user permission
+    auto checkUserPermission = [this](const QString &forUsers) -> bool {
+        if (forUsers == "0") {
+            return true; // Global untuk semua user
+        }
+
+        QString currentUserStr = QString::number(m_currentUserId);
+        QStringList userList = forUsers.split(',', Qt::SkipEmptyParts);
+
+        for (const QString &userId : userList) {
+            if (userId.trimmed() == currentUserStr) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+    auto extractDomain = [](const QString &url) -> QString {
+        if (url.isEmpty()) return "";
+
+        QUrl qurl(url);
+        QString domain = qurl.host();
+
+        // Jika QUrl gagal parse, coba ekstrak manual
+        if (domain.isEmpty()) {
+            QRegularExpression domainRegex(R"((?:https?://)?(?:www\.)?([^/]+))");
+            QRegularExpressionMatch match = domainRegex.match(url);
+            if (match.hasMatch()) {
+                domain = match.captured(1);
+            }
+        }
+
+        // Hapus www. prefix
+        if (domain.startsWith("www.")) {
+            domain = domain.mid(4);
+        }
+
+        return domain.toLower();
+    };
+
+    // Cek apakah ini aplikasi browser atau non-browser
+    bool isBrowserApp = !url.isEmpty();
+
+    if (isBrowserApp) {
+        // BROWSER APPLICATION: Gunakan domain matching
+        QString domain = extractDomain(url);
+        if (domain.isEmpty()) {
+            return 0; // Tidak bisa ekstrak domain
+        }
+
+        QSqlQuery query(m_productivityDb);
+        query.prepare(R"(
+            SELECT url, jenis, for_user
+            FROM aplikasi
+            WHERE url IS NOT NULL
+            AND url != ''
+        )");
+        query.bindValue(":userPattern", "%," + QString::number(m_currentUserId) + ",%");
+
+        if (query.exec()) {
+            while (query.next()) {
+                QString dbUrl = query.value(0).toString();
+                int jenis = query.value(1).toInt();
+                QString forUsers = query.value(2).toString();
+
+                // Check user permission
+                if (!checkUserPermission(forUsers)) {
+                    continue;
+                }
+
+                QString dbDomain = extractDomain(dbUrl);
+                if (dbDomain.isEmpty()) continue;
+
+                // Exact domain match
+                if (domain == dbDomain) {
+                    return jenis;
+                }
+
+                // Check if domain contains subdomain match
+                if (domain.endsWith("." + dbDomain) || dbDomain.endsWith("." + domain)) {
+                    return jenis;
+                }
+            }
+        }
+    } else {
+        // NON-BROWSER APPLICATION: Gunakan app name matching
+        QString normApp = normalizeString(appName);
+
+        QSqlQuery query(m_productivityDb);
+        query.prepare(R"(
+            SELECT aplikasi, jenis, for_user
+            FROM aplikasi
+            WHERE (url IS NULL OR url = '')
+            AND aplikasi IS NOT NULL
+            AND aplikasi != ''
+        )");
+        query.bindValue(":userPattern", "%," + QString::number(m_currentUserId) + ",%");
+
+        if (query.exec()) {
+            while (query.next()) {
+                QString dbApp = query.value(0).toString();
+                int jenis = query.value(1).toInt();
+                QString forUsers = query.value(2).toString();
+
+                // Check user permission
+                if (!checkUserPermission(forUsers)) {
+                    continue;
+                }
+
+                QString normDbApp = normalizeString(dbApp);
+
+                // Exact match
+                if (normApp == normDbApp) {
+                    return jenis;
+                }
+
+                // Contains match (kedua arah)
+                if (normApp.contains(normDbApp) || normDbApp.contains(normApp)) {
+                    return jenis;
+                }
+            }
+        }
+    }
+
+    return 0; // Default neutral
+}
+
+// Updated calculateTodayProductiveSeconds function
 int Logger::calculateTodayProductiveSeconds() const
 {
     if (!ensureDatabaseOpen() || m_currentUserId == -1) {
@@ -583,22 +771,29 @@ int Logger::calculateTodayProductiveSeconds() const
     QString today = QDate::currentDate().toString("yyyy-MM-dd");
     int totalProductiveSeconds = 0;
 
-    // Helper functions untuk advanced matching
-    auto normalizeString = [](const QString &str) {
-        return str.toLower()
-        .remove(' ')
-            .remove('-')
-            .remove('_')
-            .remove('.');
-    };
+    // Helper function untuk cek user permission
+    auto checkUserPermission = [this](const QString &forUsers) -> bool {
+        if (forUsers == "0") {
+            return true; // Global untuk semua user
+        }
 
+        QString currentUserStr = QString::number(m_currentUserId);
+        QStringList userList = forUsers.split(',', Qt::SkipEmptyParts);
+
+        for (const QString &userId : userList) {
+            if (userId.trimmed() == currentUserStr) {
+                return true;
+            }
+        }
+
+        return false;
+    };
     auto extractDomain = [](const QString &url) -> QString {
         if (url.isEmpty()) return QString();
 
         QUrl qurl(url);
         QString host = qurl.host();
 
-        // Jika tidak ada host, coba ekstrak manual
         if (host.isEmpty()) {
             QRegularExpression domainRegex(R"((?:https?://)?(?:www\.)?([^/]+))");
             QRegularExpressionMatch match = domainRegex.match(url);
@@ -607,7 +802,6 @@ int Logger::calculateTodayProductiveSeconds() const
             }
         }
 
-        // Hapus www. jika ada
         if (host.startsWith("www.")) {
             host = host.mid(4);
         }
@@ -615,139 +809,55 @@ int Logger::calculateTodayProductiveSeconds() const
         return host.toLower();
     };
 
-    auto extractKeywords = [](const QString &str) -> QStringList {
-        QStringList keywords;
-        QString normalized = str.toLower();
-        QStringList parts = normalized.split(QRegularExpression("[\\s\\-_.]"), Qt::SkipEmptyParts);
-
-        for (const QString &part : parts) {
-            if (part.length() >= 3) {
-                keywords.append(part);
-            }
-        }
-
-        if (keywords.size() > 4) {
-            keywords = keywords.mid(0, 4);
-        }
-
-        return keywords;
+    // Helper function untuk normalisasi string
+    auto normalizeString = [](const QString &str) {
+        return str.toLower()
+        .remove(' ')
+            .remove('-')
+            .remove('_')
+            .remove('.');
     };
 
-    auto calculateKeywordMatch = [&extractKeywords](const QString &str1, const QString &str2) -> double {
-        QStringList keywords1 = extractKeywords(str1);
-        QStringList keywords2 = extractKeywords(str2);
-
-        if (keywords1.isEmpty() || keywords2.isEmpty()) return 0.0;
-
-        int matches = 0;
-        for (const QString &k1 : keywords1) {
-            for (const QString &k2 : keywords2) {
-                if (k1 == k2 || k1.contains(k2) || k2.contains(k1)) {
-                    matches++;
-                    break;
-                }
-            }
-        }
-
-        return (double)matches / qMax(keywords1.size(), keywords2.size());
-    };
-
-    auto findBestMatch = [&](const QString &inputStr, const QHash<QString, int> &candidates, bool isTitle = false) -> int {
-        if (inputStr.isEmpty()) return 0;
-
-        QString normalizedInput = normalizeString(inputStr);
-
-        // Cache untuk performa
-        static QHash<QString, QString> normalizedCache;
-
-        int bestMatch = 0;
-        double bestScore = 0.0;
-
-        for (auto it = candidates.begin(); it != candidates.end(); ++it) {
-            const QString &candidate = it.key();
-            if (candidate.isEmpty()) continue;
-
-            QString normalizedCandidate;
-            if (normalizedCache.contains(candidate)) {
-                normalizedCandidate = normalizedCache[candidate];
-            } else {
-                normalizedCandidate = normalizeString(candidate);
-                normalizedCache[candidate] = normalizedCandidate;
-            }
-
-            double score = 0.0;
-
-            // 1. Exact match (score tertinggi)
-            if (normalizedInput == normalizedCandidate) {
-                return it.value();
-            }
-
-            // 2. Contains match
-            if (normalizedInput.contains(normalizedCandidate) || normalizedCandidate.contains(normalizedInput)) {
-                score = 0.9;
-                if (normalizedCandidate.length() < normalizedInput.length()) {
-                    score = 0.95;
-                }
-            }
-
-            // 3. Keyword matching
-            if (score < 0.7 && (normalizedInput.length() > 6 || isTitle)) {
-                double keywordScore = calculateKeywordMatch(inputStr, candidate);
-                if (keywordScore > 0.5) {
-                    score = qMax(score, keywordScore * 0.8);
-                }
-            }
-
-            if (score > bestScore && score >= 0.6) {
-                bestScore = score;
-                bestMatch = it.value();
-            }
-        }
-
-        return bestMatch;
-    };
-
-    // 1. Dapatkan semua aplikasi, window title, dan URL dari database produktivitas
-    QHash<QString, int> productiveApps;     // Key: app name, Value: productivity type
-    QHash<QString, int> productiveTitles;  // Key: title, Value: productivity type
-    QHash<QString, int> productiveUrls;    // Key: domain, Value: productivity type
+    // 1. Load productivity rules from database
+    QHash<QString, int> productiveApps;     // Non-browser apps
+    QHash<QString, int> productiveDomains;  // Browser domains
 
     if (ensureProductivityDatabaseOpen()) {
         QSqlQuery query(m_productivityDb);
         query.prepare(R"(
-            SELECT aplikasi, window_title, url, jenis
+            SELECT aplikasi, url, jenis, for_user
             FROM aplikasi
-            WHERE (for_user = '0' OR for_user LIKE :userPattern)
-            AND jenis IN (1, 2)  -- 1: productive, 2: non-productive
+            WHERE jenis IN (1, 2)
         )");
         query.bindValue(":userPattern", "%," + QString::number(m_currentUserId) + ",%");
 
         if (query.exec()) {
             while (query.next()) {
                 QString appName = query.value(0).toString();
-                QString windowTitle = query.value(1).toString();
-                QString url = query.value(2).toString();
-                int type = query.value(3).toInt();
+                QString url = query.value(1).toString();
+                int type = query.value(2).toInt();
+                QString forUsers = query.value(3).toString();
 
-                if (!appName.isEmpty()) {
-                    productiveApps[appName] = type;
+                // Check user permission
+                if (!checkUserPermission(forUsers)) {
+                    continue;
                 }
-                if (!windowTitle.isEmpty()) {
-                    productiveTitles[windowTitle] = type;
-                }
+
                 if (!url.isEmpty()) {
+                    // Browser app rule - store by domain
                     QString domain = extractDomain(url);
                     if (!domain.isEmpty()) {
-                        productiveUrls[domain] = type;
+                        productiveDomains[domain] = type;
                     }
+                } else if (!appName.isEmpty()) {
+                    // Non-browser app rule
+                    productiveApps[appName] = type;
                 }
             }
-        } else {
-            qWarning() << "Failed to fetch productivity apps:" << query.lastError().text();
         }
     }
 
-    // 2. Hitung durasi productive dari log aktivitas hari ini
+    // 2. Process today's activity logs
     QSqlQuery logQuery(m_db);
     logQuery.prepare(R"(
         SELECT start_time, end_time, app_name, title, url
@@ -761,9 +871,8 @@ int Logger::calculateTodayProductiveSeconds() const
 
     if (logQuery.exec()) {
         QHash<QString, int> appProductivityTime;
-        QHash<QString, int> titleProductivityTime;
-        QHash<QString, int> urlProductivityTime;
-        QHash<QString, int> matchStats; // Untuk tracking metode matching
+        QHash<QString, int> domainProductivityTime;
+        QHash<QString, int> matchStats;
 
         while (logQuery.next()) {
             qint64 start = logQuery.value(0).toLongLong();
@@ -775,38 +884,54 @@ int Logger::calculateTodayProductiveSeconds() const
             int duration = end - start;
             if (duration <= 0) continue;
 
-            // 3. Tentukan produktivitas dengan prioritas: URL -> Title -> App
             int productivityType = 0;
             QString matchMethod = "none";
             QString matchedItem = "";
 
-            // Prioritas 1: Cek URL domain terlebih dahulu
-            if (!url.isEmpty()) {
+            bool isBrowserApp = !url.isEmpty();
+
+            if (isBrowserApp) {
+                // Browser application - check domain
                 QString domain = extractDomain(url);
                 if (!domain.isEmpty()) {
-                    productivityType = findBestMatch(domain, productiveUrls, false);
-                    if (productivityType != 0) {
-                        matchMethod = "url_match";
+                    // Direct domain match
+                    if (productiveDomains.contains(domain)) {
+                        productivityType = productiveDomains[domain];
+                        matchMethod = "domain_exact";
                         matchedItem = domain;
+                    } else {
+                        // Check for subdomain matches
+                        for (auto it = productiveDomains.begin(); it != productiveDomains.end(); ++it) {
+                            const QString &ruleDomain = it.key();
+                            if (domain.endsWith("." + ruleDomain) || ruleDomain.endsWith("." + domain)) {
+                                productivityType = it.value();
+                                matchMethod = "domain_subdomain";
+                                matchedItem = ruleDomain;
+                                break;
+                            }
+                        }
                     }
                 }
-            }
+            } else {
+                // Non-browser application - check app name
+                QString normApp = normalizeString(appName);
 
-            // Prioritas 2: Cek window title jika URL tidak cocok
-            if (productivityType == 0 && !title.isEmpty()) {
-                productivityType = findBestMatch(title, productiveTitles, true);
-                if (productivityType != 0) {
-                    matchMethod = "title_match";
-                    matchedItem = title;
-                }
-            }
+                // Direct app match
+                for (auto it = productiveApps.begin(); it != productiveApps.end(); ++it) {
+                    const QString &ruleApp = it.key();
+                    QString normRuleApp = normalizeString(ruleApp);
 
-            // Prioritas 3: Cek app name jika title tidak cocok
-            if (productivityType == 0 && !appName.isEmpty()) {
-                productivityType = findBestMatch(appName, productiveApps, false);
-                if (productivityType != 0) {
-                    matchMethod = "app_match";
-                    matchedItem = appName;
+                    if (normApp == normRuleApp) {
+                        productivityType = it.value();
+                        matchMethod = "app_exact";
+                        matchedItem = ruleApp;
+                        break;
+                    } else if (normApp.contains(normRuleApp) || normRuleApp.contains(normApp)) {
+                        productivityType = it.value();
+                        matchMethod = "app_contains";
+                        matchedItem = ruleApp;
+                        break;
+                    }
                 }
             }
 
@@ -814,58 +939,48 @@ int Logger::calculateTodayProductiveSeconds() const
 
             if (isProductive) {
                 totalProductiveSeconds += duration;
-                appProductivityTime[appName] += duration;
-                titleProductivityTime[title] += duration;
 
-                // Track URL productivity
-                if (!url.isEmpty()) {
+                if (isBrowserApp) {
                     QString domain = extractDomain(url);
                     if (!domain.isEmpty()) {
-                        urlProductivityTime[domain] += duration;
+                        domainProductivityTime[domain] += duration;
                     }
+                } else {
+                    appProductivityTime[appName] += duration;
                 }
 
                 matchStats[matchMethod] += duration;
             }
-
-            // Optional: Log untuk debugging match yang ditemukan
-            if (productivityType != 0) {
-                qDebug() << QString("Match found: %1 -> %2 (%3) [%4]")
-                .arg(matchMethod)
-                    .arg(matchedItem)
-                    .arg(productivityType == 1 ? "PRODUCTIVE" : "NON-PRODUCTIVE")
-                    .arg(formatDuration(duration));
-            }
         }
 
-        // 4. Enhanced debug output dengan URL statistics
-        qDebug() << "==== Enhanced Productivity Breakdown with URL Matching ====";
+        // 3. Debug output
+        qDebug() << "==== Updated Productivity Breakdown ====";
         qDebug() << "Total Productive Time:" << formatDuration(totalProductiveSeconds);
 
         qDebug() << "\nMatching Method Statistics:";
         for (auto it = matchStats.begin(); it != matchStats.end(); ++it) {
-            double percentage = (double)it.value() / totalProductiveSeconds * 100;
-            qDebug() << QString("%1: %2 (%3%)")
-                            .arg(it.key(), -15)
-                            .arg(formatDuration(it.value()))
-                            .arg(percentage, 0, 'f', 1);
-        }
-
-        qDebug() << "\nTop Productive Domains:";
-        QList<QPair<int, QString>> sortedUrls;
-        for (auto it = urlProductivityTime.begin(); it != urlProductivityTime.end(); ++it) {
-            if (it.value() > 0) {
-                sortedUrls.append(qMakePair(it.value(), it.key()));
+            if (totalProductiveSeconds > 0) {
+                double percentage = (double)it.value() / totalProductiveSeconds * 100;
+                qDebug() << QString("%1: %2 (%3%)")
+                                .arg(it.key(), -20)
+                                .arg(formatDuration(it.value()))
+                                .arg(percentage, 0, 'f', 1);
             }
         }
-        std::sort(sortedUrls.begin(), sortedUrls.end(), std::greater<QPair<int, QString>>());
-        for (const auto &pair : sortedUrls.mid(0, 10)) {
-            int matchType = findBestMatch(pair.second, productiveUrls, false);
-            QString matchInfo = matchType == 1 ? " [PRODUCTIVE]" : matchType == 2 ? " [NON-PRODUCTIVE]" : " [NEUTRAL]";
-            qDebug() << QString("%1: %2%3").arg(pair.second, -30).arg(formatDuration(pair.first)).arg(matchInfo);
+
+        qDebug() << "\nTop Productive Domains (Browser Apps):";
+        QList<QPair<int, QString>> sortedDomains;
+        for (auto it = domainProductivityTime.begin(); it != domainProductivityTime.end(); ++it) {
+            if (it.value() > 0) {
+                sortedDomains.append(qMakePair(it.value(), it.key()));
+            }
+        }
+        std::sort(sortedDomains.begin(), sortedDomains.end(), std::greater<QPair<int, QString>>());
+        for (const auto &pair : sortedDomains.mid(0, 10)) {
+            qDebug() << QString("%1: %2").arg(pair.second, -30).arg(formatDuration(pair.first));
         }
 
-        qDebug() << "\nTop Productive Apps:";
+        qDebug() << "\nTop Productive Apps (Non-Browser):";
         QList<QPair<int, QString>> sortedApps;
         for (auto it = appProductivityTime.begin(); it != appProductivityTime.end(); ++it) {
             if (it.value() > 0) {
@@ -873,56 +988,8 @@ int Logger::calculateTodayProductiveSeconds() const
             }
         }
         std::sort(sortedApps.begin(), sortedApps.end(), std::greater<QPair<int, QString>>());
-        for (const auto &pair : sortedApps.mid(0, 5)) {
-            int matchType = findBestMatch(pair.second, productiveApps, false);
-            QString matchInfo = matchType == 1 ? " [PRODUCTIVE]" : matchType == 2 ? " [NON-PRODUCTIVE]" : " [NEUTRAL]";
-            qDebug() << QString("%1: %2%3").arg(pair.second, -30).arg(formatDuration(pair.first)).arg(matchInfo);
-        }
-
-        qDebug() << "\nTop Productive Window Titles:";
-        QList<QPair<int, QString>> sortedTitles;
-        for (auto it = titleProductivityTime.begin(); it != titleProductivityTime.end(); ++it) {
-            if (it.value() > 0) {
-                sortedTitles.append(qMakePair(it.value(), it.key()));
-            }
-        }
-        std::sort(sortedTitles.begin(), sortedTitles.end(), std::greater<QPair<int, QString>>());
-        for (const auto &pair : sortedTitles.mid(0, 5)) {
-            int matchType = findBestMatch(pair.second, productiveTitles, true);
-            QString matchInfo = matchType == 1 ? " [PRODUCTIVE]" : matchType == 2 ? " [NON-PRODUCTIVE]" : " [NEUTRAL]";
-            qDebug() << QString("%1: %2%3").arg(pair.second.left(40), -40).arg(formatDuration(pair.first)).arg(matchInfo);
-        }
-
-        // 5. Tampilkan sample URLs yang tidak terdeteksi
-        qDebug() << "\nSample Unmatched URLs:";
-        QSet<QString> unmatchedDomains;
-        QSqlQuery unmatchedUrlQuery(m_db);
-        unmatchedUrlQuery.prepare(R"(
-            SELECT DISTINCT url
-            FROM log
-            WHERE id_user = :user_id
-            AND date(start_time, 'unixepoch', 'localtime') = :today
-            AND url IS NOT NULL AND url != ''
-            LIMIT 20
-        )");
-        unmatchedUrlQuery.bindValue(":user_id", m_currentUserId);
-        unmatchedUrlQuery.bindValue(":today", today);
-
-        if (unmatchedUrlQuery.exec()) {
-            while (unmatchedUrlQuery.next()) {
-                QString url = unmatchedUrlQuery.value(0).toString();
-                QString domain = extractDomain(url);
-                if (!domain.isEmpty() && findBestMatch(domain, productiveUrls, false) == 0) {
-                    unmatchedDomains.insert(domain);
-                }
-            }
-        }
-
-        int count = 0;
-        for (const QString &domain : unmatchedDomains) {
-            if (count++ < 5) {
-                qDebug() << QString("  - %1").arg(domain);
-            }
+        for (const auto &pair : sortedApps.mid(0, 10)) {
+            qDebug() << QString("%1: %2").arg(pair.second, -30).arg(formatDuration(pair.first));
         }
 
     } else {
@@ -931,6 +998,80 @@ int Logger::calculateTodayProductiveSeconds() const
 
     return totalProductiveSeconds;
 }
+
+// Updated productivityStats function
+QVariantMap Logger::productivityStats() const
+{
+    if (!ensureDatabaseOpen() || !ensureProductivityDatabaseOpen()) {
+        qWarning() << "Cannot compute productivity stats: Database is not open";
+        return QVariantMap();
+    }
+    if (m_currentUserId == -1) {
+        qWarning() << "Cannot compute productivity stats: No user logged in";
+        return QVariantMap();
+    }
+
+    QVariantMap stats;
+    double productiveTime = 0;
+    double nonProductiveTime = 0;
+    double neutralTime = 0;
+    double totalTime = 0;
+
+    QString queryStr = "SELECT start_time, end_time, app_name, title, url FROM log "
+                       "WHERE app_name IS NOT NULL AND id_user = :id_user ";
+
+    if (!m_startDateFilter.isEmpty()) {
+        queryStr += QString("AND date(start_time, 'unixepoch', 'localtime') >= date('%1') ")
+        .arg(m_startDateFilter);
+    }
+    if (!m_endDateFilter.isEmpty()) {
+        queryStr += QString("AND date(start_time, 'unixepoch', 'localtime') <= date('%1') ")
+        .arg(m_endDateFilter);
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(queryStr);
+    query.bindValue(":id_user", m_currentUserId);
+
+    if (!query.exec()) {
+        qWarning() << "Failed to fetch logs for productivity stats:" << query.lastError().text();
+        return stats;
+    }
+
+    while (query.next()) {
+        qint64 start = query.value(0).toLongLong();
+        qint64 end = query.value(1).toLongLong();
+        QString appName = query.value(2).toString();
+        QString url = query.value(4).toString();
+
+        double duration = end - start;
+        if (duration <= 0) continue;
+
+        // Use updated function that focuses on app vs domain
+        int type = getAppProductivityType(appName, url);
+
+        switch (type) {
+        case 1:
+            productiveTime += duration;
+            break;
+        case 2:
+            nonProductiveTime += duration;
+            break;
+        default:
+            neutralTime += duration;
+            break;
+        }
+        totalTime += duration;
+    }
+
+    double total = totalTime > 0 ? totalTime : 1;
+    stats["productive"] = (productiveTime / total) * 100;
+    stats["nonProductive"] = (nonProductiveTime / total) * 100;
+    stats["neutral"] = (neutralTime / total) * 100;
+    return stats;
+}
+
+
 void Logger::sendProductiveTimeToAPI()
 {
     if (m_currentUserId == -1 || m_authToken.isEmpty()) {
@@ -977,8 +1118,10 @@ void Logger::checkTaskStatusBeforeStart()
     }
 
     QSqlQuery query(m_productivityDb);
-    query.prepare("SELECT id, paused FROM task WHERE active = 1 AND user_id = :user_id LIMIT 1");
+    // Prioritaskan task dengan status on-progress
+    query.prepare("SELECT id, paused, time_usage, status FROM task WHERE user_id = :user_id AND (active = 1 OR status = 'on-progress') ORDER BY status = 'on-progress' DESC LIMIT 1");
     query.bindValue(":user_id", m_currentUserId);
+
     if (!query.exec()) {
         qWarning() << "Failed to check active task status:" << query.lastError().text();
         return;
@@ -987,6 +1130,17 @@ void Logger::checkTaskStatusBeforeStart()
     if (query.next()) {
         m_activeTaskId = query.value(0).toInt();
         m_isTaskPaused = query.value(1).toBool();
+        QString status = query.value(3).toString();
+
+        // Jika status on-progress, pastikan task tidak paused
+        if (status == "on-progress") {
+            m_isTaskPaused = false;
+            // Update database untuk memastikan konsistensi
+            QSqlQuery updateQuery(m_productivityDb);
+            updateQuery.prepare("UPDATE task SET paused = 0 WHERE id = :id");
+            updateQuery.bindValue(":id", m_activeTaskId);
+            updateQuery.exec();
+        }
 
         m_isTrackingActive = !m_isTaskPaused;
 
@@ -1002,6 +1156,7 @@ void Logger::checkTaskStatusBeforeStart()
 
         qDebug() << "Active task found. ID:" << m_activeTaskId
                  << "| Paused:" << m_isTaskPaused
+                 << "| Status:" << status
                  << "| Tracking:" << m_isTrackingActive;
     } else {
         m_activeTaskId = -1;
@@ -1022,6 +1177,8 @@ void Logger::checkTaskStatusBeforeStart()
             emit currentUsernameChanged();
             emit currentUserEmailChanged();
             emit userEmailChanged();
+            checkAndCreateNewDayRecord(); // Pastikan record hari ini ada
+            loadWorkTimeData();           // Muat waktu kerja yang sudah tersimpan
         }
     }
 
@@ -1065,7 +1222,7 @@ QVariantList Logger::getProductivityApps() const {
     QVariantList apps;
     QSqlQuery query(m_productivityDb);
     query.prepare(R"(
-        SELECT aplikasi, jenis, window_title, for_user
+        SELECT aplikasi, jenis, url, for_user
         FROM aplikasi
         WHERE for_user = '0'
            OR ',' || for_user || ',' LIKE :userPattern
@@ -1077,7 +1234,7 @@ QVariantList Logger::getProductivityApps() const {
             QVariantMap app;
             app["appName"] = query.value(0).toString();
             app["type"] = query.value(1).toInt();
-            app["window_title"] = query.value(2).toString();
+            app["url"] = query.value(2).toString();
             apps.append(app);
         }
     } else {
@@ -1169,7 +1326,8 @@ QString Logger::logContent() const
     }
 
     QString content;
-    QString queryStr = "SELECT start_time, end_time, app_name, title FROM log "
+    // MODIFIKASI 1: Tambahkan 'url' ke dalam query SELECT
+    QString queryStr = "SELECT start_time, end_time, app_name, title, url FROM log "
                        "WHERE app_name IS NOT NULL AND title IS NOT NULL AND id_user = :id_user ";
 
     if (!m_startDateFilter.isEmpty()) {
@@ -1196,90 +1354,26 @@ QString Logger::logContent() const
         qint64 end = query.value(1).toLongLong();
         QString app = query.value(2).toString();
         QString title = query.value(3).toString();
+        QString url = query.value(4).toString(); // Ambil data URL
 
-        content += QString("%1,%2,%3,%4\n")
+        // MODIFIKASI 2: Tambahkan URL ke dalam format string, menjadi 5 bagian
+        content += QString("%1,%2,%3,%4,%5\n")
                        .arg(QDateTime::fromSecsSinceEpoch(start).toString("hh:mm:ss"))
                        .arg(QDateTime::fromSecsSinceEpoch(end).toString("hh:mm:ss"))
                        .arg(app)
-                       .arg(title);
+                       .arg(title)
+                       .arg(url); // Tambahkan URL di sini
     }
     qDebug() << "logContent returned" << content.count('\n') << "lines";
     return content;
 }
 
 
+
+
 // HAPUS fungsi productivityStats yang lama di logger.cpp, lalu GANTI dengan yang ini.
 
-QVariantMap Logger::productivityStats() const
-{
-    if (!ensureDatabaseOpen() || !ensureProductivityDatabaseOpen()) {
-        qWarning() << "Cannot compute productivity stats: Database is not open";
-        return QVariantMap();
-    }
-    if (m_currentUserId == -1) {
-        qWarning() << "Cannot compute productivity stats: No user logged in";
-        return QVariantMap();
-    }
 
-    QVariantMap stats;
-    double productiveTime = 0;
-    double nonProductiveTime = 0;
-    double neutralTime = 0;
-    double totalTime = 0;
-
-    // MODIFIKASI: Tambahkan kolom 'url' ke dalam query SELECT
-    QString queryStr = "SELECT start_time, end_time, app_name, title, url FROM log "
-                       "WHERE app_name IS NOT NULL AND title IS NOT NULL AND id_user = :id_user ";
-    if (!m_startDateFilter.isEmpty()) {
-        queryStr += QString("AND date(start_time, 'unixepoch', 'localtime') >= date('%1') ")
-        .arg(m_startDateFilter);
-    }
-    if (!m_endDateFilter.isEmpty()) {
-        queryStr += QString("AND date(start_time, 'unixepoch', 'localtime') <= date('%1') ")
-        .arg(m_endDateFilter);
-    }
-
-    QSqlQuery query(m_db);
-    query.prepare(queryStr);
-    query.bindValue(":id_user", m_currentUserId);
-    if (!query.exec()) {
-        qWarning() << "Failed to fetch logs for productivity stats:" << query.lastError().text();
-        return stats;
-    }
-
-    while (query.next()) {
-        qint64 start = query.value(0).toLongLong();
-        qint64 end = query.value(1).toLongLong();
-        QString appName = query.value(2).toString();
-        QString title = query.value(3).toString();
-        QString url = query.value(4).toString(); // Ambil URL dari database
-
-        double duration = end - start;
-        if (duration <= 0) continue;
-
-        // MODIFIKASI: Teruskan 'url' ke fungsi getAppProductivityType
-        int type = getAppProductivityType(appName, title, url);
-        switch (type) {
-        case 1:
-            productiveTime += duration;
-            break;
-        case 2:
-            nonProductiveTime += duration;
-            break;
-        default:
-            neutralTime += duration;
-            break;
-        }
-        totalTime += duration;
-    }
-
-    double total = totalTime > 0 ? totalTime : 1; // Hindari pembagian dengan nol
-    stats["productive"] = (productiveTime / total) * 100;
-    stats["nonProductive"] = (nonProductiveTime / total) * 100;
-    stats["neutral"] = (neutralTime / total) * 100;
-
-    return stats;
-}
 QVariantList Logger::getAvailableApps() const
 {
     QVariantList apps = {
@@ -1441,167 +1535,114 @@ void Logger::fetchAndStoreProductivityApps()
 
 void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
 {
-    // Pastikan reply dihapus setelah fungsi selesai
     QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> replyPtr(reply);
 
-    // 1. Handle error response
     if (reply->error() != QNetworkReply::NoError) {
         qWarning() << "Failed to fetch productivity apps:" << reply->errorString();
-
-        // Cek jika error karena token expired (HTTP 401)
-        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        if (statusCode == 401) {
-            qWarning() << "Authentication token expired, emitting signal";
-            emit authTokenError("Authentication token expired");
-        }
         return;
     }
 
-    // 2. Baca dan parse response
     QByteArray responseData = reply->readAll();
-    qDebug() << "Raw API response:" << responseData;
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
 
-    // Debug HTTP status code
-    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    qDebug() << "HTTP status code:" << statusCode;
-
-    QJsonParseError parseError;
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
-
-    if (parseError.error != QJsonParseError::NoError) {
-        qWarning() << "JSON parse error:" << parseError.errorString()
-        << "at offset" << parseError.offset;
+    if (jsonDoc.isNull() || !jsonDoc.isObject()) {
+        qWarning() << "Invalid JSON response";
         return;
     }
 
-    // Cek jika response adalah object dengan format {success: bool, data: array}
-    if (jsonDoc.isObject()) {
-        QJsonObject jsonObj = jsonDoc.object();
-
-        // Cek jika response mengandung error
-        if (jsonObj.contains("error") || !jsonObj["success"].toBool()) {
-            QString errorMsg = jsonObj["message"].toString();
-            qWarning() << "API returned error:" << errorMsg;
-            return;
-        }
-
-        // Ambil data array dari field "data" jika ada
-        if (jsonObj.contains("data") && jsonObj["data"].isArray()) {
-            jsonDoc = QJsonDocument(jsonObj["data"].toArray());
-        }
-    }
-
-    if (!jsonDoc.isArray()) {
-        qWarning() << "Invalid JSON format - expected array, got:" << jsonDoc.toJson();
+    QJsonObject jsonObj = jsonDoc.object();
+    if (!jsonObj["success"].toBool()) {
+        qWarning() << "API returned error:" << jsonObj["message"].toString();
         return;
     }
 
-    QJsonArray appsArray = jsonDoc.array();
-    if (appsArray.isEmpty()) {
-        qDebug() << "No productivity apps received from API";
-        return;
-    }
+    QJsonArray appsArray = jsonObj["data"].isArray() ? jsonObj["data"].toArray() : QJsonArray();
 
-    // 3. Mulai transaksi database
     if (!m_productivityDb.transaction()) {
-        qWarning() << "Failed to start database transaction:" << m_productivityDb.lastError().text();
+        qWarning() << "Failed to start transaction";
         return;
     }
 
     QSqlQuery query(m_productivityDb);
     bool success = true;
 
-    // 4. Proses setiap aplikasi dari API
-    for (const QJsonValue &appValue : appsArray) {
-        if (!appValue.isObject()) {
-            qWarning() << "Skipping invalid app entry (not an object)";
-            continue;
-        }
-
-        QJsonObject appObj = appValue.toObject();
-
-        // Validasi field yang diperlukan
-        QString appName = appObj.value("application_name").toString();
-        QString status = appObj.value("productivity_status").toString("").toLower();
-        int userId = appObj.value("user_id").toInt(-1);
-        QString processName = appObj.value("process_name").toString();
-        QString url = appObj.value("url").toString(); // Tambah ekstraksi URL
-
-        if (appName.isEmpty() || userId == -1) {
-            qWarning() << "Skipping invalid productivity app entry (missing required fields):"
-                       << appObj;
-            continue;
-        }
-
-        // Konversi status string ke jenis numerik
-        int jenis = 0; // Default = menunggu approval
-        if (status == "productive") {
-            jenis = 1;
-        } else if (status == "non-productive") {
-            jenis = 2;
-        }
-
-        // 5. Cek apakah data sudah ada di database (perbarui dengan pengecekan URL)
-        query.prepare(
-            "SELECT id FROM aplikasi WHERE aplikasi = :app AND "
-            "(window_title = :process OR (window_title IS NULL AND :process IS NULL)) AND "
-            "(url = :url OR (url IS NULL AND :url IS NULL)) AND "
-            "for_user = :user"
-            );
-        query.bindValue(":app", appName);
-        query.bindValue(":process", processName.isEmpty() ? QVariant() : processName);
-        query.bindValue(":url", url.isEmpty() ? QVariant() : url);
-        query.bindValue(":user", QString::number(userId));
-
-        if (!query.exec()) {
-            qWarning() << "Failed to check existing app:" << query.lastError().text();
-            success = false;
-            break;
-        }
-
-        if (query.next()) {
-            // Data sudah ada, lakukan UPDATE
-            int existingId = query.value(0).toInt();
-            query.prepare(
-                "UPDATE aplikasi SET jenis = :type, url = :url WHERE id = :id"
+    // Ambil semua aplikasi yang sudah ada untuk pengecekan duplikat
+    QHash<QPair<QString, QString>, int> existingApps; // <appName, url> -> id
+    query.prepare("SELECT id, aplikasi, url FROM aplikasi");
+    if (query.exec()) {
+        while (query.next()) {
+            existingApps.insert(
+                qMakePair(query.value(1).toString(), query.value(2).toString()),
+                query.value(0).toInt()
                 );
-            query.bindValue(":type", jenis);
-            query.bindValue(":url", url.isEmpty() ? QVariant() : url);
-            query.bindValue(":id", existingId);
-        } else {
-            // Data belum ada, lakukan INSERT (perbarui dengan kolom URL)
-            query.prepare(
-                "INSERT INTO aplikasi "
-                "(aplikasi, window_title, url, jenis, for_user) "
-                "VALUES (:app, :process, :url, :type, :user)"
-                );
-            query.bindValue(":app", appName);
-            query.bindValue(":process", processName.isEmpty() ? QVariant() : processName);
-            query.bindValue(":url", url.isEmpty() ? QVariant() : url);
-            query.bindValue(":type", jenis);
-            query.bindValue(":user", QString::number(userId));
-        }
-
-        if (!query.exec()) {
-            qWarning() << "Failed to insert/update productivity app:" << query.lastError().text();
-            success = false;
-            break;
         }
     }
 
-    // 6. Commit atau rollback transaksi
+    for (const QJsonValue &appValue : appsArray) {
+        if (!appValue.isObject()) continue;
+
+        QJsonObject appObj = appValue.toObject();
+        QString appName = appObj["application_name"].toString();
+        QString status = appObj["productivity_status"].toString().toLower();
+        QString processName = appObj["process_name"].toString();
+        QString url = appObj["url"].toString();
+        int userId = appObj["user_id"].toInt();
+
+        int jenis = 0;
+        if (status == "productive") jenis = 1;
+        else if (status == "non-productive") jenis = 2;
+
+        QString forUsers = QString::number(userId); // Format: "9" untuk single user
+
+        // Cek apakah aplikasi dengan nama dan URL yang sama sudah ada
+        QPair<QString, QString> appKey(appName, url);
+        if (existingApps.contains(appKey)) {
+            int existingId = existingApps[appKey];
+
+            // Update hanya jika for_user adalah 0 (global) atau sama dengan user ID
+            query.prepare(
+                "UPDATE aplikasi SET jenis = :jenis "
+                "WHERE id = :id AND (for_user = '0' OR for_user = :forUsers)"
+                );
+            query.bindValue(":jenis", jenis);
+            query.bindValue(":id", existingId);
+            query.bindValue(":forUsers", forUsers);
+
+            if (!query.exec()) {
+                qWarning() << "Failed to update existing app:" << query.lastError();
+                success = false;
+                break;
+            }
+        } else {
+            // Insert baru jika tidak ada duplikat
+            query.prepare(
+                "INSERT INTO aplikasi (aplikasi, window_title, url, jenis, for_user) "
+                "VALUES (:app, :window, :url, :type, :forUsers)"
+                );
+            query.bindValue(":app", appName);
+            query.bindValue(":window", processName.isEmpty() ? QVariant() : processName);
+            query.bindValue(":url", url.isEmpty() ? QVariant() : url);
+            query.bindValue(":type", jenis);
+            query.bindValue(":forUsers", forUsers);
+
+            if (!query.exec()) {
+                qWarning() << "Failed to insert new app:" << query.lastError();
+                success = false;
+                break;
+            }
+        }
+    }
+
     if (success) {
         if (!m_productivityDb.commit()) {
-            qWarning() << "Failed to commit transaction:" << m_productivityDb.lastError().text();
+            qWarning() << "Failed to commit transaction";
+            m_productivityDb.rollback();
         } else {
-            qDebug() << "Successfully processed" << appsArray.size() << "productivity apps from API";
-            // 7. Refresh model dan emit signal
             refreshProductivityModels();
             emit productivityAppsChanged();
         }
     } else {
         m_productivityDb.rollback();
-        qCritical() << "Error processing productivity apps, transaction rolled back";
     }
 }
 
@@ -1609,18 +1650,33 @@ void Logger::refreshProductivityModels()
 {
     if (!ensureProductivityDatabaseOpen()) return;
 
+    // Gabungkan aturan global (for_user=0) dan spesifik user
     QString productiveQuery = QString(
-                                  "SELECT aplikasi AS appName, window_title AS windowTitle, url, jenis AS type "
-                                  "FROM aplikasi WHERE jenis = 1 AND (for_user = '0' OR for_user LIKE '%%1%')"
+                                  "SELECT a.id, a.aplikasi AS appName, a.window_title AS windowTitle, a.url, a.jenis AS type "
+                                  "FROM aplikasi a "
+                                  "WHERE a.jenis = 1 AND (a.for_user = '0' OR a.for_user LIKE '%%1%' OR "
+                                  "EXISTS (SELECT 1 FROM aplikasi WHERE aplikasi = a.aplikasi AND "
+                                  "COALESCE(url,'') = COALESCE(a.url,'') AND for_user = '0')) "
+                                  "GROUP BY a.aplikasi, COALESCE(a.url, '') "  // Hindari duplikat
+                                  "ORDER BY a.for_user = '0' DESC"  // Prioritaskan aturan spesifik user
                                   ).arg(m_currentUserId);
 
     QString nonProductiveQuery = QString(
-                                     "SELECT aplikasi AS appName, window_title AS windowTitle, url, jenis AS type "
-                                     "FROM aplikasi WHERE jenis = 2 AND (for_user = '0' OR for_user LIKE '%%1%')"
+                                     "SELECT a.id, a.aplikasi AS appName, a.window_title AS windowTitle, a.url, a.jenis AS type "
+                                     "FROM aplikasi a "
+                                     "WHERE a.jenis = 2 AND (a.for_user = '0' OR a.for_user LIKE '%%1%' OR "
+                                     "EXISTS (SELECT 1 FROM aplikasi WHERE aplikasi = a.aplikasi AND "
+                                     "COALESCE(url,'') = COALESCE(a.url,'') AND for_user = '0')) "
+                                     "GROUP BY a.aplikasi, COALESCE(a.url, '') "
+                                     "ORDER BY a.for_user = '0' DESC"
                                      ).arg(m_currentUserId);
 
     m_productiveAppsModel->setQuery(productiveQuery, m_productivityDb);
     m_nonProductiveAppsModel->setQuery(nonProductiveQuery, m_productivityDb);
+
+    // Debug output
+    qDebug() << "Productive apps count:" << m_productiveAppsModel->rowCount();
+    qDebug() << "Non-productive apps count:" << m_nonProductiveAppsModel->rowCount();
 }
 
 
@@ -1628,7 +1684,6 @@ void Logger::refreshProductivityModels()
 
 // GANTI FUNGSI YANG LAMA DENGAN VERSI BARU INI
 // logger.cpp
-
 void Logger::sendDailyUsageReport()
 {
     if (m_currentUserId == -1 || m_authToken.isEmpty()) {
@@ -1644,12 +1699,10 @@ void Logger::sendDailyUsageReport()
     qDebug() << "Preparing aggregated daily usage report...";
     QString today = QDate::currentDate().toString("yyyy-MM-dd");
 
-    // --- LANGKAH 1: Agregasi (Menjumlahkan) Durasi ---
-
-    // Gunakan QHash untuk menyimpan total durasi dan status
-    QHash<QString, qint64> appDurations;
+    // Struktur data untuk menyimpan agregasi
+    QHash<QString, qint64> appDurations; // Untuk aplikasi non-browser
     QHash<QString, int> appProductivity;
-    QHash<QString, qint64> domainDurations;
+    QHash<QPair<QString, QString>, qint64> browserUsage; // <appName, url> -> duration
     QHash<QString, int> domainProductivity;
 
     QSqlQuery logQuery(m_db);
@@ -1668,7 +1721,57 @@ void Logger::sendDailyUsageReport()
         return;
     }
 
-    // Loop pertama hanya untuk menjumlahkan durasi
+    // Helper function untuk ekstrak domain dari URL
+
+    // Helper function untuk ekstrak domain dari URL - VERSI YANG DIPERBAIKI
+    auto extractDomain = [](const QString& url) -> QString {
+        if (url.isEmpty()) return "";
+
+        QString cleanUrl = url;
+
+        // Tambahkan scheme jika belum ada
+        if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
+            cleanUrl = "https://" + cleanUrl;
+        }
+
+        QUrl qurl(cleanUrl);
+        QString domain = qurl.host();
+
+        // Jika masih kosong, coba parsing manual
+        if (domain.isEmpty()) {
+            // Hapus scheme jika ada
+            QString temp = url;
+            temp.remove(QRegularExpression("^https?://"));
+
+            // Ambil bagian sebelum slash pertama
+            int slashPos = temp.indexOf('/');
+            if (slashPos != -1) {
+                temp = temp.left(slashPos);
+            }
+
+            // Ambil bagian sebelum query parameter atau fragment
+            int queryPos = temp.indexOf('?');
+            if (queryPos != -1) {
+                temp = temp.left(queryPos);
+            }
+
+            int fragmentPos = temp.indexOf('#');
+            if (fragmentPos != -1) {
+                temp = temp.left(fragmentPos);
+            }
+
+            domain = temp;
+        }
+
+        // Hapus www. prefix
+        if (domain.startsWith("www.")) {
+            domain = domain.mid(4);
+        }
+
+        return domain;
+    };
+
+    qDebug() << "==== RAW LOG DATA ====";
     while (logQuery.next()) {
         QString appName = logQuery.value(0).toString();
         QString title = logQuery.value(1).toString();
@@ -1679,61 +1782,76 @@ void Logger::sendDailyUsageReport()
 
         if (duration <= 0) continue;
 
-        // Jumlahkan durasi untuk aplikasi
-        appDurations[appName] += duration;
-        if (!appProductivity.contains(appName)) {
-            appProductivity[appName] = getAppProductivityType(appName, title, urlString);
-        }
+        // Cek apakah ini aplikasi browser (punya URL)
+        bool isBrowserApp = !urlString.isEmpty();
 
-        // Ekstrak domain dan jumlahkan durasinya
-        QUrl url(urlString);
-        QString domain = url.host();
-        if (domain.startsWith("www.")) {
-            domain = domain.mid(4);
-        }
-        if (!domain.isEmpty()) {
-            domainDurations[domain] += duration;
+        if (isBrowserApp) {
+            // Untuk browser, simpan per URL
+            QString domain = extractDomain(urlString);
+            QPair<QString, QString> key(appName, domain);
+            browserUsage[key] += duration;
+
             if (!domainProductivity.contains(domain)) {
-                domainProductivity[domain] = getAppProductivityType(appName, title, urlString);
+                domainProductivity[domain] = getAppProductivityType(appName, urlString);
+            }
+        } else {
+            // Untuk non-browser, simpan per aplikasi
+            appDurations[appName] += duration;
+            if (!appProductivity.contains(appName)) {
+                appProductivity[appName] = getAppProductivityType(appName, "");
             }
         }
     }
 
-    // --- LANGKAH 2: Membuat Payload dari Data Agregat ---
-
+    // --- Membuat Payload ---
     QJsonArray dataArray;
 
-    // Loop kedua untuk membuat JSON dari total durasi aplikasi
+    qDebug() << "==== NON-BROWSER APPLICATION USAGE ====";
+    // 1. Tambahkan aplikasi non-browser
     for (auto it = appDurations.constBegin(); it != appDurations.constEnd(); ++it) {
-        QJsonObject appObject;
-        int prodType = appProductivity.value(it.key(), 0);
+        QString appName = it.key();
+        int prodType = appProductivity.value(appName, 0);
         QString statusString = "neutral";
         if (prodType == 1) statusString = "productive";
         else if (prodType == 2) statusString = "non-productive";
 
+        qDebug() << "App:" << appName
+                 << "| Total Duration:" << it.value() << "seconds ("
+                 << formatDuration(it.value()) << ")"
+                 << "| Status:" << statusString;
+
+        QJsonObject appObject;
         appObject["user_id"] = m_currentUserId;
-        appObject["app_name"] = it.key(); // Nama aplikasi
-        appObject["duration"] = it.value(); // Total durasi harian
-        appObject["url"] = QJsonValue(); // Null untuk tipe aplikasi
+        appObject["app_name"] = appName;
+        appObject["duration"] = it.value();
+        appObject["url"] = QJsonValue(); // Null untuk non-browser
         appObject["status"] = statusString;
         dataArray.append(appObject);
     }
 
-    // Loop ketiga untuk membuat JSON dari total durasi domain
-    for (auto it = domainDurations.constBegin(); it != domainDurations.constEnd(); ++it) {
-        QJsonObject domainObject;
-        int prodType = domainProductivity.value(it.key(), 0);
+    qDebug() << "==== BROWSER USAGE BY DOMAIN ====";
+    // 2. Tambahkan penggunaan browser per domain
+    for (auto it = browserUsage.constBegin(); it != browserUsage.constEnd(); ++it) {
+        QString appName = it.key().first;  // Nama browser (chrome, firefox, etc)
+        QString domain = it.key().second;  // Domain
+        int prodType = domainProductivity.value(domain, 0);
         QString statusString = "neutral";
         if (prodType == 1) statusString = "productive";
         else if (prodType == 2) statusString = "non-productive";
 
-        // Untuk domain, kita bisa set app_name ke browser atau biarkan null
-        domainObject["user_id"] = m_currentUserId;
-        domainObject["app_name"] = "Browser"; // Atau bisa juga it.key()
-        domainObject["duration"] = it.value(); // Total durasi harian
-        domainObject["url"] = it.key(); // Nama domain
-        domainObject["status"] = statusString;
-        dataArray.append(domainObject);
+        qDebug() << "Browser:" << appName
+                 << "| Domain:" << domain
+                 << "| Duration:" << it.value() << "seconds ("
+                 << formatDuration(it.value()) << ")"
+                 << "| Status:" << statusString;
+
+        QJsonObject browserObject;
+        browserObject["user_id"] = m_currentUserId;
+        browserObject["app_name"] = appName;
+        browserObject["duration"] = it.value();
+        browserObject["url"] = domain;  // Simpan domain sebagai URL
+        browserObject["status"] = statusString;
+        dataArray.append(browserObject);
     }
 
     if (dataArray.isEmpty()) {
@@ -1745,8 +1863,15 @@ void Logger::sendDailyUsageReport()
     QJsonObject payload;
     payload["data"] = dataArray;
 
-    // Kirim request...
-    QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/productivity-app")); // Ganti endpoint
+    // Log payload yang akan dikirim
+    qDebug() << "==== FINAL PAYLOAD TO SEND ====";
+    qDebug() << "User ID:" << m_currentUserId;
+    qDebug() << "Date:" << today;
+    qDebug() << "Total Entries:" << dataArray.count();
+    qDebug() << "Payload JSON:" << QJsonDocument(payload).toJson(QJsonDocument::Indented);
+
+    // Kirim request
+    QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/productivity-app"));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
 
@@ -1768,164 +1893,6 @@ void Logger::handleDailyUsageReportResponse(QNetworkReply *reply)
         qDebug() << "Response Body:" << reply->readAll();
     }
     reply->deleteLater();
-}
-
-// Di fungsi getAppProductivityType (gunakan kolom jenis untuk pengecekan)
-int Logger::getAppProductivityType(const QString &appName, const QString &windowTitle, const QString &url) const
-{
-    if (!ensureProductivityDatabaseOpen() || m_currentUserId == -1) {
-        return 0;
-    }
-
-    // Normalisasi string yang lebih ringan
-    auto normalizeString = [](const QString &str) {
-        return str.toLower()
-        .remove(' ')
-            .remove('-')
-            .remove('_')
-            .remove('.');
-    };
-
-    // Fungsi untuk ekstrak domain dari URL
-    auto extractDomain = [](const QString &url) -> QString {
-        if (url.isEmpty()) return "";
-
-        QUrl qurl(url);
-        if (!qurl.isValid()) return "";
-
-        QString domain = qurl.host();
-        if (domain.startsWith("www.")) {
-            domain = domain.mid(4);
-        }
-        return domain;
-    };
-
-    const QString normTitle = normalizeString(windowTitle);
-    const QString normApp = normalizeString(appName);
-
-    // Caching untuk menghindari normalisasi berulang
-    static QMap<QString, QString> normalizationCache;
-
-    QSqlQuery query(m_productivityDb);
-
-    // 1. Cek window title terlebih dahulu (prioritas tinggi)
-    query.prepare(
-        "SELECT window_title, jenis, for_user FROM aplikasi "
-        "WHERE window_title IS NOT NULL AND window_title != ''"
-        );
-
-    if (query.exec()) {
-        while (query.next()) {
-            QString dbTitle = query.value(0).toString();
-            int jenis = query.value(1).toInt();
-            QString forUsers = query.value(2).toString();
-
-            // Cek user permission
-            if (!(forUsers == "0" || forUsers.split(',').contains(QString::number(m_currentUserId)))) {
-                continue;
-            }
-
-            // Gunakan cache untuk normalisasi
-            QString normDbTitle;
-            if (normalizationCache.contains(dbTitle)) {
-                normDbTitle = normalizationCache[dbTitle];
-            } else {
-                normDbTitle = normalizeString(dbTitle);
-                normalizationCache[dbTitle] = normDbTitle;
-            }
-
-            // 1. Exact match (return langsung)
-            if (normTitle == normDbTitle) {
-                return jenis;
-            }
-
-            // 2. Contains match (cek kedua arah)
-            if (normTitle.contains(normDbTitle) || normDbTitle.contains(normTitle)) {
-                return jenis;
-            }
-        }
-    }
-
-    // 2. Cek aplikasi umum
-    query.prepare(
-        "SELECT aplikasi, jenis, for_user FROM aplikasi "
-        "WHERE window_title IS NULL OR window_title = ''"
-        );
-
-    if (query.exec()) {
-        while (query.next()) {
-            QString dbApp = query.value(0).toString();
-            int jenis = query.value(1).toInt();
-            QString forUsers = query.value(2).toString();
-
-            // Cek user permission
-            if (!(forUsers == "0" || forUsers.split(',').contains(QString::number(m_currentUserId)))) {
-                continue;
-            }
-
-            // Gunakan cache untuk normalisasi
-            QString normDbApp;
-            if (normalizationCache.contains(dbApp)) {
-                normDbApp = normalizationCache[dbApp];
-            } else {
-                normDbApp = normalizeString(dbApp);
-                normalizationCache[dbApp] = normDbApp;
-            }
-
-            // 1. Exact match
-            if (normApp == normDbApp) {
-                return jenis;
-            }
-
-            // 2. Contains match (cek kedua arah)
-            if (normApp.contains(normDbApp) || normDbApp.contains(normApp)) {
-                return jenis;
-            }
-        }
-    }
-
-    // 3. Cek URL/domain jika ada (prioritas terakhir)
-    // Pertama kita perlu mendapatkan URL dari log terakhir untuk aplikasi ini
-    if (!ensureDatabaseOpen()) {
-        return 0;
-    }
-
-    QSqlQuery urlQuery(m_db);
-    urlQuery.prepare(
-        "SELECT url FROM log "
-        "WHERE app_name = :appName AND url IS NOT NULL AND url != '' "
-        "ORDER BY start_time DESC LIMIT 1"
-        );
-    urlQuery.bindValue(":appName", appName);
-
-    if (urlQuery.exec() && urlQuery.next()) {
-        QString url = urlQuery.value(0).toString();
-        QString domain = extractDomain(url);
-
-        if (!domain.isEmpty()) {
-            // Cek di database produktivitas apakah domain ini ada aturannya
-            QSqlQuery domainQuery(m_productivityDb);
-            domainQuery.prepare(
-                "SELECT jenis, for_user FROM aplikasi "
-                "WHERE url IS NOT NULL AND url != '' AND url LIKE :domain"
-                );
-            domainQuery.bindValue(":domain", "%" + domain + "%");
-
-            if (domainQuery.exec()) {
-                while (domainQuery.next()) {
-                    int jenis = domainQuery.value(0).toInt();
-                    QString forUsers = domainQuery.value(1).toString();
-
-                    // Cek user permission
-                    if (forUsers == "0" || forUsers.split(',').contains(QString::number(m_currentUserId))) {
-                        return jenis;
-                    }
-                }
-            }
-        }
-    }
-
-    return 0; // Default netral
 }
 
 
@@ -1985,7 +1952,13 @@ void Logger::fetchAndStoreTasks()
         return;
     }
 
-    // 2. Periksa dan ambil token autentikasi jika belum ada
+    // 2. Pastikan ada pengguna yang login dan memiliki ID yang valid
+    if (m_currentUserId == -1) {
+        qWarning() << "Cannot fetch tasks: No user logged in";
+        return;
+    }
+
+    // 3. Periksa dan ambil token autentikasi jika belum ada
     if (m_authToken.isEmpty()) {
         QSqlQuery tokenQuery(m_db);
         tokenQuery.prepare("SELECT token FROM users WHERE id = ?");
@@ -2003,19 +1976,22 @@ void Logger::fetchAndStoreTasks()
         }
     }
 
-    // 3. Siapkan permintaan HTTP GET ke endpoint server
-    QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/tasks/all"));
+    // 4. Siapkan permintaan HTTP GET ke endpoint server dengan user_id
+    QString apiUrl = QString("https://deskmon.pranala-dt.co.id/api/task-by-user/%1").arg(m_currentUserId);
+    QNetworkRequest request;
+    request.setUrl(QUrl(apiUrl));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
 
-    qDebug() << "Sending request with token:" << m_authToken;
+    qDebug() << "Sending request to:" << apiUrl << "with token:" << m_authToken;
 
-    // 4. Kirim permintaan ke server dan hubungkan respons ke slot penanganan
+    // 5. Kirim permintaan ke server dan hubungkan respons ke slot penanganan
     QNetworkReply *reply = m_networkManager->get(request);
     connect(reply, &QNetworkReply::finished, this, [=]() {
         handleTaskFetchReply(reply);
     });
 }
+
 void Logger::handleTaskFetchReply(QNetworkReply *reply)
 {
     // 5. Periksa kode status HTTP dari respons
@@ -2036,7 +2012,6 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
     // 8. Tangani kasus autentikasi gagal (token tidak valid atau kedaluwarsa)
     if (statusCode == 401) {
         qWarning() << "Unauthorized access. Token may be invalid or expired.";
-        clearToken();
         showAuthTokenErrorMessage(); // <-- UBAH KE BARIS INI
         reply->deleteLater();
         return;
@@ -2110,42 +2085,83 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
             continue;
         }
 
-        // Tentukan durasi maksimum dari API, default ke 8 jam jika tidak ada
+        // Ambil data duration dan total_duration dari server
         QJsonValue durationValue = taskObj["duration"];
-        int apiMaxTime = durationValue.isNull() ? 8 * 3600 : durationValue.toInt();
+        QJsonValue totalDurationValue = taskObj["total_duration"];
+
+        // Konversi duration dari server (dalam jam) ke detik untuk max_time
+        int serverMaxTime = 0;
+        if (!durationValue.isNull()) {
+            if (durationValue.isString()) {
+                serverMaxTime = static_cast<int>(durationValue.toString().toDouble() * 3600); // jam -> detik
+            } else {
+                serverMaxTime = durationValue.toInt() * 3600; // jam -> detik
+            }
+        }
+
+        // Konversi total_duration dari server (dalam jam) ke detik untuk time_usage
+        int serverTimeUsage = 0;
+        if (!totalDurationValue.isNull()) {
+            if (totalDurationValue.isString()) {
+                serverTimeUsage = static_cast<int>(totalDurationValue.toString().toDouble() * 3600); // jam -> detik
+            } else {
+                serverTimeUsage = totalDurationValue.toInt() * 3600; // jam -> detik
+            }
+        }
 
         bool taskExists = existingTasks.contains(taskId);
 
         if (taskExists) {
-            // 15. Untuk tugas yang sudah ada, pertahankan max_time dan time_usage lokal
+            // 15. Untuk tugas yang sudah ada, update berdasarkan data server
             QPair<int, int> currentValues = existingTasks[taskId];
             int currentMaxTime = currentValues.first;
             int currentTimeUsage = currentValues.second;
 
-            // Update max_time hanya jika saat ini 0 atau nilai API lebih besar
-            int finalMaxTime = (currentMaxTime == 0) ? apiMaxTime :
-                                   (apiMaxTime > currentMaxTime) ? apiMaxTime : currentMaxTime;
+            // Tentukan max_time yang akan digunakan
+            int finalMaxTime = currentMaxTime;
+            if (serverMaxTime > 0) {
+                // Jika server memberikan duration, gunakan yang lebih besar
+                finalMaxTime = qMax(serverMaxTime, currentMaxTime);
+            } else if (currentMaxTime == 0) {
+                // Jika tidak ada di server dan lokal juga 0, set default 8 jam
+                finalMaxTime = 8 * 3600;
+            }
+
+            // Tentukan time_usage yang akan digunakan
+            int finalTimeUsage = currentTimeUsage;
+            if (serverTimeUsage > 0) {
+                // Jika server memberikan total_duration, gunakan nilai server
+                finalTimeUsage = serverTimeUsage;
+            }
 
             query.prepare("UPDATE task SET project_name = :projectName, task = :taskDesc, "
-                          "max_time = :maxTime WHERE id = :id");
+                          "max_time = :maxTime, time_usage = :timeUsage WHERE id = :id");
             query.bindValue(":id", taskId);
             query.bindValue(":projectName", projectName);
             query.bindValue(":taskDesc", taskDesc);
             query.bindValue(":maxTime", finalMaxTime);
+            query.bindValue(":timeUsage", finalTimeUsage);
 
-            qDebug() << "Updating task ID" << taskId << "- preserving max_time:" << finalMaxTime
-                     << "(current:" << currentMaxTime << ", API:" << apiMaxTime << ")";
+            qDebug() << "Updating task ID" << taskId
+                     << "- max_time:" << finalMaxTime << "(current:" << currentMaxTime << ", server:" << serverMaxTime << ")"
+                     << "- time_usage:" << finalTimeUsage << "(current:" << currentTimeUsage << ", server:" << serverTimeUsage << ")";
         } else {
-            // 16. Untuk tugas baru, masukkan dengan nilai default
+            // 16. Untuk tugas baru, masukkan dengan nilai dari server atau default
+            int finalMaxTime = (serverMaxTime > 0) ? serverMaxTime : 8 * 3600; // default 8 jam
+            int finalTimeUsage = (serverTimeUsage > 0) ? serverTimeUsage : 0;
+
             query.prepare("INSERT INTO task (id, project_name, task, max_time, time_usage, active, status, paused, user_id) "
-                          "VALUES (:id, :projectName, :taskDesc, :maxTime, 0, 0, 'Preview', 0, :userId)");
+                          "VALUES (:id, :projectName, :taskDesc, :maxTime, :timeUsage, 0, 'Pending', 0, :userId)");
             query.bindValue(":id", taskId);
             query.bindValue(":projectName", projectName);
             query.bindValue(":taskDesc", taskDesc);
-            query.bindValue(":maxTime", apiMaxTime);
+            query.bindValue(":maxTime", finalMaxTime);
+            query.bindValue(":timeUsage", finalTimeUsage);
             query.bindValue(":userId", userId);
 
-            qDebug() << "Inserting new task ID" << taskId << "with max_time:" << apiMaxTime;
+            qDebug() << "Inserting new task ID" << taskId
+                     << "with max_time:" << finalMaxTime
+                     << "and time_usage:" << finalTimeUsage;
         }
 
         // 17. Eksekusi query dan tangani kesalahan
@@ -2170,6 +2186,9 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
     // 19. Hapus objek reply untuk mencegah kebocoran memori
     reply->deleteLater();
 }
+
+
+
 
 QVariantList Logger::taskList() const
 {
@@ -2209,7 +2228,7 @@ QVariantList Logger::taskList() const
             task["status"] = status;
         } else {
             // Inactive task
-            task["status"] = "Preview";
+            task["status"] = "Pending";
         }
 
         tasks.append(task);
@@ -2281,8 +2300,8 @@ void Logger::setActiveTask(int taskId)
         QString prevStatus = query.value(0).toString().toLower();
         QString taskName = query.value(1).toString();
 
-        // Hanya ubah status ke 'Preview' jika bukan 'review' atau 'completed'
-        QString newStatus = (prevStatus == "review" || prevStatus == "completed") ? prevStatus : "preview";
+        // Hanya ubah status ke 'Pending' jika bukan 'review' atau 'completed'
+        QString newStatus = (prevStatus == "review" || prevStatus == "completed") ? prevStatus : "Pending";
 
         // Hitung time_usage
         qint64 currentEpoch = QDateTime::currentSecsSinceEpoch();
@@ -2300,12 +2319,12 @@ void Logger::setActiveTask(int taskId)
         // Kirim status stop untuk tugas sebelumnya
         if (!m_isTaskPaused) {
             QString currentTime = QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
-            // Konversi m_taskStartTime dari qint64 ke QDateTime
             QString startTime = QDateTime::fromSecsSinceEpoch(m_taskStartTime).toString(Qt::ISODateWithMs);
             sendPausePlayDataToAPI(m_activeTaskId, startTime, currentTime, "pause");
         }
 
-        stopPingTimer();
+        //stopPingTimer();
+        //saveWorkTimeData();
     }
 
     // Jika taskId valid, set tugas baru
@@ -2330,19 +2349,66 @@ void Logger::setActiveTask(int taskId)
 
         // Kirim status pause untuk tugas baru
         QString currentTime = QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
-        sendPausePlayDataToAPI(taskId, currentTime, currentTime, "pause");
+        //sendPausePlayDataToAPI(taskId, currentTime, currentTime, "pause");
 
         // Set max time untuk tugas
         setMaxTimeForTask(taskId);
+
+        // Gunakan QTimer untuk memulai task setelah delay 3 detik
+        QTimer::singleShot(2000, this, [this, taskId, currentTime]() {
+            if (m_activeTaskId == taskId) { // Pastikan task masih aktif
+                // Resume task setelah delay
+                QSqlQuery resumeQuery(m_productivityDb);
+                resumeQuery.prepare("UPDATE task SET paused = 0, status = 'on-progress' WHERE id = :id");
+                resumeQuery.bindValue(":id", taskId);
+                if (!resumeQuery.exec()) {
+                    qWarning() << "Failed to resume task:" << resumeQuery.lastError().text();
+                    return;
+                }
+
+                // Update local state
+                m_isTaskPaused = false;
+                m_isTrackingActive = true;
+                m_taskStartTime = QDateTime::currentSecsSinceEpoch();
+                m_pauseStartTime = 0;
+
+                // Mulai periode play baru
+                QString newTime = QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
+                QSqlQuery logQuery(m_productivityDb);
+                logQuery.prepare(
+                    "UPDATE log_paused "
+                    "SET end_reality = ? "
+                    "WHERE task_id = ? AND current_status = 'pause' AND end_reality IS NULL");
+                logQuery.addBindValue(newTime);
+                logQuery.addBindValue(taskId);
+                logQuery.exec();
+
+                logQuery.prepare(
+                    "INSERT INTO log_paused (task_id, start_reality, end_reality, current_status) "
+                    "VALUES (?, ?, NULL, 'play')");
+                logQuery.addBindValue(taskId);
+                logQuery.addBindValue(newTime);
+                logQuery.exec();
+
+                startPingTimer(taskId);
+
+                // Emit signals
+                emit taskPausedChanged();
+                emit trackingActiveChanged();
+                emit taskListChanged();
+
+                qDebug() << "Task automatically resumed after delay";
+            }
+        });
     }
 
     // Sinkronkan tugas
-    fetchAndStoreTasks();
-    syncActiveTask();
+    //fetchAndStoreTasks();
+    //syncActiveTask();
 
     // Update state
     m_activeTaskId = taskId;
-    m_isTaskPaused = true;
+    m_isTaskPaused = true; // Awalnya di-pause, akan di-resume setelah delay
     m_isTrackingActive = false;
     m_pauseStartTime = QDateTime::currentSecsSinceEpoch();
 
@@ -2398,9 +2464,17 @@ void Logger::sendPing(int taskId)
 
         bool showPopup = false;
         QString popupMessage;
+        bool refreshRequired = false;
 
         if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
             QJsonObject jsonObj = jsonDoc.object();
+
+            // Cek jika response meminta refresh
+            if (jsonObj.contains("refresh_required") && jsonObj["refresh_required"].toBool()) {
+                refreshRequired = true;
+                qDebug() << "Server requested application refresh";
+            }
+
             if (jsonObj.contains("success") && jsonObj["success"].isBool()) {
                 bool success = jsonObj["success"].toBool();
                 if (!success) {
@@ -2427,9 +2501,14 @@ void Logger::sendPing(int taskId)
             QMessageBox::warning(nullptr, "API Response", popupMessage);
         }
 
+        // Jika server meminta refresh, panggil refreshAll()
+        if (refreshRequired) {
+            qDebug() << "Performing application refresh as requested by server";
+            this->refreshAll();
+        }
+
         reply->deleteLater();
     });
-
 }
 
 
@@ -2553,21 +2632,70 @@ void Logger::handleTaskStatusReply(QNetworkReply *reply, int taskId)
     // Dapatkan nama task untuk notifikasi
     QString taskName = getTaskName(taskId);
 
+
     // Petakan status API ke status database
     QString dbStatus;
-    if (apiStatus == "created" || apiStatus == "on-progress") {
-        dbStatus = "preview";
-    } else if (apiStatus == "on-review") {
-        dbStatus = "review";
-        QString message = QString("Task is under review. Please wait for approval.").arg(taskName);
+    bool isReviewStatus = false;
+    bool isNeedReview = false;
+    bool isNeedRevise = false;
+
+    if (apiStatus == "created" || apiStatus == "pending") {
+        dbStatus = "Pending";
+    }
+    else if (apiStatus == "on-progress") {
+        // aktifkan task ini langsung
+        setActiveTask(taskId);
+        m_isTaskPaused = false;
+        m_isTrackingActive = true;
+        m_taskStartTime = QDateTime::currentSecsSinceEpoch();
+        dbStatus = "On Progress";
+
+        QSqlQuery timeQuery(m_productivityDb);
+        timeQuery.prepare("SELECT time_usage FROM task WHERE id = :id");
+        timeQuery.bindValue(":id", taskId);
+        if (timeQuery.exec() && timeQuery.next()) {
+            m_taskTimeOffset = timeQuery.value(0).toInt();
+        }
+
+        qDebug() << "Task with status 'on-progress' set as active from handleTaskStatusReply. Task ID:" << taskId;
+    }
+    else if (apiStatus == "on-review") {
+        dbStatus = "Review";
+        isReviewStatus = true;
+        QString message = QString("Task '%1' is under system review").arg(taskName);
         emit taskReviewNotification(message);
-    } else if (apiStatus == "completed") {
+    }
+    else if (apiStatus == "need-review") {
+        dbStatus = "Need Review";
+        isNeedReview = true;
+    }
+    else if (apiStatus == "need-revise") {
+        dbStatus = "Need Revise";
+        isNeedRevise = true;
+    }
+    else if (apiStatus == "completed") {
         dbStatus = "completed";
         finishTask(taskId);
-    } else {
+        reply->deleteLater();
+        return;
+    }
+    else {
         qWarning() << "Unknown status for taskId" << taskId << ":" << apiStatus;
         reply->deleteLater();
         return;
+    }
+
+    // Hanya pause task jika status on-review (bukan Need Review)
+    if (isReviewStatus && m_activeTaskId == taskId) {
+        QSqlQuery pauseQuery(m_productivityDb);
+        pauseQuery.prepare("UPDATE task SET active = 0, paused = 1 WHERE id = :id");
+        pauseQuery.bindValue(":id", taskId);
+        if (pauseQuery.exec()) {
+            m_activeTaskId = -1;
+            m_isTaskPaused = false;
+            emit activeTaskChanged();
+            emit taskPausedChanged();
+        }
     }
 
     emit taskStatusChanged(taskId, dbStatus);
@@ -2694,7 +2822,6 @@ void Logger::finishTask(int taskId)
 }
 
 
-
 void Logger::setMaxTimeForTask(int taskId)
 {
     if (!ensureProductivityDatabaseOpen()) {
@@ -2784,6 +2911,7 @@ void Logger::toggleTaskPause()
                                    "pause");
 
             stopPingTimer();
+            saveWorkTimeData();
 
             // Update local state
             m_isTaskPaused = true;
@@ -2846,6 +2974,7 @@ void Logger::toggleTaskPause()
 void Logger::sendPausePlayDataToAPI(int taskId, const QString& startTime,
                                     const QString& endTime, const QString& status)
 {
+
     // 1. Validasi token
     if (m_authToken.isEmpty()) {
         qWarning() << "No authentication token available";
@@ -2957,46 +3086,46 @@ void Logger::revertTaskChange()
 }
 
 
-void Logger::updateTaskTime()
-{
-    m_globalTimeUsage += 1;
-    emit globalTimeUsageChanged();
-
-    if (m_isTaskPaused || m_activeTaskId == -1 || !ensureProductivityDatabaseOpen()) {
-        return;
-    }
-
-    QSqlQuery query(m_productivityDb);
-    query.prepare("SELECT user_id, status FROM task WHERE id = :id");
-    query.bindValue(":id", m_activeTaskId);
-    if (!query.exec() || !query.next()) {
-        qWarning() << "Task not found or invalid task ID:" << m_activeTaskId;
-        return;
-    }
-    if (query.value(0).toInt() != m_currentUserId) {
-        qWarning() << "Task ID" << m_activeTaskId << "does not belong to current user:" << m_currentUserId;
-        return;
-    }
-
-    QString status = query.value(1).toString().toLower();
-    if (status == "review") {
-        qDebug() << "Skipping time update for task ID" << m_activeTaskId << "in Review status";
-        return;
-    }
-
-    qint64 currentTime = QDateTime::currentSecsSinceEpoch();
-    qint64 timeUsage = m_taskTimeOffset + (currentTime - m_taskStartTime);
-
-    query.prepare("UPDATE task SET time_usage = :timeUsage WHERE id = :id");
-    query.bindValue(":timeUsage", timeUsage);
-    query.bindValue(":id", m_activeTaskId);
-    if (!query.exec()) {
-        qWarning() << "Failed to update task time_usage:" << query.lastError().text();
-        return;
-    }
-
-    emit taskListChanged();
-}
+//void Logger::updateTaskTime()
+//{
+//    m_globalTimeUsage += 1;
+//    emit globalTimeUsageChanged();
+//
+//    if (m_isTaskPaused || m_activeTaskId == -1 || !ensureProductivityDatabaseOpen()) {
+//        return;
+//    }
+//
+//    QSqlQuery query(m_productivityDb);
+//    query.prepare("SELECT user_id, status FROM task WHERE id = :id");
+//    query.bindValue(":id", m_activeTaskId);
+//    if (!query.exec() || !query.next()) {
+//        qWarning() << "Task not found or invalid task ID:" << m_activeTaskId;
+//        return;
+//    }
+//    if (query.value(0).toInt() != m_currentUserId) {
+//        qWarning() << "Task ID" << m_activeTaskId << "does not belong to current user:" << m_currentUserId;
+//        return;
+//    }
+//
+//    QString status = query.value(1).toString().toLower();
+//    if (status == "review") {
+//        qDebug() << "Skipping time update for task ID" << m_activeTaskId << "in Review status";
+//        return;
+//    }
+//
+//    qint64 currentTime = QDateTime::currentSecsSinceEpoch();
+//    qint64 timeUsage = m_taskTimeOffset + (currentTime - m_taskStartTime);
+//
+//    query.prepare("UPDATE task SET time_usage = :timeUsage WHERE id = :id");
+//    query.bindValue(":timeUsage", timeUsage);
+//    query.bindValue(":id", m_activeTaskId);
+//    if (!query.exec()) {
+//        qWarning() << "Failed to update task time_usage:" << query.lastError().text();
+//        return;
+//    }
+//
+//    emit taskListChanged();
+//}
 
 
 
@@ -3101,38 +3230,37 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
 
             // 5. Parse data user dari response
             QJsonObject userData = jsonObj["user"].toObject();
-            m_authToken = jsonObj["token"].toString();
             int userId = userData["id"].toInt();
             QString username = userData["name"].toString();
-
-            // Ambil semua data user
-            QString role = userData["role"].toObject()["rolename"].toString();
             QString userEmail = userData["email"].toString();
-
+            QString role = userData["role"].toObject()["rolename"].toString();
+            QString token = jsonObj["token"].toString();
             // 6. Siapkan dan eksekusi query untuk menyimpan data ke database
-            QSqlQuery userQuery(m_db);
-            userQuery.prepare("INSERT OR REPLACE INTO users "
-                              "(id, username, password, department, email, role, token) "
-                              "VALUES (:id, :username, :password, :department, :email, :role, :token)");
+            QSqlQuery query(m_db);
+            query.prepare(
+                "INSERT OR REPLACE INTO users "
+                "(id, username, password, email, role, token) "
+                "VALUES (:id, :username, :password, :email, :role, :token)"
+                );
+            query.bindValue(":id", userId);
+            query.bindValue(":username", username);
+            query.bindValue(":password", hashPassword(password)); // Hash password
+            query.bindValue(":email", userEmail);
+            query.bindValue(":role", role);
+            query.bindValue(":token", token);
 
-            // Binding semua 7 nilai dengan benar
-            userQuery.bindValue(":id", userId);
-            userQuery.bindValue(":username", username);
-            userQuery.bindValue(":password", hashPassword(password));
-            userQuery.bindValue(":department", role);
-            userQuery.bindValue(":email", userEmail);
-            userQuery.bindValue(":role", role);
-            userQuery.bindValue(":token", m_authToken);
-
-            // 7. Eksekusi query dan periksa hasilnya
-            if (!userQuery.exec()) {
-                qWarning() << ">>> FATAL: Failed to store user data:" << userQuery.lastError().text();
+            if (!query.exec()) {
+                qWarning() << "Gagal menyimpan user ke database lokal:" << query.lastError();
             } else {
-                qDebug() << ">>> SUCCESS: Successfully executed query to store user data.";
+                qDebug() << "Data user tersimpan di database lokal. ID:" << userId;
             }
+
+
 
             m_isTokenErrorVisible = false;
 
+            m_workTimer.start(1000);
+            m_workTimer.start();
             // Lanjutkan sisa proses
             setCurrentUserInfo(userId, username, userEmail);
             checkAndCreateNewDayRecord();
@@ -3143,6 +3271,8 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
             m_usageReportTimer.start();
             m_isTrackingActive = true;
             m_isTaskPaused = false;
+            m_pauseStartTime = 0;
+
 
             reply->deleteLater();
             return true;
@@ -3172,6 +3302,9 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
 
             setCurrentUserInfo(userId, username, userEmail);
             checkAndCreateNewDayRecord();
+
+            m_workTimer.start(1000);
+            m_workTimer.start();
             loadWorkTimeData();
             startGlobalTimer();
             syncActiveTask();
@@ -3766,6 +3899,8 @@ Logger::WindowInfo Logger::getActiveWindowInfo()
     return getActiveWindowInfoLinux();
 #elif defined(Q_OS_MACOS)
     return getActiveWindowInfoMacOS();
+
+
 #else
     WindowInfo info;
     info.appName = "Unsupported OS";
@@ -3849,17 +3984,52 @@ Logger::WindowInfo Logger::getActiveWindowInfoLinux() {
 Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
     WindowInfo info;
 
-    // Gunakan AppleScript untuk mendapatkan info window di macOS
+    // Ambil nama aplikasi yang aktif
     QProcess process;
     process.start("osascript", {"-e", "tell application \"System Events\" to get name of first application process whose frontmost is true"});
-    if (process.waitForFinished(100)) {
-        info.appName = QString(process.readAllStandardOutput()).trimmed();
+    process.waitForFinished(500);
+    info.appName = QString::fromUtf8(process.readAllStandardOutput()).trimmed();
+
+    // Ambil nama window (judul)
+    process.start("osascript", {
+                                   "-e",
+                                   "tell application \"System Events\" to tell (first application process whose frontmost is true) to get value of attribute \"AXTitle\" of front window"
+                               });
+    process.waitForFinished(1000);
+    info.title = QString::fromUtf8(process.readAllStandardOutput()).trimmed();
+
+    // Coba ambil URL jika browser dikenal
+    QString browser = info.appName.toLower();
+    QString url;
+
+    if (browser == "safari") {
+        process.start("osascript", {"-e", "tell application \"Safari\" to return URL of front document"});
+    } else if (browser == "google chrome") {
+        process.start("osascript", {"-e", "tell application \"Google Chrome\" to return URL of active tab of front window"});
+    } else if (browser == "microsoft edge") {
+        process.start("osascript", {"-e", "tell application \"Microsoft Edge\" to return URL of active tab of front window"});
+    } else if (browser == "brave browser") {
+        process.start("osascript", {"-e", "tell application \"Brave Browser\" to return URL of active tab of front window"});
+    } else if (browser == "arc") {
+        process.start("osascript", {"-e", "tell application \"Arc\" to return URL of active tab of front window"});
     }
 
-    process.start("osascript", {"-e", "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"});
-    if (process.waitForFinished(100)) {
-        info.title = QString(process.readAllStandardOutput()).trimmed();
+    if (process.state() != QProcess::NotRunning) {
+        if (process.waitForFinished(1000)) {
+            url = QString::fromUtf8(process.readAllStandardOutput()).trimmed();
+        }
     }
+
+    // Fallback jika URL kosong: coba ekstrak dari window title
+    if (url.isEmpty()) {
+        QRegularExpression urlRegex(R"(https?://[^\s/$.?#].[^\s]*)");
+        QRegularExpressionMatch match = urlRegex.match(info.title);
+        if (match.hasMatch()) {
+            url = match.captured(0);
+        }
+    }
+
+    info.url = url;
 
     if (info.appName.isEmpty()) info.appName = "Unknown";
     if (info.title.isEmpty()) info.title = "No active window";
@@ -3956,7 +4126,7 @@ QString Logger::getBrowserUrlWindows(HWND hwnd) {
 
     return url;
 }
-#else
+#elif
 QString Logger::getBrowserUrlLinux() {
     // Metode ini tidak andal, hanya sebagai fallback.
     QProcess process;
@@ -3971,4 +4141,52 @@ QString Logger::getBrowserUrlLinux() {
     }
     return "";
 }
+#else
+QString Logger::getBrowserUrlMac() {
+    // 1. Ambil nama aplikasi aktif
+    QProcess frontAppProc;
+    frontAppProc.start("osascript", {"-e", "tell application \"System Events\" to get name of first application process whose frontmost is true"});
+    frontAppProc.waitForFinished(1000);
+    QString frontApp = frontAppProc.readAllStandardOutput().trimmed();
+
+    QString url;
+
+    // 2. Coba ambil URL langsung jika aplikasi adalah browser populer
+    QStringList script;
+    if (frontApp == "Safari") {
+        script << "tell application \"Safari\" to try" << "return URL of front document" << "on error" << "return \"\"" << "end try";
+    } else if (frontApp == "Google Chrome" || frontApp == "Brave Browser" || frontApp == "Microsoft Edge") {
+        script << QString("tell application \"%1\" to try").arg(frontApp)
+        << "return URL of active tab of front window"
+        << "on error" << "return \"\"" << "end try";
+    } else {
+        // 3. Fallback: ambil title dari window dan cari URL di dalamnya
+        QProcess titleProc;
+        titleProc.start("osascript", {
+                                         "-e",
+                                         "tell application \"System Events\" to tell (first application process whose frontmost is true) to get name of front window"
+                                     });
+        titleProc.waitForFinished(1000);
+        QString windowTitle = titleProc.readAllStandardOutput().trimmed();
+
+        QRegularExpression urlRegex(R"(https?://[^\s/$.?#].[^\s]*)");
+        QRegularExpressionMatch match = urlRegex.match(windowTitle);
+        if (match.hasMatch()) {
+            return match.captured(0);
+        } else {
+            return ""; // Tidak ada URL dalam title
+        }
+    }
+
+    // 4. Eksekusi skrip AppleScript jika tersedia
+    if (!script.isEmpty()) {
+        QProcess scriptProc;
+        scriptProc.start("osascript", QStringList() << "-e" << script.join("\n"));
+        scriptProc.waitForFinished(1000);
+        url = scriptProc.readAllStandardOutput().trimmed();
+    }
+
+    return url;
+}
+
 #endif

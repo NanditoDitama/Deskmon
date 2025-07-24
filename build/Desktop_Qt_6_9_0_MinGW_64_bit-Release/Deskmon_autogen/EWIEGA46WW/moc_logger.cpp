@@ -73,11 +73,11 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         "timeUsage",
         "showNotification",
         "workTimeElapsedSecondsChanged",
+        "showTimeWarning",
         "logActiveWindow",
         "logIdle",
         "startTime",
         "endTime",
-        "updateTaskTime",
         "refreshAll",
         "handleTaskStatusReply",
         "QNetworkReply*",
@@ -145,6 +145,7 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         "sendPing",
         "sendPausePlayDataToAPI",
         "status",
+        "getAppProductivityType",
         "currentAppName",
         "currentWindowTitle",
         "logCount",
@@ -231,14 +232,16 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         }}),
         // Signal 'workTimeElapsedSecondsChanged'
         QtMocHelpers::SignalData<void()>(33, 2, QMC::AccessPublic, QMetaType::Void),
-        // Slot 'logActiveWindow'
-        QtMocHelpers::SlotData<void()>(34, 2, QMC::AccessPublic, QMetaType::Void),
-        // Slot 'logIdle'
-        QtMocHelpers::SlotData<void(qint64, qint64)>(35, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::LongLong, 36 }, { QMetaType::LongLong, 37 },
+        // Signal 'showTimeWarning'
+        QtMocHelpers::SignalData<void(const QString &)>(34, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 17 },
         }}),
-        // Slot 'updateTaskTime'
-        QtMocHelpers::SlotData<void()>(38, 2, QMC::AccessPublic, QMetaType::Void),
+        // Slot 'logActiveWindow'
+        QtMocHelpers::SlotData<void()>(35, 2, QMC::AccessPublic, QMetaType::Void),
+        // Slot 'logIdle'
+        QtMocHelpers::SlotData<void(qint64, qint64)>(36, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::LongLong, 37 }, { QMetaType::LongLong, 38 },
+        }}),
         // Slot 'refreshAll'
         QtMocHelpers::SlotData<void()>(39, 2, QMC::AccessPublic, QMetaType::Void),
         // Slot 'handleTaskStatusReply'
@@ -372,46 +375,50 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         }}),
         // Method 'sendPausePlayDataToAPI'
         QtMocHelpers::MethodData<void(int, const QString &, const QString &, const QString &)>(104, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::Int, 27 }, { QMetaType::QString, 36 }, { QMetaType::QString, 37 }, { QMetaType::QString, 105 },
+            { QMetaType::Int, 27 }, { QMetaType::QString, 37 }, { QMetaType::QString, 38 }, { QMetaType::QString, 105 },
+        }}),
+        // Method 'getAppProductivityType'
+        QtMocHelpers::MethodData<int(const QString &, const QString &) const>(106, 2, QMC::AccessPublic, QMetaType::Int, {{
+            { QMetaType::QString, 82 }, { QMetaType::QString, 84 },
         }}),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'currentAppName'
-        QtMocHelpers::PropertyData<QString>(106, QMetaType::QString, QMC::DefaultPropertyFlags, 0),
+        QtMocHelpers::PropertyData<QString>(107, QMetaType::QString, QMC::DefaultPropertyFlags, 0),
         // property 'currentWindowTitle'
-        QtMocHelpers::PropertyData<QString>(107, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
+        QtMocHelpers::PropertyData<QString>(108, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
         // property 'logCount'
-        QtMocHelpers::PropertyData<int>(108, QMetaType::Int, QMC::DefaultPropertyFlags, 2),
+        QtMocHelpers::PropertyData<int>(109, QMetaType::Int, QMC::DefaultPropertyFlags, 2),
         // property 'logContent'
-        QtMocHelpers::PropertyData<QString>(109, QMetaType::QString, QMC::DefaultPropertyFlags, 3),
+        QtMocHelpers::PropertyData<QString>(110, QMetaType::QString, QMC::DefaultPropertyFlags, 3),
         // property 'productivityStats'
-        QtMocHelpers::PropertyData<QVariantMap>(110, 0x80000000 | 111, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 4),
+        QtMocHelpers::PropertyData<QVariantMap>(111, 0x80000000 | 112, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 4),
         // property 'taskList'
-        QtMocHelpers::PropertyData<QVariantList>(112, 0x80000000 | 44, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 5),
+        QtMocHelpers::PropertyData<QVariantList>(113, 0x80000000 | 44, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 5),
         // property 'activeTaskId'
-        QtMocHelpers::PropertyData<int>(113, QMetaType::Int, QMC::DefaultPropertyFlags, 6),
+        QtMocHelpers::PropertyData<int>(114, QMetaType::Int, QMC::DefaultPropertyFlags, 6),
         // property 'isTaskPaused'
-        QtMocHelpers::PropertyData<bool>(114, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
+        QtMocHelpers::PropertyData<bool>(115, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
         // property 'globalTimeUsage'
-        QtMocHelpers::PropertyData<qint64>(115, QMetaType::LongLong, QMC::DefaultPropertyFlags, 8),
+        QtMocHelpers::PropertyData<qint64>(116, QMetaType::LongLong, QMC::DefaultPropertyFlags, 8),
         // property 'isTrackingActive'
-        QtMocHelpers::PropertyData<bool>(116, QMetaType::Bool, QMC::DefaultPropertyFlags, 9),
+        QtMocHelpers::PropertyData<bool>(117, QMetaType::Bool, QMC::DefaultPropertyFlags, 9),
         // property 'currentUserId'
-        QtMocHelpers::PropertyData<int>(117, QMetaType::Int, QMC::DefaultPropertyFlags, 11),
+        QtMocHelpers::PropertyData<int>(118, QMetaType::Int, QMC::DefaultPropertyFlags, 11),
         // property 'productiveAppsModel'
-        QtMocHelpers::PropertyData<QAbstractItemModel*>(118, 0x80000000 | 119, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
+        QtMocHelpers::PropertyData<QAbstractItemModel*>(119, 0x80000000 | 120, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
         // property 'nonProductiveAppsModel'
-        QtMocHelpers::PropertyData<QAbstractItemModel*>(120, 0x80000000 | 119, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
+        QtMocHelpers::PropertyData<QAbstractItemModel*>(121, 0x80000000 | 120, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
         // property 'authToken'
-        QtMocHelpers::PropertyData<QString>(121, QMetaType::QString, QMC::DefaultPropertyFlags, 14),
+        QtMocHelpers::PropertyData<QString>(122, QMetaType::QString, QMC::DefaultPropertyFlags, 14),
         // property 'userEmail'
-        QtMocHelpers::PropertyData<QString>(122, QMetaType::QString, QMC::DefaultPropertyFlags, 15),
+        QtMocHelpers::PropertyData<QString>(123, QMetaType::QString, QMC::DefaultPropertyFlags, 15),
         // property 'currentUsername'
         QtMocHelpers::PropertyData<QString>(53, QMetaType::QString, QMC::DefaultPropertyFlags, 16),
         // property 'currentUserEmail'
-        QtMocHelpers::PropertyData<QString>(123, QMetaType::QString, QMC::DefaultPropertyFlags, 17),
+        QtMocHelpers::PropertyData<QString>(124, QMetaType::QString, QMC::DefaultPropertyFlags, 17),
         // property 'workTimeElapsedSeconds'
-        QtMocHelpers::PropertyData<int>(124, QMetaType::Int, QMC::DefaultPropertyFlags, 24),
+        QtMocHelpers::PropertyData<int>(125, QMetaType::Int, QMC::DefaultPropertyFlags, 24),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -458,9 +465,9 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         case 22: _t->taskTimeUpdated((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[2]))); break;
         case 23: _t->showNotification((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
         case 24: _t->workTimeElapsedSecondsChanged(); break;
-        case 25: _t->logActiveWindow(); break;
-        case 26: _t->logIdle((*reinterpret_cast< std::add_pointer_t<qint64>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<qint64>>(_a[2]))); break;
-        case 27: _t->updateTaskTime(); break;
+        case 25: _t->showTimeWarning((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
+        case 26: _t->logActiveWindow(); break;
+        case 27: _t->logIdle((*reinterpret_cast< std::add_pointer_t<qint64>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<qint64>>(_a[2]))); break;
         case 28: _t->refreshAll(); break;
         case 29: _t->handleTaskStatusReply((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[2]))); break;
         case 30: { QVariantList _r = _t->getPendingApplicationRequests();
@@ -522,6 +529,8 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         case 68: _t->sendDailyUsageReport(); break;
         case 69: _t->sendPing((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
         case 70: _t->sendPausePlayDataToAPI((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[4]))); break;
+        case 71: { int _r = _t->getAppProductivityType((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])));
+            if (_a[0]) *reinterpret_cast< int*>(_a[0]) = std::move(_r); }  break;
         default: ;
         }
     }
@@ -609,6 +618,8 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
             return;
         if (QtMocHelpers::indexOfMethod<void (Logger::*)()>(_a, &Logger::workTimeElapsedSecondsChanged, 24))
             return;
+        if (QtMocHelpers::indexOfMethod<void (Logger::*)(const QString & )>(_a, &Logger::showTimeWarning, 25))
+            return;
     }
     if (_c == QMetaObject::RegisterPropertyMetaType) {
         switch (_id) {
@@ -663,14 +674,14 @@ int Logger::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 71)
+        if (_id < 72)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 71;
+        _id -= 72;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 71)
+        if (_id < 72)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 71;
+        _id -= 72;
     }
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty
@@ -829,5 +840,11 @@ void Logger::showNotification(const QString & _t1)
 void Logger::workTimeElapsedSecondsChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 24, nullptr);
+}
+
+// SIGNAL 25
+void Logger::showTimeWarning(const QString & _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 25, nullptr, _t1);
 }
 QT_WARNING_POP

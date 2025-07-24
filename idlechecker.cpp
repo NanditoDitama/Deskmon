@@ -143,7 +143,7 @@ void IdleChecker::checkIdleTime()
             m_lastIdleLogTime = currentTime;
             m_isIdle = true;
             qDebug() << "Idle detected, started at:" << QDateTime::fromSecsSinceEpoch(m_lastActiveTime).toString();
-            emit showIdleNotification("Idle Terdeteksi, Tolong kembali ke aplikasi untuk menekan tombol 'Play' kembali");
+            emit showIdleNotification("Idle Terdeteksi");
             qDebug() << "Sent idle notification: You have been idle";
 
             // === PERUBAHAN DIMULAI DI SINI ===

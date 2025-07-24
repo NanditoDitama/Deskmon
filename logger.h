@@ -143,12 +143,19 @@ public:
     Q_INVOKABLE void sendPausePlayDataToAPI(int taskId, const QString& startTime,
                                             const QString& endTime, const QString& status);
 
+    Q_INVOKABLE int getAppProductivityType(const QString &appName, const QString &url) const;
+
+
+
+
+
+
 
 
 public slots:
     void logActiveWindow();
     void logIdle(qint64 startTime, qint64 endTime);
-    void updateTaskTime();
+    //void updateTaskTime();
     void refreshAll();
     void handleTaskStatusReply(QNetworkReply *reply, int taskId);
     Q_INVOKABLE QVariantList getPendingApplicationRequests();
@@ -159,6 +166,8 @@ public slots:
 private slots:
     void handleTaskFetchReply(QNetworkReply *reply);
     void updateWorkTimeAndSave(); // Slot baru untuk timer "Time at Work"
+
+
 
 
 
@@ -195,6 +204,9 @@ signals:
     // Sinyal baru untuk "Time at Work"
     void workTimeElapsedSecondsChanged();
 
+    void showTimeWarning(const QString &message);
+
+
 
 
 
@@ -207,7 +219,7 @@ private:
     QString hashPassword(const QString &password);
     void initializeProductivityDatabase();
     bool ensureProductivityDatabaseOpen() const;
-    int getAppProductivityType(const QString &appName, const QString &windowTitle, const QString &url) const;
+
     void setMaxTimeForTask(int taskId);
     void checkTaskStatusBeforeStart();
     void migrateProductivityDatabase();
@@ -243,6 +255,9 @@ private:
 
     void showAuthTokenErrorMessage();
     bool m_isTokenErrorVisible = false;
+    QString m_lastKnownUrl;
+
+
 
 
 

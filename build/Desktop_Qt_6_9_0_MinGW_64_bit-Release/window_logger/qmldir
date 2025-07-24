@@ -2,4 +2,5 @@ module window_logger
 typeinfo Deskmon.qmltypes
 prefer :/qt/qml/window_logger/
 Main 1.0 Main.qml
+Pop_up_waktuhabis 1.0 Pop_up_waktuhabis.qml
 

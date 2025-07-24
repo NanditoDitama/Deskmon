@@ -131,6 +131,7 @@ qt_add_qml_module(Deskmon
     VERSION 1.0
     QML_FILES ${QML_FILES}
     SOURCES
+    QML_FILES Pop_up_waktuhabis.qml
 )
 
 # Menambahkan resource file jika diperlukan

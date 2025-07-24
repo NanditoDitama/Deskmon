@@ -47,7 +47,7 @@ cmake_ninja_workdir = C$:/Users/prnl2/OneDrive/Documents/window_logger/build/Des
 #############################################
 # Order-only phony target for Deskmon
 
-build cmake_object_order_depends_target_Deskmon: phony || .qt/rcc/qrc_Deskmon_raw_qml_0.cpp .qt/rcc/qrc_qmake_window_logger.cpp .qt/rcc/qrc_resources.cpp .rcc/qmlcache/Deskmon_Main_qml.cpp .rcc/qmlcache/Deskmon_Main_qml.cpp.aotstats .rcc/qmlcache/Deskmon_qmlcache_loader.cpp Deskmon_autogen Deskmon_autogen/mocs_compilation.cpp Deskmon_autogen/timestamp Deskmon_autogen_timestamp_deps Deskmon_copy_qml Deskmon_copy_res Deskmon_qmlimportscan deskmon_qmltyperegistrations.cpp meta_types/Deskmon_json_file_list.txt meta_types/Deskmon_json_file_list.txt.timestamp meta_types/qt6deskmon_release_metatypes.json meta_types/qt6deskmon_release_metatypes.json.gen window_logger/Deskmon.qmltypes
+build cmake_object_order_depends_target_Deskmon: phony || .qt/rcc/qrc_Deskmon_raw_qml_0.cpp .qt/rcc/qrc_qmake_window_logger.cpp .qt/rcc/qrc_resources.cpp .rcc/qmlcache/Deskmon_Main_qml.cpp .rcc/qmlcache/Deskmon_Main_qml.cpp.aotstats .rcc/qmlcache/Deskmon_Pop_up_waktuhabis_qml.cpp .rcc/qmlcache/Deskmon_pop_up_waktuhabis_qml.cpp.aotstats .rcc/qmlcache/Deskmon_qmlcache_loader.cpp Deskmon_autogen Deskmon_autogen/mocs_compilation.cpp Deskmon_autogen/timestamp Deskmon_autogen_timestamp_deps Deskmon_copy_qml Deskmon_copy_res Deskmon_qmlimportscan deskmon_qmltyperegistrations.cpp meta_types/Deskmon_json_file_list.txt meta_types/Deskmon_json_file_list.txt.timestamp meta_types/qt6deskmon_release_metatypes.json meta_types/qt6deskmon_release_metatypes.json.gen window_logger/Deskmon.qmltypes
 
 build CMakeFiles/Deskmon.dir/Deskmon_autogen/mocs_compilation.cpp.obj: CXX_COMPILER__Deskmon_unscanned_Release C$:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/Deskmon_autogen/mocs_compilation.cpp || cmake_object_order_depends_target_Deskmon
   DEFINES = -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QMLMETA_LIB -DQT_QMLMODELS_LIB -DQT_QMLWORKERSCRIPT_LIB -DQT_QML_LIB -DQT_QUICKCONTROLS2_LIB -DQT_QUICK_LIB -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64
@@ -120,6 +120,14 @@ build CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qm
   OBJECT_DIR = CMakeFiles\Deskmon.dir
   OBJECT_FILE_DIR = CMakeFiles\Deskmon.dir\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release\.rcc\qmlcache
 
+build CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmlcache/Deskmon_Pop_up_waktuhabis_qml.cpp.obj: CXX_COMPILER__Deskmon_unscanned_Release C$:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmlcache/Deskmon_Pop_up_waktuhabis_qml.cpp || cmake_object_order_depends_target_Deskmon
+  DEFINES = -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QMLMETA_LIB -DQT_QMLMODELS_LIB -DQT_QMLWORKERSCRIPT_LIB -DQT_QML_LIB -DQT_QUICKCONTROLS2_LIB -DQT_QUICK_LIB -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64
+  DEP_FILE = CMakeFiles\Deskmon.dir\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release\.rcc\qmlcache\Deskmon_Pop_up_waktuhabis_qml.cpp.obj.d
+  FLAGS = -O3 -DNDEBUG -std=gnu++17 -fdiagnostics-color=always
+  INCLUDES = -IC:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/Deskmon_autogen/include -IC:/Users/prnl2/OneDrive/Documents/window_logger -isystem C:/Qt/6.9.0/mingw_64/include/QtQml/6.9.0 -isystem C:/Qt/6.9.0/mingw_64/include/QtQml/6.9.0/QtQml -isystem C:/Qt/6.9.0/mingw_64/include/QtCore/6.9.0 -isystem C:/Qt/6.9.0/mingw_64/include/QtCore/6.9.0/QtCore -isystem C:/Qt/6.9.0/mingw_64/include/QtCore -isystem C:/Qt/6.9.0/mingw_64/include -isystem C:/Qt/6.9.0/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.9.0/mingw_64/include/QtQml -isystem C:/Qt/6.9.0/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.9.0/mingw_64/include/QtNetwork -isystem C:/Qt/6.9.0/mingw_64/include/QtQuick -isystem C:/Qt/6.9.0/mingw_64/include/QtGui -isystem C:/Qt/6.9.0/mingw_64/include/QtQmlMeta -isystem C:/Qt/6.9.0/mingw_64/include/QtQmlModels -isystem C:/Qt/6.9.0/mingw_64/include/QtQmlWorkerScript -isystem C:/Qt/6.9.0/mingw_64/include/QtOpenGL -isystem C:/Qt/6.9.0/mingw_64/include/QtSql -isystem C:/Qt/6.9.0/mingw_64/include/QtWidgets -isystem C:/Qt/6.9.0/mingw_64/include/QtQuickControls2
+  OBJECT_DIR = CMakeFiles\Deskmon.dir
+  OBJECT_FILE_DIR = CMakeFiles\Deskmon.dir\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release\.rcc\qmlcache
+
 build CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc/qrc_Deskmon_raw_qml_0.cpp.obj: CXX_COMPILER__Deskmon_unscanned_Release C$:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc/qrc_Deskmon_raw_qml_0.cpp || cmake_object_order_depends_target_Deskmon
   DEFINES = -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QMLMETA_LIB -DQT_QMLMODELS_LIB -DQT_QMLWORKERSCRIPT_LIB -DQT_QML_LIB -DQT_QUICKCONTROLS2_LIB -DQT_QUICK_LIB -DQT_SQL_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64
   DEP_FILE = CMakeFiles\Deskmon.dir\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release\.qt\rcc\qrc_Deskmon_raw_qml_0.cpp.obj.d
@@ -144,7 +152,7 @@ build CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc
 #############################################
 # Link the executable Deskmon.exe
 
-build Deskmon.exe: CXX_EXECUTABLE_LINKER__Deskmon_Release CMakeFiles/Deskmon.dir/Deskmon_autogen/mocs_compilation.cpp.obj CMakeFiles/Deskmon.dir/main.cpp.obj CMakeFiles/Deskmon.dir/logger.cpp.obj CMakeFiles/Deskmon.dir/idlechecker.cpp.obj CMakeFiles/Deskmon.dir/app.rc.obj CMakeFiles/Deskmon.dir/deskmon_qmltyperegistrations.cpp.obj CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc/qrc_qmake_window_logger.cpp.obj CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmlcache/Deskmon_qmlcache_loader.cpp.obj CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmlcache/Deskmon_Main_qml.cpp.obj CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc/qrc_Deskmon_raw_qml_0.cpp.obj CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc/qrc_resources.cpp.obj | C$:/Qt/6.9.0/mingw_64/lib/libQt6Sql.a C$:/Qt/6.9.0/mingw_64/lib/libQt6Widgets.a C$:/Qt/6.9.0/mingw_64/lib/libQt6QuickControls2.a C$:/Qt/6.9.0/mingw_64/lib/libQt6Quick.a C$:/Qt/6.9.0/mingw_64/lib/libQt6QmlMeta.a C$:/Qt/6.9.0/mingw_64/lib/libQt6QmlWorkerScript.a C$:/Qt/6.9.0/mingw_64/lib/libQt6OpenGL.a C$:/Qt/6.9.0/mingw_64/lib/libQt6Gui.a C$:/Qt/6.9.0/mingw_64/lib/libQt6QmlModels.a C$:/Qt/6.9.0/mingw_64/lib/libQt6Qml.a C$:/Qt/6.9.0/mingw_64/lib/libQt6Network.a C$:/Qt/6.9.0/mingw_64/lib/libQt6Core.a C$:/Qt/6.9.0/mingw_64/lib/libQt6EntryPoint.a || Deskmon_autogen Deskmon_autogen_timestamp_deps Deskmon_copy_qml Deskmon_copy_res Deskmon_qmlimportscan
+build Deskmon.exe: CXX_EXECUTABLE_LINKER__Deskmon_Release CMakeFiles/Deskmon.dir/Deskmon_autogen/mocs_compilation.cpp.obj CMakeFiles/Deskmon.dir/main.cpp.obj CMakeFiles/Deskmon.dir/logger.cpp.obj CMakeFiles/Deskmon.dir/idlechecker.cpp.obj CMakeFiles/Deskmon.dir/app.rc.obj CMakeFiles/Deskmon.dir/deskmon_qmltyperegistrations.cpp.obj CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc/qrc_qmake_window_logger.cpp.obj CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmlcache/Deskmon_qmlcache_loader.cpp.obj CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmlcache/Deskmon_Main_qml.cpp.obj CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmlcache/Deskmon_Pop_up_waktuhabis_qml.cpp.obj CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc/qrc_Deskmon_raw_qml_0.cpp.obj CMakeFiles/Deskmon.dir/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc/qrc_resources.cpp.obj | C$:/Qt/6.9.0/mingw_64/lib/libQt6Sql.a C$:/Qt/6.9.0/mingw_64/lib/libQt6Widgets.a C$:/Qt/6.9.0/mingw_64/lib/libQt6QuickControls2.a C$:/Qt/6.9.0/mingw_64/lib/libQt6Quick.a C$:/Qt/6.9.0/mingw_64/lib/libQt6QmlMeta.a C$:/Qt/6.9.0/mingw_64/lib/libQt6QmlWorkerScript.a C$:/Qt/6.9.0/mingw_64/lib/libQt6OpenGL.a C$:/Qt/6.9.0/mingw_64/lib/libQt6Gui.a C$:/Qt/6.9.0/mingw_64/lib/libQt6QmlModels.a C$:/Qt/6.9.0/mingw_64/lib/libQt6Qml.a C$:/Qt/6.9.0/mingw_64/lib/libQt6Network.a C$:/Qt/6.9.0/mingw_64/lib/libQt6Core.a C$:/Qt/6.9.0/mingw_64/lib/libQt6EntryPoint.a || Deskmon_autogen Deskmon_autogen_timestamp_deps Deskmon_copy_qml Deskmon_copy_res Deskmon_qmlimportscan
   FLAGS = -O3 -DNDEBUG
   LINK_FLAGS = -mwindows
   LINK_LIBRARIES = C:/Qt/6.9.0/mingw_64/lib/libQt6Sql.a  C:/Qt/6.9.0/mingw_64/lib/libQt6Widgets.a  C:/Qt/6.9.0/mingw_64/lib/libQt6QuickControls2.a  -luser32  -lpsapi  C:/Qt/6.9.0/mingw_64/lib/libQt6Quick.a  -luser32  C:/Qt/6.9.0/mingw_64/lib/libQt6QmlMeta.a  C:/Qt/6.9.0/mingw_64/lib/libQt6QmlWorkerScript.a  C:/Qt/6.9.0/mingw_64/lib/libQt6OpenGL.a  C:/Qt/6.9.0/mingw_64/lib/libQt6Gui.a  -ld3d11  -ldxgi  -ldxguid  -ld3d12  C:/Qt/6.9.0/mingw_64/lib/libQt6QmlModels.a  C:/Qt/6.9.0/mingw_64/lib/libQt6Qml.a  C:/Qt/6.9.0/mingw_64/lib/libQt6Network.a  -lws2_32  C:/Qt/6.9.0/mingw_64/lib/libQt6Core.a  -lmpr  -luserenv  -lmingw32  C:/Qt/6.9.0/mingw_64/lib/libQt6EntryPoint.a  -lshell32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
@@ -219,13 +227,13 @@ build Deskmon_copy_res: phony CMakeFiles/Deskmon_copy_res .qt/Deskmon_res.txt
 #############################################
 # Utility command for module_Deskmon_aotstats_target
 
-build module_Deskmon_aotstats_target: phony CMakeFiles/module_Deskmon_aotstats_target .rcc/qmlcache/module_Deskmon.aotstats .rcc/qmlcache/Deskmon_Main_qml.cpp .rcc/qmlcache/Deskmon_Main_qml.cpp.aotstats deskmon_qmltyperegistrations.cpp window_logger/Deskmon.qmltypes Deskmon_qmltyperegistration
+build module_Deskmon_aotstats_target: phony CMakeFiles/module_Deskmon_aotstats_target .rcc/qmlcache/module_Deskmon.aotstats .rcc/qmlcache/Deskmon_Main_qml.cpp .rcc/qmlcache/Deskmon_Main_qml.cpp.aotstats .rcc/qmlcache/Deskmon_Pop_up_waktuhabis_qml.cpp .rcc/qmlcache/Deskmon_pop_up_waktuhabis_qml.cpp.aotstats deskmon_qmltyperegistrations.cpp window_logger/Deskmon.qmltypes Deskmon_qmltyperegistration
 
 
 #############################################
 # Utility command for all_aotstats
 
-build all_aotstats: phony CMakeFiles/all_aotstats .rcc/qmlcache/all_aotstats.aotstats .rcc/qmlcache/all_aotstats.txt .rcc/qmlcache/module_Deskmon.aotstats .rcc/qmlcache/Deskmon_Main_qml.cpp .rcc/qmlcache/Deskmon_Main_qml.cpp.aotstats deskmon_qmltyperegistrations.cpp window_logger/Deskmon.qmltypes module_Deskmon_aotstats_target
+build all_aotstats: phony CMakeFiles/all_aotstats .rcc/qmlcache/all_aotstats.aotstats .rcc/qmlcache/all_aotstats.txt .rcc/qmlcache/module_Deskmon.aotstats .rcc/qmlcache/Deskmon_Main_qml.cpp .rcc/qmlcache/Deskmon_Main_qml.cpp.aotstats .rcc/qmlcache/Deskmon_Pop_up_waktuhabis_qml.cpp .rcc/qmlcache/Deskmon_pop_up_waktuhabis_qml.cpp.aotstats deskmon_qmltyperegistrations.cpp window_logger/Deskmon.qmltypes module_Deskmon_aotstats_target
 
 
 #############################################
@@ -358,9 +366,18 @@ build .rcc/qmlcache/Deskmon_Main_qml.cpp .rcc/qmlcache/Deskmon_Main_qml.cpp.aots
 
 
 #############################################
+# Custom command for .rcc\qmlcache\Deskmon_Pop_up_waktuhabis_qml.cpp
+
+build .rcc/qmlcache/Deskmon_Pop_up_waktuhabis_qml.cpp .rcc/qmlcache/Deskmon_pop_up_waktuhabis_qml.cpp.aotstats | ${cmake_ninja_workdir}.rcc/qmlcache/Deskmon_Pop_up_waktuhabis_qml.cpp ${cmake_ninja_workdir}.rcc/qmlcache/Deskmon_pop_up_waktuhabis_qml.cpp.aotstats: CUSTOM_COMMAND C$:/Qt/6.9.0/mingw_64/bin/qmlcachegen.exe C$:/Users/prnl2/OneDrive/Documents/window_logger/Pop_up_waktuhabis.qml .qt/rcc/qmake_window_logger.qrc .qt/rcc/Deskmon_raw_qml_0.qrc .qt/rcc/resources.qrc window_logger/Deskmon.qmltypes window_logger/qmldir
+  COMMAND = C:\Windows\system32\cmd.exe /C "cd /D C:\Users\prnl2\OneDrive\Documents\window_logger\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release && C:\Qt\Tools\CMake_64\bin\cmake.exe -E make_directory C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmlcache && C:\Users\prnl2\OneDrive\Documents\window_logger\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release\.qt\bin\qt_setup_tool_path.bat C:/Qt/6.9.0/mingw_64/bin/qmlcachegen.exe --bare --resource-path /qt/qml/window_logger/Pop_up_waktuhabis.qml -I C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release -I C:/Qt/6.9.0/mingw_64/qml -i C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/window_logger/qmldir --resource C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc/qmake_window_logger.qrc --resource C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc/Deskmon_raw_qml_0.qrc --resource C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc/resources.qrc --dump-aot-stats --module-id=window_logger(Deskmon) -o C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmlcache/Deskmon_Pop_up_waktuhabis_qml.cpp C:/Users/prnl2/OneDrive/Documents/window_logger/Pop_up_waktuhabis.qml"
+  DESC = Generating .rcc/qmlcache/Deskmon_Pop_up_waktuhabis_qml.cpp, .rcc/qmlcache/Deskmon_pop_up_waktuhabis_qml.cpp.aotstats
+  restat = 1
+
+
+#############################################
 # Custom command for .qt\rcc\qrc_Deskmon_raw_qml_0.cpp
 
-build .qt/rcc/qrc_Deskmon_raw_qml_0.cpp | ${cmake_ninja_workdir}.qt/rcc/qrc_Deskmon_raw_qml_0.cpp: CUSTOM_COMMAND C$:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml .qt/rcc/Deskmon_raw_qml_0.qrc C$:/Qt/6.9.0/mingw_64/bin/rcc.exe || Deskmon_autogen Deskmon_autogen_timestamp_deps Deskmon_copy_qml Deskmon_copy_res Deskmon_qmlimportscan
+build .qt/rcc/qrc_Deskmon_raw_qml_0.cpp | ${cmake_ninja_workdir}.qt/rcc/qrc_Deskmon_raw_qml_0.cpp: CUSTOM_COMMAND C$:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml C$:/Users/prnl2/OneDrive/Documents/window_logger/Pop_up_waktuhabis.qml .qt/rcc/Deskmon_raw_qml_0.qrc C$:/Qt/6.9.0/mingw_64/bin/rcc.exe || Deskmon_autogen Deskmon_autogen_timestamp_deps Deskmon_copy_qml Deskmon_copy_res Deskmon_qmlimportscan
   COMMAND = C:\Windows\system32\cmd.exe /C "cd /D C:\Users\prnl2\OneDrive\Documents\window_logger\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release && C:\Qt\6.9.0\mingw_64\bin\rcc.exe --output C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc/qrc_Deskmon_raw_qml_0.cpp --name Deskmon_raw_qml_0 C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/rcc/Deskmon_raw_qml_0.qrc --no-zstd"
   DESC = Running rcc for resource Deskmon_raw_qml_0
   restat = 1
@@ -404,21 +421,21 @@ build CMakeFiles/Deskmon_qmltyperegistration | ${cmake_ninja_workdir}CMakeFiles/
 #############################################
 # Custom command for CMakeFiles\Deskmon_qmllint
 
-build CMakeFiles/Deskmon_qmllint | ${cmake_ninja_workdir}CMakeFiles/Deskmon_qmllint: CUSTOM_COMMAND C$:/Qt/6.9.0/mingw_64/bin/qmllint.exe C$:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml .rcc/qmllint/Deskmon.rsp || Deskmon_qmltyperegistration all_qmltyperegistrations
+build CMakeFiles/Deskmon_qmllint | ${cmake_ninja_workdir}CMakeFiles/Deskmon_qmllint: CUSTOM_COMMAND C$:/Qt/6.9.0/mingw_64/bin/qmllint.exe C$:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml C$:/Users/prnl2/OneDrive/Documents/window_logger/Pop_up_waktuhabis.qml .rcc/qmllint/Deskmon.rsp || Deskmon_qmltyperegistration all_qmltyperegistrations
   COMMAND = C:\Windows\system32\cmd.exe /C "cd /D C:\Users\prnl2\OneDrive\Documents\window_logger && C:\Users\prnl2\OneDrive\Documents\window_logger\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release\.qt\bin\qt_setup_tool_path.bat C:/Qt/6.9.0/mingw_64/bin/qmllint.exe @C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmllint/Deskmon.rsp"
 
 
 #############################################
 # Custom command for CMakeFiles\Deskmon_qmllint_json
 
-build CMakeFiles/Deskmon_qmllint_json | ${cmake_ninja_workdir}CMakeFiles/Deskmon_qmllint_json: CUSTOM_COMMAND C$:/Qt/6.9.0/mingw_64/bin/qmllint.exe C$:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml .rcc/qmllint/Deskmon_json.rsp || Deskmon_qmltyperegistration all_qmltyperegistrations
+build CMakeFiles/Deskmon_qmllint_json | ${cmake_ninja_workdir}CMakeFiles/Deskmon_qmllint_json: CUSTOM_COMMAND C$:/Qt/6.9.0/mingw_64/bin/qmllint.exe C$:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml C$:/Users/prnl2/OneDrive/Documents/window_logger/Pop_up_waktuhabis.qml .rcc/qmllint/Deskmon_json.rsp || Deskmon_qmltyperegistration all_qmltyperegistrations
   COMMAND = C:\Windows\system32\cmd.exe /C "cd /D C:\Users\prnl2\OneDrive\Documents\window_logger && C:\Users\prnl2\OneDrive\Documents\window_logger\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release\.qt\bin\qt_setup_tool_path.bat C:/Qt/6.9.0/mingw_64/bin/qmllint.exe @C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmllint/Deskmon_json.rsp"
 
 
 #############################################
 # Custom command for CMakeFiles\Deskmon_qmllint_module
 
-build CMakeFiles/Deskmon_qmllint_module | ${cmake_ninja_workdir}CMakeFiles/Deskmon_qmllint_module: CUSTOM_COMMAND C$:/Qt/6.9.0/mingw_64/bin/qmllint.exe C$:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml .rcc/qmllint/Deskmon_module.rsp || Deskmon_qmltyperegistration all_qmltyperegistrations
+build CMakeFiles/Deskmon_qmllint_module | ${cmake_ninja_workdir}CMakeFiles/Deskmon_qmllint_module: CUSTOM_COMMAND C$:/Qt/6.9.0/mingw_64/bin/qmllint.exe C$:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml C$:/Users/prnl2/OneDrive/Documents/window_logger/Pop_up_waktuhabis.qml .rcc/qmllint/Deskmon_module.rsp || Deskmon_qmltyperegistration all_qmltyperegistrations
   COMMAND = C:\Windows\system32\cmd.exe /C "cd /D C:\Users\prnl2\OneDrive\Documents\window_logger && C:\Users\prnl2\OneDrive\Documents\window_logger\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release\.qt\bin\qt_setup_tool_path.bat C:/Qt/6.9.0/mingw_64/bin/qmllint.exe @C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmllint/Deskmon_module.rsp"
 
 
@@ -431,7 +448,7 @@ build CMakeFiles/Deskmon_copy_qml | ${cmake_ninja_workdir}CMakeFiles/Deskmon_cop
 #############################################
 # Custom command for .qt\Deskmon_qml.txt
 
-build .qt/Deskmon_qml.txt | ${cmake_ninja_workdir}.qt/Deskmon_qml.txt: CUSTOM_COMMAND C$:/Qt/6.9.0/mingw_64/lib/cmake/Qt6Qml/Qt6QmlCopyFiles.cmake C$:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml
+build .qt/Deskmon_qml.txt | ${cmake_ninja_workdir}.qt/Deskmon_qml.txt: CUSTOM_COMMAND C$:/Qt/6.9.0/mingw_64/lib/cmake/Qt6Qml/Qt6QmlCopyFiles.cmake C$:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml C$:/Users/prnl2/OneDrive/Documents/window_logger/Pop_up_waktuhabis.qml
   COMMAND = C:\Windows\system32\cmd.exe /C "cd /D C:\Users\prnl2\OneDrive\Documents\window_logger\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release && C:\Qt\Tools\CMake_64\bin\cmake.exe -DFILES_INFO_PATH=C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/Deskmon_qml.cmake -P C:/Qt/6.9.0/mingw_64/lib/cmake/Qt6Qml/Qt6QmlCopyFiles.cmake"
   DESC = Copying Deskmon qml sources into build dir
   restat = 1
@@ -461,7 +478,7 @@ build CMakeFiles/module_Deskmon_aotstats_target | ${cmake_ninja_workdir}CMakeFil
 #############################################
 # Custom command for .rcc\qmlcache\module_Deskmon.aotstats
 
-build .rcc/qmlcache/module_Deskmon.aotstats | ${cmake_ninja_workdir}.rcc/qmlcache/module_Deskmon.aotstats: CUSTOM_COMMAND .rcc/qmlcache/Deskmon_Main_qml.cpp.aotstats .rcc/qmlcache/module_Deskmon.aotstatslist || Deskmon_qmltyperegistration
+build .rcc/qmlcache/module_Deskmon.aotstats | ${cmake_ninja_workdir}.rcc/qmlcache/module_Deskmon.aotstats: CUSTOM_COMMAND .rcc/qmlcache/Deskmon_Main_qml.cpp.aotstats .rcc/qmlcache/Deskmon_pop_up_waktuhabis_qml.cpp.aotstats .rcc/qmlcache/module_Deskmon.aotstatslist || Deskmon_qmltyperegistration
   COMMAND = C:\Windows\system32\cmd.exe /C "cd /D C:\Users\prnl2\OneDrive\Documents\window_logger\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release && C:\Users\prnl2\OneDrive\Documents\window_logger\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release\.qt\bin\qt_setup_tool_path.bat C:/Qt/6.9.0/mingw_64/bin/qmlaotstats.exe aggregate C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmlcache/module_Deskmon.aotstatslist C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.rcc/qmlcache/module_Deskmon.aotstats"
   DESC = Generating .rcc/qmlcache/module_Deskmon.aotstats
   restat = 1
@@ -492,7 +509,7 @@ build CMakeFiles/Deskmon_qmlimportscan | ${cmake_ninja_workdir}CMakeFiles/Deskmo
 #############################################
 # Custom command for .qt\qml_imports\Deskmon_build.cmake
 
-build .qt/qml_imports/Deskmon_build.cmake | ${cmake_ninja_workdir}.qt/qml_imports/Deskmon_build.cmake: CUSTOM_COMMAND C$:/Qt/6.9.0/mingw_64/bin/qmlimportscanner.exe .qt/rcc/qmake_window_logger.qrc .qt/rcc/Deskmon_raw_qml_0.qrc .qt/rcc/resources.qrc C$:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml
+build .qt/qml_imports/Deskmon_build.cmake | ${cmake_ninja_workdir}.qt/qml_imports/Deskmon_build.cmake: CUSTOM_COMMAND C$:/Qt/6.9.0/mingw_64/bin/qmlimportscanner.exe .qt/rcc/qmake_window_logger.qrc .qt/rcc/Deskmon_raw_qml_0.qrc .qt/rcc/resources.qrc C$:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml C$:/Users/prnl2/OneDrive/Documents/window_logger/Pop_up_waktuhabis.qml
   COMMAND = C:\Windows\system32\cmd.exe /C "cd /D C:\Users\prnl2\OneDrive\Documents\window_logger && C:\Users\prnl2\OneDrive\Documents\window_logger\build\Desktop_Qt_6_9_0_MinGW_64_bit-Release\.qt\bin\qt_setup_tool_path.bat C:/Qt/6.9.0/mingw_64/bin/qmlimportscanner.exe @C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/qml_imports/Deskmon_build.rsp"
   DESC = Running qmlimportscanner for Deskmon
   restat = 1

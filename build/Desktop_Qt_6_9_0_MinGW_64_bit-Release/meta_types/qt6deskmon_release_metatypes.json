@@ -518,6 +518,23 @@
                         "index": 70,
                         "name": "sendPausePlayDataToAPI",
                         "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "appName",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "url",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 71,
+                        "isConst": true,
+                        "name": "getAppProductivityType",
+                        "returnType": "int"
                     }
                 ],
                 "object": true,
@@ -984,12 +1001,24 @@
                         "index": 24,
                         "name": "workTimeElapsedSecondsChanged",
                         "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 25,
+                        "name": "showTimeWarning",
+                        "returnType": "void"
                     }
                 ],
                 "slots": [
                     {
                         "access": "public",
-                        "index": 25,
+                        "index": 26,
                         "name": "logActiveWindow",
                         "returnType": "void"
                     },
@@ -1005,14 +1034,8 @@
                                 "type": "qint64"
                             }
                         ],
-                        "index": 26,
-                        "name": "logIdle",
-                        "returnType": "void"
-                    },
-                    {
-                        "access": "public",
                         "index": 27,
-                        "name": "updateTaskTime",
+                        "name": "logIdle",
                         "returnType": "void"
                     },
                     {
