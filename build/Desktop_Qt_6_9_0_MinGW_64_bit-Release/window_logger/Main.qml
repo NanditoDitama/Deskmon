@@ -1,20 +1,20 @@
 import QtQuick
-import QtQuick.Controls 2.15
+import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
 import QtQuick.Dialogs
 import QtQuick.Effects
+import QtQuick.Window
 
 ApplicationWindow {
     id: window
     title: qsTr("Deskmon")
-    visibility: ApplicationWindow.Maximized
-    visible: true
+    visibility: Window.Maximized
+    // Component.onCompleted: {
+    // window.visibility = Window.Maximized
+    // }
     minimumWidth: 900
     minimumHeight: 900
-
-
-
 
     Rectangle {
         id: notification
@@ -188,6 +188,8 @@ ApplicationWindow {
         else {
             isDarkMode = Material.theme === Material.Dark
         }
+            window.visibility = Window.Maximized
+
     }
 
     // Sync Material theme dengan mode kita

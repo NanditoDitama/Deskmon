@@ -84,6 +84,7 @@ int main(int argc, char *argv[])
             const auto rootObjects = engine->rootObjects();
             if (!rootObjects.isEmpty()) {
                 qmlWindow = qobject_cast<QQuickWindow*>(rootObjects.constFirst());
+                // qmlWindow->setVisibility(QWindow::Maximized);
                 if (!qmlWindow) {
                     qWarning() << "Failed to cast root object to QQuickWindow";
                     return;
@@ -93,8 +94,7 @@ int main(int argc, char *argv[])
 
         if (qmlWindow) {
             // Pastikan jendela tidak minimized
-            qmlWindow->setWindowState(Qt::WindowMaximized);
-            qmlWindow->show();
+            qmlWindow->showMaximized();
             qmlWindow->raise();
             qmlWindow->requestActivate(); // Perbaikan: Ganti setActiveWindow
             qDebug() << "QML window shown, state:" << qmlWindow->windowState();
