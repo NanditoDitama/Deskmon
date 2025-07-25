@@ -61,6 +61,34 @@ namespace _qt_qml_window_logger_Activity_Monitor_qml {
         reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
     };
 }
+namespace _qt_qml_window_logger_Monitored_Applications_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
+namespace _qt_qml_window_logger_AddAplicatioRequest_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
+namespace _qt_qml_window_logger_RequstAppPending_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
+namespace _qt_qml_window_logger_DateRange_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
 
 }
 namespace {
@@ -83,6 +111,10 @@ Registry::Registry() {
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/SaveTombolCropImage.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_SaveTombolCropImage_qml::unit);
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/Current_Task.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_Current_Task_qml::unit);
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/Activity_Monitor.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_Activity_Monitor_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/Monitored_Applications.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_Monitored_Applications_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/AddAplicatioRequest.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_AddAplicatioRequest_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/RequstAppPending.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_RequstAppPending_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/DateRange.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_DateRange_qml::unit);
     QQmlPrivate::RegisterQmlUnitCacheHook registration;
     registration.structVersion = 0;
     registration.lookupCachedQmlUnit = &lookupCachedUnit;

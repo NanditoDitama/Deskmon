@@ -9,4 +9,8 @@ Productivty 1.0 Productivty.qml
 SaveTombolCropImage 1.0 SaveTombolCropImage.qml
 Current_Task 1.0 Current_Task.qml
 Activity_Monitor 1.0 Activity_Monitor.qml
+Monitored_Applications 1.0 Monitored_Applications.qml
+AddAplicatioRequest 1.0 AddAplicatioRequest.qml
+RequstAppPending 1.0 RequstAppPending.qml
+DateRange 1.0 DateRange.qml
 

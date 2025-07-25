@@ -139,6 +139,11 @@ qt_add_qml_module(Deskmon
     RESOURCES
     QML_FILES Current_Task.qml
     QML_FILES Activity_Monitor.qml
+    QML_FILES
+    QML_FILES Monitored_Applications.qml
+    QML_FILES AddAplicatioRequest.qml
+    QML_FILES RequstAppPending.qml
+    QML_FILES DateRange.qml
 )
 
 # Menambahkan resource file jika diperlukan

@@ -8,6 +8,10 @@
     <file alias="SaveTombolCropImage.qml">C:/Users/prnl2/OneDrive/Documents/window_logger/SaveTombolCropImage.qml</file>
     <file alias="Current_Task.qml">C:/Users/prnl2/OneDrive/Documents/window_logger/Current_Task.qml</file>
     <file alias="Activity_Monitor.qml">C:/Users/prnl2/OneDrive/Documents/window_logger/Activity_Monitor.qml</file>
+    <file alias="Monitored_Applications.qml">C:/Users/prnl2/OneDrive/Documents/window_logger/Monitored_Applications.qml</file>
+    <file alias="AddAplicatioRequest.qml">C:/Users/prnl2/OneDrive/Documents/window_logger/AddAplicatioRequest.qml</file>
+    <file alias="RequstAppPending.qml">C:/Users/prnl2/OneDrive/Documents/window_logger/RequstAppPending.qml</file>
+    <file alias="DateRange.qml">C:/Users/prnl2/OneDrive/Documents/window_logger/DateRange.qml</file>
   </qresource>
 </RCC>
 

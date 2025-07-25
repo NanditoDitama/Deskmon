@@ -1557,25 +1557,9 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
 
     QJsonArray appsArray = jsonObj["data"].isArray() ? jsonObj["data"].toArray() : QJsonArray();
 
-    if (!m_productivityDb.transaction()) {
-        qWarning() << "Failed to start transaction";
-        return;
-    }
-
-    QSqlQuery query(m_productivityDb);
-    bool success = true;
-
-    // Ambil semua aplikasi yang sudah ada untuk pengecekan duplikat
-    QHash<QPair<QString, QString>, int> existingApps; // <appName, url> -> id
-    query.prepare("SELECT id, aplikasi, url FROM aplikasi");
-    if (query.exec()) {
-        while (query.next()) {
-            existingApps.insert(
-                qMakePair(query.value(1).toString(), query.value(2).toString()),
-                query.value(0).toInt()
-                );
-        }
-    }
+    qDebug() << "==============================================";
+    qDebug() << "Received" << appsArray.size() << "productivity apps from server:";
+    qDebug() << "==============================================";
 
     for (const QJsonValue &appValue : appsArray) {
         if (!appValue.isObject()) continue;
@@ -1587,47 +1571,185 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
         QString url = appObj["url"].toString();
         int userId = appObj["user_id"].toInt();
 
-        int jenis = 0;
-        if (status == "productive") jenis = 1;
-        else if (status == "non-productive") jenis = 2;
+        qDebug() << "App:" << appName
+                 << "| Process:" << (processName.isEmpty() ? "N/A" : processName)
+                 << "| URL:" << (url.isEmpty() ? "N/A" : url)
+                 << "| Status:" << status
+                 << "| User ID:" << userId;
+    }
+    qDebug() << "==============================================";
 
-        QString forUsers = QString::number(userId); // Format: "9" untuk single user
+    if (!m_productivityDb.transaction()) {
+        qWarning() << "Failed to start transaction";
+        return;
+    }
 
-        // Cek apakah aplikasi dengan nama dan URL yang sama sudah ada
-        QPair<QString, QString> appKey(appName, url);
-        if (existingApps.contains(appKey)) {
-            int existingId = existingApps[appKey];
+    QSqlQuery query(m_productivityDb);
+    bool success = true;
+    int insertCount = 0;
+    int updateCount = 0;
+    int unchangedCount = 0;
 
-            // Update hanya jika for_user adalah 0 (global) atau sama dengan user ID
-            query.prepare(
-                "UPDATE aplikasi SET jenis = :jenis "
-                "WHERE id = :id AND (for_user = '0' OR for_user = :forUsers)"
-                );
-            query.bindValue(":jenis", jenis);
-            query.bindValue(":id", existingId);
-            query.bindValue(":forUsers", forUsers);
+    // Struktur untuk menyimpan data server
+    struct ServerApp {
+        QString appName;
+        QString processName;
+        QString url;
+        int jenis;
+        int userId;
+        QString forUsers;
+    };
 
-            if (!query.exec()) {
-                qWarning() << "Failed to update existing app:" << query.lastError();
-                success = false;
-                break;
-            }
+    // Parse semua data dari server
+    QList<ServerApp> serverApps;
+    for (const QJsonValue &appValue : appsArray) {
+        if (!appValue.isObject()) continue;
+
+        QJsonObject appObj = appValue.toObject();
+        ServerApp serverApp;
+        serverApp.appName = appObj["application_name"].toString();
+        serverApp.processName = appObj["process_name"].toString();
+        serverApp.url = appObj["url"].toString();
+        serverApp.userId = appObj["user_id"].toInt();
+        serverApp.forUsers = QString::number(serverApp.userId);
+
+        QString status = appObj["productivity_status"].toString().toLower();
+        if (status == "productive") serverApp.jenis = 1;
+        else if (status == "non-productive") serverApp.jenis = 2;
+        else serverApp.jenis = 0;
+
+        serverApps.append(serverApp);
+    }
+
+    // Proses setiap aplikasi dari server
+    for (const ServerApp &serverApp : serverApps) {
+        // Cek apakah aplikasi dengan nama dan URL yang sama sudah ada di database
+        QString checkQuery;
+
+        // Query untuk mencari aplikasi berdasarkan aplikasi dan URL saja (tanpa for_user)
+        if (serverApp.url.isEmpty() || serverApp.url == "N/A") {
+            checkQuery = "SELECT id, jenis, window_title, for_user FROM aplikasi "
+                         "WHERE aplikasi = :appName AND (url IS NULL OR url = '' OR url = 'N/A')";
         } else {
-            // Insert baru jika tidak ada duplikat
-            query.prepare(
-                "INSERT INTO aplikasi (aplikasi, window_title, url, jenis, for_user) "
-                "VALUES (:app, :window, :url, :type, :forUsers)"
-                );
-            query.bindValue(":app", appName);
-            query.bindValue(":window", processName.isEmpty() ? QVariant() : processName);
-            query.bindValue(":url", url.isEmpty() ? QVariant() : url);
-            query.bindValue(":type", jenis);
-            query.bindValue(":forUsers", forUsers);
+            checkQuery = "SELECT id, jenis, window_title, for_user FROM aplikasi "
+                         "WHERE aplikasi = :appName AND url = :url";
+        }
 
-            if (!query.exec()) {
-                qWarning() << "Failed to insert new app:" << query.lastError();
-                success = false;
-                break;
+        query.prepare(checkQuery);
+        query.bindValue(":appName", serverApp.appName);
+
+        if (!serverApp.url.isEmpty() && serverApp.url != "N/A") {
+            query.bindValue(":url", serverApp.url);
+        }
+
+        if (!query.exec()) {
+            qWarning() << "Failed to check existing app:" << query.lastError();
+            success = false;
+            break;
+        }
+
+        bool foundExactMatch = false;
+        bool foundZeroTypeRecord = false;
+        int zeroTypeRecordId = -1;
+
+        // Cek semua record yang cocok dengan aplikasi dan URL
+        while (query.next()) {
+            int existingId = query.value(0).toInt();
+            int existingJenis = query.value(1).toInt();
+            QString existingWindowTitle = query.value(2).toString();
+            QString existingForUser = query.value(3).toString();
+
+            // Cek apakah ada record dengan for_user yang sama (exact match)
+            if (existingForUser == serverApp.forUsers) {
+                foundExactMatch = true;
+
+                // Cek apakah perlu diupdate
+                bool needsUpdate = false;
+
+                if (existingJenis != serverApp.jenis) {
+                    needsUpdate = true;
+                    qDebug() << "Status mismatch for" << serverApp.appName << ": DB=" << existingJenis << "Server=" << serverApp.jenis;
+                }
+
+                QString expectedWindowTitle = (serverApp.processName.isEmpty() || serverApp.processName == "N/A") ? QString() : serverApp.processName;
+                if (existingWindowTitle != expectedWindowTitle) {
+                    needsUpdate = true;
+                    qDebug() << "Process mismatch for" << serverApp.appName << ": DB=" << existingWindowTitle << "Server=" << expectedWindowTitle;
+                }
+
+                if (needsUpdate) {
+                    // Update record yang sama persis
+                    QString updateQuery = "UPDATE aplikasi SET jenis = :jenis, window_title = :windowTitle "
+                                          "WHERE id = :id";
+                    QSqlQuery updateQ(m_productivityDb);
+                    updateQ.prepare(updateQuery);
+                    updateQ.bindValue(":jenis", serverApp.jenis);
+                    updateQ.bindValue(":windowTitle", expectedWindowTitle.isEmpty() ? QVariant() : expectedWindowTitle);
+                    updateQ.bindValue(":id", existingId);
+
+                    if (!updateQ.exec()) {
+                        qWarning() << "Failed to update exact match app:" << serverApp.appName << updateQ.lastError();
+                        success = false;
+                        break;
+                    } else {
+                        updateCount++;
+                        qDebug() << "Updated exact match app:" << serverApp.appName << "for user" << serverApp.userId;
+                    }
+                } else {
+                    unchangedCount++;
+                    qDebug() << "Exact match app unchanged:" << serverApp.appName << "for user" << serverApp.userId;
+                }
+                break; // Keluar dari loop karena sudah menemukan exact match
+            }
+            // Cek apakah ada record dengan jenis = 0 (default/unset)
+            else if (existingJenis == 0) {
+                foundZeroTypeRecord = true;
+                zeroTypeRecordId = existingId;
+            }
+        }
+
+        if (!foundExactMatch) {
+            if (foundZeroTypeRecord) {
+                // Update record dengan jenis = 0 karena tidak ada exact match
+                QString expectedWindowTitle = (serverApp.processName.isEmpty() || serverApp.processName == "N/A") ? QString() : serverApp.processName;
+
+                QString updateQuery = "UPDATE aplikasi SET jenis = :jenis, window_title = :windowTitle, for_user = :forUsers "
+                                      "WHERE id = :id";
+                QSqlQuery updateQ(m_productivityDb);
+                updateQ.prepare(updateQuery);
+                updateQ.bindValue(":jenis", serverApp.jenis);
+                updateQ.bindValue(":windowTitle", expectedWindowTitle.isEmpty() ? QVariant() : expectedWindowTitle);
+                updateQ.bindValue(":forUsers", serverApp.forUsers);
+                updateQ.bindValue(":id", zeroTypeRecordId);
+
+                if (!updateQ.exec()) {
+                    qWarning() << "Failed to update zero-type record:" << serverApp.appName << updateQ.lastError();
+                    success = false;
+                    break;
+                } else {
+                    updateCount++;
+                    qDebug() << "Updated zero-type record:" << serverApp.appName << "from jenis=0 to jenis=" << serverApp.jenis << "for user" << serverApp.userId;
+                }
+            } else {
+                // Tidak ada record yang cocok sama sekali, insert baru
+                QString insertQuery = "INSERT INTO aplikasi (aplikasi, window_title, url, jenis, for_user) "
+                                      "VALUES (:app, :window, :url, :type, :forUsers)";
+                QSqlQuery insertQ(m_productivityDb);
+                insertQ.prepare(insertQuery);
+                insertQ.bindValue(":app", serverApp.appName);
+                insertQ.bindValue(":window", (serverApp.processName.isEmpty() || serverApp.processName == "N/A") ? QVariant() : serverApp.processName);
+                insertQ.bindValue(":url", (serverApp.url.isEmpty() || serverApp.url == "N/A") ? QVariant() : serverApp.url);
+                insertQ.bindValue(":type", serverApp.jenis);
+                insertQ.bindValue(":forUsers", serverApp.forUsers);
+
+                if (!insertQ.exec()) {
+                    qWarning() << "Failed to insert new app:" << serverApp.appName << insertQ.lastError();
+                    success = false;
+                    break;
+                } else {
+                    insertCount++;
+                    qDebug() << "Inserted new app:" << serverApp.appName << "for user" << serverApp.userId;
+                }
             }
         }
     }
@@ -1637,10 +1759,19 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
             qWarning() << "Failed to commit transaction";
             m_productivityDb.rollback();
         } else {
+            qDebug() << "==============================================";
+            qDebug() << "Database sync completed successfully:";
+            qDebug() << "- Inserted:" << insertCount << "new apps";
+            qDebug() << "- Updated:" << updateCount << "existing apps";
+            qDebug() << "- Unchanged:" << unchangedCount << "apps";
+            qDebug() << "- Total processed:" << serverApps.size() << "apps";
+            qDebug() << "==============================================";
+
             refreshProductivityModels();
             emit productivityAppsChanged();
         }
     } else {
+        qWarning() << "Failed to sync productivity apps with database";
         m_productivityDb.rollback();
     }
 }
@@ -3233,19 +3364,21 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
             QString username = userData["name"].toString();
             QString userEmail = userData["email"].toString();
             QString role = userData["role"].toObject()["rolename"].toString();
+            QString department = userData["department"].toObject()["rolename"].toString();
             QString token = jsonObj["token"].toString();
             // 6. Siapkan dan eksekusi query untuk menyimpan data ke database
             QSqlQuery query(m_db);
             query.prepare(
                 "INSERT OR REPLACE INTO users "
-                "(id, username, password, email, role, token) "
-                "VALUES (:id, :username, :password, :email, :role, :token)"
+                "(id, username, password, email, department, role, token) "
+                "VALUES (:id, :username, :password, :email, :department, :role, :token)"
                 );
             query.bindValue(":id", userId);
             query.bindValue(":username", username);
             query.bindValue(":password", hashPassword(password)); // Hash password
             query.bindValue(":email", userEmail);
             query.bindValue(":role", role);
+            query.bindValue(":department", department);
             query.bindValue(":token", token);
 
             if (!query.exec()) {
@@ -3384,7 +3517,7 @@ QString Logger::getUserDepartment(const QString &username)
     }
 
     QSqlQuery query(m_db);
-    query.prepare("SELECT department FROM users WHERE username = :username");
+    query.prepare("SELECT role FROM users WHERE username = :username");
     query.bindValue(":username", username);
 
     if (query.exec() && query.next()) {

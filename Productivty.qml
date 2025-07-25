@@ -108,6 +108,10 @@ Item {
                         }
                     }
                 }
+                DateRange{
+                    id: dateRangeDialog
+                    parent: Overlay.overlay
+                }
 
                 // Divider
                 Rectangle {
@@ -539,6 +543,10 @@ Item {
                             }
                             applicationsDialog.open();
                         }
+                    }
+                    Monitored_Applications{
+                        id:applicationsDialog
+                        parent:Overlay.overlay
                     }
                 }
                 // Divider
