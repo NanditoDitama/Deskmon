@@ -4301,7 +4301,7 @@ QString Logger::getBrowserUrlWindows(HWND hwnd) {
 
     return url;
 }
-#elif
+#elif defined(Q_OS_LINUX)
 QString Logger::getBrowserUrlLinux() {
     // Metode ini tidak andal, hanya sebagai fallback.
     QProcess process;
@@ -4316,7 +4316,7 @@ QString Logger::getBrowserUrlLinux() {
     }
     return "";
 }
-#else
+#elif defined(Q_OS_MACOS)
 QString Logger::getBrowserUrlMac() {
     // 1. Ambil nama aplikasi aktif
     QProcess frontAppProc;
