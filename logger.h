@@ -267,6 +267,7 @@ private:
     QString getAppNameFromHwnd(HWND hwnd);
 #elif defined(Q_OS_MACOS)
     WindowInfo getActiveWindowInfoMacOS();
+    QString getBrowserUrlMac();
 #else
     WindowInfo getActiveWindowInfoLinux();
     QString getBrowserUrlLinux();

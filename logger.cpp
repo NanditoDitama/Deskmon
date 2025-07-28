@@ -74,7 +74,7 @@ Logger::Logger(QObject *parent) : QObject(parent)
     // Inisialisasi dan mulai timer untuk "Time at Work"
     connect(&m_workTimer, &QTimer::timeout, this, &Logger::updateWorkTimeAndSave);
     m_workTimer.start(1000); // 1 detik
-     // Update setiap detik
+        // Update setiap detik
 
     m_productivePingTimer.setInterval(180000); // 3 menit = 180000 ms
     connect(&m_productivePingTimer, &QTimer::timeout, this, &Logger::sendProductiveTimeToAPI);
@@ -4074,9 +4074,9 @@ Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
     {
         QProcess appProcess;
         appProcess.start("osascript", {
-            "-e",
-            "tell application \"System Events\" to get name of first application process whose frontmost is true"
-        });
+                                          "-e",
+                                          "tell application \"System Events\" to get name of first application process whose frontmost is true"
+                                      });
 
         if (appProcess.waitForFinished(5000)) {
             info.appName = QString(appProcess.readAllStandardOutput()).trimmed();
@@ -4092,9 +4092,9 @@ Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
     {
         QProcess titleProcess;
         titleProcess.start("osascript", {
-            "-e",
-            "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"
-        });
+                                            "-e",
+                                            "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"
+                                        });
 
         if (titleProcess.waitForFinished(5000)) {
             info.title = QString(titleProcess.readAllStandardOutput()).trimmed();
