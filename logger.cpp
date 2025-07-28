@@ -74,6 +74,7 @@ Logger::Logger(QObject *parent) : QObject(parent)
     // Inisialisasi dan mulai timer untuk "Time at Work"
     connect(&m_workTimer, &QTimer::timeout, this, &Logger::updateWorkTimeAndSave);
     m_workTimer.start(1000); // 1 detik
+    m_workTimer.start();
         // Update setiap detik
 
     m_productivePingTimer.setInterval(180000); // 3 menit = 180000 ms
@@ -82,6 +83,10 @@ Logger::Logger(QObject *parent) : QObject(parent)
 
     m_usageReportTimer.setInterval(300000); // 5 menit = 300,000 ms
     connect(&m_usageReportTimer, &QTimer::timeout, this, &Logger::sendDailyUsageReport);
+
+    m_taskRefreshTimer.setInterval(180000);
+    connect(&m_taskRefreshTimer, &QTimer::timeout, this, &Logger::refreshTasks);
+    m_taskRefreshTimer.start();
 
 
 }
@@ -259,6 +264,39 @@ void Logger::refreshAll()
 }
 
 
+void Logger::refreshTasks()
+{
+    if (m_currentUserId == -1 || !ensureProductivityDatabaseOpen()) {
+        qDebug() << "Skipping task refresh - no user logged in or database not open";
+        return;
+    }
+
+    qDebug() << "Refreshing tasks...";
+
+    // 1. Sync tasks from server
+    fetchAndStoreTasks();
+
+    // 2. Update status of all tasks
+    QSqlQuery query(m_productivityDb);
+    query.prepare("SELECT id FROM task WHERE user_id = :user_id");
+    query.bindValue(":user_id", m_currentUserId);
+
+    if (query.exec()) {
+        while (query.next()) {
+            int taskId = query.value(0).toInt();
+            updateTaskStatus(taskId);
+        }
+    } else {
+        qWarning() << "Failed to fetch tasks for refresh:" << query.lastError().text();
+    }
+
+    // 3. Sync active task
+    syncActiveTask();
+
+    emit taskListChanged();
+    qDebug() << "Task refresh completed";
+}
+
 void Logger::sendLogoutToAPI()
 {
     if (m_currentUserId == -1 || m_authToken.isEmpty()) {
@@ -294,6 +332,7 @@ void Logger::logout()
     sendWorkTimeToAPI();
     sendLogoutToAPI();
     m_workTimer.stop();
+    m_taskRefreshTimer.stop();
 
     // Stop all active tracking
     if (m_activeTaskId != -1) {
