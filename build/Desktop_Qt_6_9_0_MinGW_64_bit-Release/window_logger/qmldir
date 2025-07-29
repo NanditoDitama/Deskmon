@@ -13,4 +13,5 @@ Monitored_Applications 1.0 Monitored_Applications.qml
 AddAplicatioRequest 1.0 AddAplicatioRequest.qml
 RequstAppPending 1.0 RequstAppPending.qml
 DateRange 1.0 DateRange.qml
+EarlyLeaveDialog 1.0 EarlyLeaveDialog.qml
 

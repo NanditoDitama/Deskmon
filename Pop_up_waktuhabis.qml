@@ -3,7 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Window 2.15
 
 Window {
-    id: popUpWindow
+    id: warningWindowComponent
     width: 400
     height: 220
     title: qsTr("Peringatan")
@@ -81,7 +81,7 @@ Window {
             }
 
             onClicked: {
-                popUpWindow.close()
+                warningWindowComponent.close()
             }
         }
     }
@@ -104,14 +104,14 @@ Window {
     ParallelAnimation {
         id: parallelAnimation
         NumberAnimation {
-            target: popUpWindow
+            target: warningWindowComponent
             property: "opacity"
             to: 1
             duration: 150
             easing.type: Easing.OutQuad
         }
         NumberAnimation {
-            target: popUpWindow
+            target: warningWindowComponent
             property: "scale"
             to: 1
             duration: 200

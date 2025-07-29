@@ -185,6 +185,8 @@ Item {
                                     var timeText = ""
                                     if (hours > 0) timeText += hours + "h "
                                     timeText += minutes + "m"
+
+                                    public_curent_time = timeText
                                     return timeText
                                 }
                                 return "0h 0m"
@@ -263,10 +265,13 @@ Item {
                                     // Format waktu maksimal ke format "Xh Ym" (contoh: 2h 0m)
                                     var hours = Math.floor(activeTask.max_time / 3600)
                                     var minutes = Math.floor((activeTask.max_time % 3600) / 60)
-                                    var timeText = ""
-                                    if (hours > 0) timeText += hours + "h "
-                                    timeText += minutes + "m"
-                                    return timeText
+                                    var timeText_max = ""
+                                    if (hours > 0) timeText_max += hours + "h "
+                                    timeText_max += minutes + "m"
+
+
+                                    public_max_time = timeText_max
+                                    return timeText_max
                                 }
                                 return "0h 0m"
                             }
@@ -392,12 +397,17 @@ Item {
                         if (isReview) {
                             return Qt.rgba(255/255, 152/255, 0/255, 0.08) // Subtle orange for review
                         }
+                        if (isNeedReview) return Qt.rgba(33/255, 150/255, 243/255, 0.15);
+                        if (isNeedRevise) return Qt.rgba(244/255, 67/255, 54/255, 0.15);
                         return isActive ? Qt.lighter(cardColor, 1.6) : cardColor
                     }
                     border.color: {
                         if (isReview) {
                             return Qt.rgba(255/255, 152/255, 0/255, 0.3) // Soft orange border
                         }
+                        if (isNeedReview) return Qt.rgba(33/255, 150/255, 243/255, 0.4);
+                        if (isNeedRevise) return Qt.rgba(244/255, 67/255, 54/255, 0.4);
+
                         return isActive ? secondaryColor : Qt.rgba(dividerColor.r, dividerColor.g, dividerColor.b, 0.3)
                     }
                     border.width: 1
@@ -414,7 +424,7 @@ Item {
 
                     MouseArea {
                         anchors.fill: parent
-                        enabled: !delegateRoot.isReview
+                        enabled:  !(delegateRoot.isReview || delegateRoot.isNeedReview || delegateRoot.isNeedRevise)
                         onClicked: {
                             if (!delegateRoot.isActive && logger.activeTaskId !== -1) {
                                 confirmSwitchDialog.taskId = modelData.id
@@ -449,7 +459,7 @@ Item {
                                 Layout.preferredHeight: 12
                                 radius: 16
                                 color: menuMouseArea.containsMouse ? Qt.rgba(0, 0, 0, 0.1) : "transparent"
-                                visible: !delegateRoot.isReview
+                                visible: !(delegateRoot.isReview || delegateRoot.isNeedReview || delegateRoot.isNeedRevise)
 
                                 Rectangle {
                                     anchors.centerIn: parent

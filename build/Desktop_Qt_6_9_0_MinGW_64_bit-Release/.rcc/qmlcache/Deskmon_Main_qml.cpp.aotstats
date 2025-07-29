@@ -6,7 +6,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 17,
-                        "durationMicroseconds": 342,
+                        "durationMicroseconds": 212,
                         "errorMessage": "",
                         "functionName": "visibility",
                         "line": 12
@@ -14,7 +14,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 32,
-                        "durationMicroseconds": 85,
+                        "durationMicroseconds": 53,
                         "errorMessage": "",
                         "functionName": "appDurations",
                         "line": 136
@@ -22,7 +22,7 @@
                     {
                         "codegenSuccessfull": false,
                         "column": 30,
-                        "durationMicroseconds": 70,
+                        "durationMicroseconds": 46,
                         "errorMessage": "Cannot generate efficient code for storing an array in a non-sequence type",
                         "functionName": "sortedApps",
                         "line": 137
@@ -30,7 +30,7 @@
                     {
                         "codegenSuccessfull": false,
                         "column": 33,
-                        "durationMicroseconds": 48,
+                        "durationMicroseconds": 34,
                         "errorMessage": "Cannot generate efficient code for storing an array in a non-sequence type",
                         "functionName": "sortedDomains",
                         "line": 138
@@ -38,7 +38,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 38,
-                        "durationMicroseconds": 187,
+                        "durationMicroseconds": 113,
                         "errorMessage": "",
                         "functionName": "startSelectedDate",
                         "line": 144
@@ -46,7 +46,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 36,
-                        "durationMicroseconds": 128,
+                        "durationMicroseconds": 81,
                         "errorMessage": "",
                         "functionName": "endSelectedDate",
                         "line": 145
@@ -54,7 +54,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 37,
-                        "durationMicroseconds": 277,
+                        "durationMicroseconds": 187,
                         "errorMessage": "",
                         "functionName": "backgroundColor",
                         "line": 174
@@ -62,7 +62,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 31,
-                        "durationMicroseconds": 218,
+                        "durationMicroseconds": 155,
                         "errorMessage": "",
                         "functionName": "cardColor",
                         "line": 175
@@ -70,7 +70,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 31,
-                        "durationMicroseconds": 201,
+                        "durationMicroseconds": 153,
                         "errorMessage": "",
                         "functionName": "textColor",
                         "line": 176
@@ -78,7 +78,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 36,
-                        "durationMicroseconds": 219,
+                        "durationMicroseconds": 150,
                         "errorMessage": "",
                         "functionName": "lightTextColor",
                         "line": 177
@@ -86,7 +86,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 34,
-                        "durationMicroseconds": 225,
+                        "durationMicroseconds": 145,
                         "errorMessage": "",
                         "functionName": "dividerColor",
                         "line": 178
@@ -94,7 +94,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 30,
-                        "durationMicroseconds": 222,
+                        "durationMicroseconds": 148,
                         "errorMessage": "",
                         "functionName": "headers",
                         "line": 179
@@ -102,7 +102,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 37,
-                        "durationMicroseconds": 65,
+                        "durationMicroseconds": 48,
                         "errorMessage": "",
                         "functionName": "productiveColor",
                         "line": 197
@@ -110,7 +110,7 @@
                     {
                         "codegenSuccessfull": false,
                         "column": 32,
-                        "durationMicroseconds": 146,
+                        "durationMicroseconds": 79,
                         "errorMessage": "Cannot generate efficient code for call to untyped JavaScript function",
                         "functionName": "currentMonth",
                         "line": 201
@@ -118,7 +118,7 @@
                     {
                         "codegenSuccessfull": false,
                         "column": 31,
-                        "durationMicroseconds": 111,
+                        "durationMicroseconds": 70,
                         "errorMessage": "Cannot generate efficient code for call to untyped JavaScript function",
                         "functionName": "currentYear",
                         "line": 202
@@ -126,7 +126,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 16,
-                        "durationMicroseconds": 141,
+                        "durationMicroseconds": 118,
                         "errorMessage": "",
                         "functionName": "onClosing",
                         "line": 212
@@ -134,7 +134,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 16,
-                        "durationMicroseconds": 45,
+                        "durationMicroseconds": 28,
                         "errorMessage": "",
                         "functionName": "onClosing",
                         "line": 212
@@ -145,15 +145,15 @@
                         "durationMicroseconds": 0,
                         "errorMessage": "Functions without type annotations won't be compiled",
                         "functionName": "timeStringToMinutes",
-                        "line": 219
+                        "line": 220
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 34,
-                        "durationMicroseconds": 1984,
+                        "durationMicroseconds": 1351,
                         "errorMessage": "Cannot generate efficient code for call to untyped JavaScript function",
                         "functionName": "onPublic_curent_timeChanged",
-                        "line": 226
+                        "line": 249
                     },
                     {
                         "codegenSuccessfull": false,
@@ -161,23 +161,23 @@
                         "durationMicroseconds": 0,
                         "errorMessage": "Functions without type annotations won't be compiled",
                         "functionName": "formatDuration",
-                        "line": 261
+                        "line": 282
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 5,
-                        "durationMicroseconds": 39856,
+                        "durationMicroseconds": 15730,
                         "errorMessage": "Cannot access value for name logger",
                         "functionName": "updateAppDurations",
-                        "line": 276
+                        "line": 297
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 5,
-                        "durationMicroseconds": 67738,
+                        "durationMicroseconds": 29300,
                         "errorMessage": "Cannot access value for name logger",
                         "functionName": "updateDomainDurations",
-                        "line": 326
+                        "line": 347
                     },
                     {
                         "codegenSuccessfull": false,
@@ -185,7 +185,7 @@
                         "durationMicroseconds": 0,
                         "errorMessage": "Functions without type annotations won't be compiled",
                         "functionName": "getProductivityType",
-                        "line": 381
+                        "line": 402
                     },
                     {
                         "codegenSuccessfull": false,
@@ -193,23 +193,31 @@
                         "durationMicroseconds": 0,
                         "errorMessage": "Functions without type annotations won't be compiled",
                         "functionName": "extractDomain",
-                        "line": 393
+                        "line": 414
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 5,
-                        "durationMicroseconds": 523,
+                        "durationMicroseconds": 324,
                         "errorMessage": "Cannot access value for name rawTasks",
                         "functionName": "fetchAndStoreTasks",
-                        "line": 425
+                        "line": 446
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 5,
-                        "durationMicroseconds": 5109,
+                        "durationMicroseconds": 1608,
                         "errorMessage": "Cannot access value for name errorLabel",
                         "functionName": "applyDateRange",
-                        "line": 432
+                        "line": 453
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 5,
+                        "durationMicroseconds": 83,
+                        "errorMessage": "",
+                        "functionName": "showEarlyLeaveDialog",
+                        "line": 539
                     },
                     {
                         "codegenSuccessfull": false,
@@ -217,7 +225,7 @@
                         "durationMicroseconds": 0,
                         "errorMessage": "Functions without type annotations won't be compiled",
                         "functionName": "showReviewNotification",
-                        "line": 632
+                        "line": 966
                     },
                     {
                         "codegenSuccessfull": false,
@@ -225,12 +233,12 @@
                         "durationMicroseconds": 0,
                         "errorMessage": "Functions without type annotations won't be compiled",
                         "functionName": "showSystemTrayNotification",
-                        "line": 735
+                        "line": 1069
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 9,
-                        "durationMicroseconds": 315,
+                        "durationMicroseconds": 185,
                         "errorMessage": "",
                         "functionName": "show",
                         "line": 119
@@ -238,7 +246,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 9,
-                        "durationMicroseconds": 532,
+                        "durationMicroseconds": 353,
                         "errorMessage": "",
                         "functionName": "hide",
                         "line": 126
@@ -246,7 +254,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 21,
-                        "durationMicroseconds": 110,
+                        "durationMicroseconds": 71,
                         "errorMessage": "",
                         "functionName": "bottom",
                         "line": 24
@@ -254,7 +262,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 20,
-                        "durationMicroseconds": 95,
+                        "durationMicroseconds": 58,
                         "errorMessage": "",
                         "functionName": "right",
                         "line": 25
@@ -262,7 +270,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 26,
-                        "durationMicroseconds": 67,
+                        "durationMicroseconds": 42,
                         "errorMessage": "",
                         "functionName": "rightMargin",
                         "line": 26
@@ -270,7 +278,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 21,
-                        "durationMicroseconds": 66,
+                        "durationMicroseconds": 41,
                         "errorMessage": "",
                         "functionName": "height",
                         "line": 33
@@ -278,7 +286,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 23,
-                        "durationMicroseconds": 91,
+                        "durationMicroseconds": 56,
                         "errorMessage": "",
                         "functionName": "left",
                         "line": 37
@@ -286,7 +294,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 33,
-                        "durationMicroseconds": 88,
+                        "durationMicroseconds": 54,
                         "errorMessage": "",
                         "functionName": "verticalCenter",
                         "line": 38
@@ -294,7 +302,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 27,
-                        "durationMicroseconds": 56,
+                        "durationMicroseconds": 33,
                         "errorMessage": "",
                         "functionName": "fill",
                         "line": 43
@@ -302,7 +310,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 35,
-                        "durationMicroseconds": 76,
+                        "durationMicroseconds": 50,
                         "errorMessage": "",
                         "functionName": "alignment",
                         "line": 54
@@ -310,7 +318,7 @@
                     {
                         "codegenSuccessfull": false,
                         "column": 29,
-                        "durationMicroseconds": 172,
+                        "durationMicroseconds": 108,
                         "errorMessage": "Cannot load property idleNotificationText from .",
                         "functionName": "source",
                         "line": 57
@@ -318,7 +326,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 39,
-                        "durationMicroseconds": 66,
+                        "durationMicroseconds": 34,
                         "errorMessage": "",
                         "functionName": "centerIn",
                         "line": 61
@@ -326,7 +334,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 35,
-                        "durationMicroseconds": 88,
+                        "durationMicroseconds": 63,
                         "errorMessage": "",
                         "functionName": "alignment",
                         "line": 68
@@ -334,7 +342,7 @@
                     {
                         "codegenSuccessfull": false,
                         "column": 27,
-                        "durationMicroseconds": 158,
+                        "durationMicroseconds": 94,
                         "errorMessage": "Cannot load property idleNotificationText from .",
                         "functionName": "text",
                         "line": 71
@@ -342,7 +350,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 33,
-                        "durationMicroseconds": 72,
+                        "durationMicroseconds": 45,
                         "errorMessage": "",
                         "functionName": "weight",
                         "line": 75
@@ -350,7 +358,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 31,
-                        "durationMicroseconds": 67,
+                        "durationMicroseconds": 43,
                         "errorMessage": "",
                         "functionName": "wrapMode",
                         "line": 85
@@ -358,7 +366,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 40,
-                        "durationMicroseconds": 58,
+                        "durationMicroseconds": 38,
                         "errorMessage": "",
                         "functionName": "verticalAlignment",
                         "line": 88
@@ -366,7 +374,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 25,
-                        "durationMicroseconds": 61,
+                        "durationMicroseconds": 41,
                         "errorMessage": "",
                         "functionName": "target",
                         "line": 98
@@ -374,7 +382,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 23,
-                        "durationMicroseconds": 83,
+                        "durationMicroseconds": 58,
                         "errorMessage": "",
                         "functionName": "from",
                         "line": 100
@@ -382,7 +390,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 30,
-                        "durationMicroseconds": 67,
+                        "durationMicroseconds": 113,
                         "errorMessage": "",
                         "functionName": "type",
                         "line": 103
@@ -390,7 +398,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 25,
-                        "durationMicroseconds": 54,
+                        "durationMicroseconds": 39,
                         "errorMessage": "",
                         "functionName": "target",
                         "line": 107
@@ -398,7 +406,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 21,
-                        "durationMicroseconds": 198,
+                        "durationMicroseconds": 58,
                         "errorMessage": "",
                         "functionName": "to",
                         "line": 110
@@ -406,7 +414,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 30,
-                        "durationMicroseconds": 85,
+                        "durationMicroseconds": 39,
                         "errorMessage": "",
                         "functionName": "type",
                         "line": 112
@@ -414,7 +422,7 @@
                     {
                         "codegenSuccessfull": false,
                         "column": 25,
-                        "durationMicroseconds": 374,
+                        "durationMicroseconds": 99,
                         "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: bool stored as QVariant -> QQmlScriptString stored as QVariant",
                         "functionName": "script",
                         "line": 115
@@ -422,7 +430,7 @@
                     {
                         "codegenSuccessfull": false,
                         "column": 28,
-                        "durationMicroseconds": 188,
+                        "durationMicroseconds": 106,
                         "errorMessage": "Cannot load property colorScheme from QtObject::styleHints with type QObject.",
                         "functionName": "onCompleted",
                         "line": 181
@@ -430,7 +438,7 @@
                     {
                         "codegenSuccessfull": true,
                         "column": 21,
-                        "durationMicroseconds": 190,
+                        "durationMicroseconds": 159,
                         "errorMessage": "",
                         "functionName": "theme",
                         "line": 193
@@ -438,26 +446,26 @@
                     {
                         "codegenSuccessfull": false,
                         "column": 17,
-                        "durationMicroseconds": 64,
+                        "durationMicroseconds": 41,
                         "errorMessage": "Cannot access value for name logger",
                         "functionName": "target",
-                        "line": 373
+                        "line": 394
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 9,
-                        "durationMicroseconds": 122,
+                        "durationMicroseconds": 85,
                         "errorMessage": "method updateAppDurations cannot be resolved.",
                         "functionName": "onLogContentChanged",
-                        "line": 374
+                        "line": 395
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 17,
-                        "durationMicroseconds": 48,
+                        "durationMicroseconds": 30,
                         "errorMessage": "Cannot access value for name logger",
                         "functionName": "target",
-                        "line": 460
+                        "line": 481
                     },
                     {
                         "codegenSuccessfull": false,
@@ -465,31 +473,31 @@
                         "durationMicroseconds": 0,
                         "errorMessage": "Functions without type annotations won't be compiled",
                         "functionName": "onProfileImageChanged",
-                        "line": 461
+                        "line": 482
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 17,
-                        "durationMicroseconds": 24,
+                        "durationMicroseconds": 14,
                         "errorMessage": "Cannot access value for name sortedApps",
                         "functionName": "target",
-                        "line": 472
+                        "line": 493
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 9,
-                        "durationMicroseconds": 149,
+                        "durationMicroseconds": 87,
                         "errorMessage": "Cannot access value for name percentageListView",
                         "functionName": "onModelUpdated",
-                        "line": 473
+                        "line": 494
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 17,
-                        "durationMicroseconds": 53,
+                        "durationMicroseconds": 26,
                         "errorMessage": "Cannot access value for name Logger",
                         "functionName": "target",
-                        "line": 481
+                        "line": 502
                     },
                     {
                         "codegenSuccessfull": false,
@@ -497,15 +505,15 @@
                         "durationMicroseconds": 0,
                         "errorMessage": "Could not find signal \"taskListChanged\".",
                         "functionName": "onTaskListChanged",
-                        "line": 482
+                        "line": 503
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 17,
-                        "durationMicroseconds": 113,
+                        "durationMicroseconds": 28,
                         "errorMessage": "Cannot access value for name logger",
                         "functionName": "target",
-                        "line": 490
+                        "line": 511
                     },
                     {
                         "codegenSuccessfull": false,
@@ -513,7 +521,7 @@
                         "durationMicroseconds": 0,
                         "errorMessage": "Functions without type annotations won't be compiled",
                         "functionName": "onTaskReviewNotification",
-                        "line": 492
+                        "line": 513
                     },
                     {
                         "codegenSuccessfull": false,
@@ -521,23 +529,575 @@
                         "durationMicroseconds": 0,
                         "errorMessage": "Functions without type annotations won't be compiled",
                         "functionName": "onTaskStatusChanged",
-                        "line": 510
+                        "line": 531
                     },
                     {
                         "codegenSuccessfull": true,
-                        "column": 12,
-                        "durationMicroseconds": 215,
+                        "column": 16,
+                        "durationMicroseconds": 164,
                         "errorMessage": "",
-                        "functionName": "x",
-                        "line": 522
+                        "functionName": "width",
+                        "line": 549
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 17,
+                        "durationMicroseconds": 134,
+                        "errorMessage": "",
+                        "functionName": "height",
+                        "line": 550
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 22,
-                        "durationMicroseconds": 92,
+                        "durationMicroseconds": 50,
                         "errorMessage": "",
                         "functionName": "closePolicy",
-                        "line": 525
+                        "line": 554
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 27,
+                        "durationMicroseconds": 32,
+                        "errorMessage": "",
+                        "functionName": "centerIn",
+                        "line": 551
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 20,
+                        "durationMicroseconds": 114,
+                        "errorMessage": "Cannot access value for name cardColor",
+                        "functionName": "color",
+                        "line": 558
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 27,
+                        "durationMicroseconds": 63,
+                        "errorMessage": "Cannot access value for name dividerColor",
+                        "functionName": "color",
+                        "line": 560
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 31,
+                        "durationMicroseconds": 35,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 565
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 31,
+                        "durationMicroseconds": 144,
+                        "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: call to method rgba, returning QVariant -> QColor stored as QVariant",
+                        "functionName": "color",
+                        "line": 569
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 24,
+                        "durationMicroseconds": 68,
+                        "errorMessage": "Cannot access value for name dividerColor",
+                        "functionName": "color",
+                        "line": 583
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 31,
+                        "durationMicroseconds": 32,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 581
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 29,
+                        "durationMicroseconds": 46,
+                        "errorMessage": "Cannot load property radius from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
+                        "functionName": "height",
+                        "line": 590
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 28,
+                        "durationMicroseconds": 36,
+                        "errorMessage": "Cannot load property color from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
+                        "functionName": "color",
+                        "line": 591
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 35,
+                        "durationMicroseconds": 65,
+                        "errorMessage": "",
+                        "functionName": "left",
+                        "line": 587
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 36,
+                        "durationMicroseconds": 56,
+                        "errorMessage": "",
+                        "functionName": "right",
+                        "line": 588
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 37,
+                        "durationMicroseconds": 56,
+                        "errorMessage": "",
+                        "functionName": "bottom",
+                        "line": 589
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 35,
+                        "durationMicroseconds": 34,
+                        "errorMessage": "",
+                        "functionName": "centerIn",
+                        "line": 596
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 28,
+                        "durationMicroseconds": 160,
+                        "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: call to method rgba, returning QVariant -> QColor stored as QVariant",
+                        "functionName": "color",
+                        "line": 605
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 43,
+                        "durationMicroseconds": 34,
+                        "errorMessage": "",
+                        "functionName": "centerIn",
+                        "line": 608
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 32,
+                        "durationMicroseconds": 27,
+                        "errorMessage": "Cannot access value for name textColor",
+                        "functionName": "color",
+                        "line": 623
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 37,
+                        "durationMicroseconds": 48,
+                        "errorMessage": "",
+                        "functionName": "weight",
+                        "line": 621
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 32,
+                        "durationMicroseconds": 22,
+                        "errorMessage": "Cannot access value for name lightTextColor",
+                        "functionName": "color",
+                        "line": 629
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 27,
+                        "durationMicroseconds": 37,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 637
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 31,
+                        "durationMicroseconds": 36,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 642
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 50,
+                        "errorMessage": "",
+                        "functionName": "width",
+                        "line": 647
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 28,
+                        "durationMicroseconds": 159,
+                        "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: call to method rgba, returning QVariant -> QColor stored as QVariant",
+                        "functionName": "color",
+                        "line": 650
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 35,
+                        "durationMicroseconds": 182,
+                        "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: call to method rgba, returning QVariant -> QColor stored as QVariant",
+                        "functionName": "color",
+                        "line": 651
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 39,
+                        "durationMicroseconds": 34,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 655
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 39,
+                        "durationMicroseconds": 51,
+                        "errorMessage": "",
+                        "functionName": "wrapMode",
+                        "line": 666
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 36,
+                        "durationMicroseconds": 27,
+                        "errorMessage": "Cannot access value for name textColor",
+                        "functionName": "color",
+                        "line": 668
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 46,
+                        "errorMessage": "",
+                        "functionName": "width",
+                        "line": 677
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 32,
+                        "durationMicroseconds": 22,
+                        "errorMessage": "Cannot access value for name textColor",
+                        "functionName": "color",
+                        "line": 686
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 37,
+                        "durationMicroseconds": 45,
+                        "errorMessage": "",
+                        "functionName": "weight",
+                        "line": 684
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 32,
+                        "durationMicroseconds": 43,
+                        "errorMessage": "",
+                        "functionName": "width",
+                        "line": 690
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 32,
+                        "durationMicroseconds": 74,
+                        "errorMessage": "Cannot access value for name textColor",
+                        "functionName": "color",
+                        "line": 693
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 39,
+                        "durationMicroseconds": 60,
+                        "errorMessage": "Cannot access value for name secondaryColor",
+                        "functionName": "color",
+                        "line": 694
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 39,
+                        "durationMicroseconds": 119,
+                        "errorMessage": "",
+                        "functionName": "width",
+                        "line": 695
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 43,
+                        "durationMicroseconds": 41,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 706
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 40,
+                        "durationMicroseconds": 48,
+                        "errorMessage": "",
+                        "functionName": "width",
+                        "line": 712
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 50,
+                        "durationMicroseconds": 138,
+                        "errorMessage": "",
+                        "functionName": "placeholderText",
+                        "line": 713
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 43,
+                        "durationMicroseconds": 50,
+                        "errorMessage": "",
+                        "functionName": "wrapMode",
+                        "line": 714
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 40,
+                        "durationMicroseconds": 29,
+                        "errorMessage": "Cannot access value for name textColor",
+                        "functionName": "color",
+                        "line": 716
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 48,
+                        "durationMicroseconds": 288,
+                        "errorMessage": "Cannot generate efficient code for call to untyped JavaScript function",
+                        "functionName": "onTextChanged",
+                        "line": 723
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 35,
+                        "durationMicroseconds": 215,
+                        "errorMessage": "",
+                        "functionName": "text",
+                        "line": 736
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 36,
+                        "durationMicroseconds": 130,
+                        "errorMessage": "No matching override found. Candidates:\ntype Color for argument 0 cannot be resolved\nFunction expects 2 arguments, but 1 were provided",
+                        "functionName": "color",
+                        "line": 738
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 144,
+                        "errorMessage": "",
+                        "functionName": "right",
+                        "line": 733
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 45,
+                        "durationMicroseconds": 68,
+                        "errorMessage": "",
+                        "functionName": "bottom",
+                        "line": 734
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 24,
+                        "durationMicroseconds": 167,
+                        "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: call to method rgba, returning QVariant -> QColor stored as QVariant",
+                        "functionName": "color",
+                        "line": 754
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 31,
+                        "durationMicroseconds": 39,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 753
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 29,
+                        "durationMicroseconds": 56,
+                        "errorMessage": "Cannot load property radius from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
+                        "functionName": "height",
+                        "line": 761
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 28,
+                        "durationMicroseconds": 38,
+                        "errorMessage": "Cannot load property color from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
+                        "functionName": "color",
+                        "line": 762
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 35,
+                        "durationMicroseconds": 65,
+                        "errorMessage": "",
+                        "functionName": "left",
+                        "line": 758
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 36,
+                        "durationMicroseconds": 58,
+                        "errorMessage": "",
+                        "functionName": "right",
+                        "line": 759
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 34,
+                        "durationMicroseconds": 56,
+                        "errorMessage": "",
+                        "functionName": "top",
+                        "line": 760
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 35,
+                        "durationMicroseconds": 35,
+                        "errorMessage": "",
+                        "functionName": "centerIn",
+                        "line": 767
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 32,
+                        "durationMicroseconds": 80,
+                        "errorMessage": "",
+                        "functionName": "onClicked",
+                        "line": 792
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 32,
+                        "durationMicroseconds": 176,
+                        "errorMessage": "Cannot load property pressed from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
+                        "functionName": "color",
+                        "line": 779
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 39,
+                        "durationMicroseconds": 27,
+                        "errorMessage": "Cannot access value for name dividerColor",
+                        "functionName": "color",
+                        "line": 781
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 42,
+                        "durationMicroseconds": 23,
+                        "errorMessage": "Cannot access value for name lightTextColor",
+                        "functionName": "foreground",
+                        "line": 789
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 34,
+                        "durationMicroseconds": 54,
+                        "errorMessage": "",
+                        "functionName": "weight",
+                        "line": 790
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 27,
+                        "durationMicroseconds": 92,
+                        "errorMessage": "",
+                        "functionName": "text",
+                        "line": 798
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 30,
+                        "durationMicroseconds": 206,
+                        "errorMessage": "Cannot generate efficient code for call to untyped JavaScript function",
+                        "functionName": "enabled",
+                        "line": 799
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 32,
+                        "durationMicroseconds": 282,
+                        "errorMessage": "Cannot access value for name logger",
+                        "functionName": "onClicked",
+                        "line": 841
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 32,
+                        "durationMicroseconds": 293,
+                        "errorMessage": "Cannot load property pressed from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
+                        "functionName": "color",
+                        "line": 807
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 38,
+                        "durationMicroseconds": 59,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 825
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 66,
+                        "errorMessage": "",
+                        "functionName": "right",
+                        "line": 822
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 53,
+                        "durationMicroseconds": 59,
+                        "errorMessage": "",
+                        "functionName": "verticalCenter",
+                        "line": 824
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 42,
+                        "durationMicroseconds": 58,
+                        "errorMessage": "",
+                        "functionName": "running",
+                        "line": 829
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 40,
+                        "durationMicroseconds": 46,
+                        "errorMessage": "",
+                        "functionName": "loops",
+                        "line": 833
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 34,
+                        "durationMicroseconds": 45,
+                        "errorMessage": "",
+                        "functionName": "weight",
+                        "line": 839
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 12,
+                        "durationMicroseconds": 112,
+                        "errorMessage": "",
+                        "functionName": "x",
+                        "line": 856
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 22,
+                        "durationMicroseconds": 47,
+                        "errorMessage": "",
+                        "functionName": "closePolicy",
+                        "line": 859
                     },
                     {
                         "codegenSuccessfull": false,
@@ -545,279 +1105,279 @@
                         "durationMicroseconds": 0,
                         "errorMessage": "Functions without type annotations won't be compiled",
                         "functionName": "showNotification",
-                        "line": 616
+                        "line": 950
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 20,
-                        "durationMicroseconds": 33,
+                        "durationMicroseconds": 17,
                         "errorMessage": "Cannot access value for name cardColor",
                         "functionName": "color",
-                        "line": 533
+                        "line": 867
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 27,
-                        "durationMicroseconds": 59,
+                        "durationMicroseconds": 29,
                         "errorMessage": "Cannot access value for name dividerColor",
                         "functionName": "color",
-                        "line": 535
+                        "line": 869
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 24,
-                        "durationMicroseconds": 85,
+                        "durationMicroseconds": 44,
                         "errorMessage": "",
                         "functionName": "width",
-                        "line": 544
+                        "line": 878
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 30,
-                        "durationMicroseconds": 101,
+                        "durationMicroseconds": 58,
                         "errorMessage": "",
                         "functionName": "top",
-                        "line": 547
+                        "line": 881
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 43,
-                        "durationMicroseconds": 93,
+                        "durationMicroseconds": 60,
                         "errorMessage": "",
                         "functionName": "horizontalCenter",
-                        "line": 548
+                        "line": 882
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 27,
-                        "durationMicroseconds": 60,
+                        "durationMicroseconds": 32,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 558
+                        "line": 892
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 43,
-                        "durationMicroseconds": 63,
+                        "durationMicroseconds": 34,
                         "errorMessage": "",
                         "functionName": "centerIn",
-                        "line": 578
+                        "line": 912
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 28,
-                        "durationMicroseconds": 59,
+                        "durationMicroseconds": 23,
                         "errorMessage": "Cannot access value for name textColor",
                         "functionName": "color",
-                        "line": 586
+                        "line": 920
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 28,
-                        "durationMicroseconds": 77,
+                        "durationMicroseconds": 48,
                         "errorMessage": "",
                         "functionName": "elide",
-                        "line": 588
+                        "line": 922
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 32,
-                        "durationMicroseconds": 113,
+                        "durationMicroseconds": 154,
                         "errorMessage": "",
                         "functionName": "onClicked",
-                        "line": 596
+                        "line": 930
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 33,
-                        "durationMicroseconds": 42,
+                        "durationMicroseconds": 25,
                         "errorMessage": "Cannot access value for name accentColor",
                         "functionName": "color",
-                        "line": 592
+                        "line": 926
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 27,
-                        "durationMicroseconds": 89,
+                        "durationMicroseconds": 48,
                         "errorMessage": "",
                         "functionName": "wrapMode",
-                        "line": 604
+                        "line": 938
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 24,
-                        "durationMicroseconds": 39,
+                        "durationMicroseconds": 19,
                         "errorMessage": "Cannot access value for name lightTextColor",
                         "functionName": "color",
-                        "line": 609
+                        "line": 943
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 26,
-                        "durationMicroseconds": 199,
+                        "durationMicroseconds": 64,
                         "errorMessage": "",
                         "functionName": "onTriggered",
-                        "line": 627
+                        "line": 961
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 12,
-                        "durationMicroseconds": 217,
+                        "durationMicroseconds": 143,
                         "errorMessage": "",
                         "functionName": "x",
-                        "line": 646
+                        "line": 980
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 12,
-                        "durationMicroseconds": 183,
+                        "durationMicroseconds": 145,
                         "errorMessage": "",
                         "functionName": "y",
-                        "line": 647
+                        "line": 981
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 16,
-                        "durationMicroseconds": 170,
+                        "durationMicroseconds": 121,
                         "errorMessage": "",
                         "functionName": "flags",
-                        "line": 648
+                        "line": 982
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 19,
-                        "durationMicroseconds": 74,
+                        "durationMicroseconds": 51,
                         "errorMessage": "",
                         "functionName": "modality",
-                        "line": 649
+                        "line": 983
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 27,
-                        "durationMicroseconds": 63,
+                        "durationMicroseconds": 34,
                         "errorMessage": "Cannot find name showIdleNotification",
                         "functionName": "onVisibleChanged",
-                        "line": 653
+                        "line": 987
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 18,
-                        "durationMicroseconds": 23,
+                        "durationMicroseconds": 16,
                         "errorMessage": "Cannot access value for name showIdleNotification",
                         "functionName": "visible",
-                        "line": 660
+                        "line": 994
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 20,
-                        "durationMicroseconds": 28,
+                        "durationMicroseconds": 16,
                         "errorMessage": "Cannot access value for name cardColor",
                         "functionName": "color",
-                        "line": 663
+                        "line": 997
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 27,
-                        "durationMicroseconds": 28,
+                        "durationMicroseconds": 15,
                         "errorMessage": "Cannot access value for name dividerColor",
                         "functionName": "color",
-                        "line": 664
+                        "line": 998
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 27,
-                        "durationMicroseconds": 69,
+                        "durationMicroseconds": 50,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 669
+                        "line": 1003
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 35,
-                        "durationMicroseconds": 98,
+                        "durationMicroseconds": 49,
                         "errorMessage": "",
                         "functionName": "alignment",
-                        "line": 677
+                        "line": 1011
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 31,
-                        "durationMicroseconds": 77,
+                        "durationMicroseconds": 45,
                         "errorMessage": "",
                         "functionName": "fillMode",
-                        "line": 684
+                        "line": 1018
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 35,
-                        "durationMicroseconds": 62,
+                        "durationMicroseconds": 32,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 682
+                        "line": 1016
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 24,
-                        "durationMicroseconds": 43,
+                        "durationMicroseconds": 23,
                         "errorMessage": "Cannot access value for name nonProductiveColor",
                         "functionName": "color",
-                        "line": 691
+                        "line": 1025
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 35,
-                        "durationMicroseconds": 91,
+                        "durationMicroseconds": 47,
                         "errorMessage": "",
                         "functionName": "alignment",
-                        "line": 692
+                        "line": 1026
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 23,
-                        "durationMicroseconds": 40,
+                        "durationMicroseconds": 32,
                         "errorMessage": "Cannot access value for name idleNotificationText",
                         "functionName": "text",
-                        "line": 696
+                        "line": 1030
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 27,
-                        "durationMicroseconds": 82,
+                        "durationMicroseconds": 68,
                         "errorMessage": "",
                         "functionName": "wrapMode",
-                        "line": 698
+                        "line": 1032
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 28,
-                        "durationMicroseconds": 2898,
+                        "durationMicroseconds": 471,
                         "errorMessage": "Cannot find name showIdleNotification",
                         "functionName": "onClicked",
-                        "line": 709
+                        "line": 1043
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 35,
-                        "durationMicroseconds": 139,
+                        "durationMicroseconds": 59,
                         "errorMessage": "",
                         "functionName": "alignment",
-                        "line": 705
+                        "line": 1039
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 38,
-                        "durationMicroseconds": 45,
+                        "durationMicroseconds": 21,
                         "errorMessage": "Cannot access value for name secondaryColor",
                         "functionName": "background",
-                        "line": 707
+                        "line": 1041
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 17,
-                        "durationMicroseconds": 71,
+                        "durationMicroseconds": 39,
                         "errorMessage": "Cannot access value for name idleChecker",
                         "functionName": "target",
-                        "line": 722
+                        "line": 1056
                     },
                     {
                         "codegenSuccessfull": false,
@@ -825,447 +1385,447 @@
                         "durationMicroseconds": 0,
                         "errorMessage": "Functions without type annotations won't be compiled",
                         "functionName": "onShowIdleNotification",
-                        "line": 723
+                        "line": 1057
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 16,
-                        "durationMicroseconds": 30,
+                        "durationMicroseconds": 14,
                         "errorMessage": "Cannot access value for name backgroundColor",
                         "functionName": "color",
-                        "line": 745
+                        "line": 1079
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 18,
-                        "durationMicroseconds": 80,
+                        "durationMicroseconds": 47,
                         "errorMessage": "Cannot access value for name isLoggedIn",
                         "functionName": "visible",
-                        "line": 746
+                        "line": 1080
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 23,
-                        "durationMicroseconds": 71,
+                        "durationMicroseconds": 37,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 744
+                        "line": 1078
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 27,
-                        "durationMicroseconds": 76,
+                        "durationMicroseconds": 100,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 749
+                        "line": 1083
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 16,
-                        "durationMicroseconds": 111,
+                        "durationMicroseconds": 66,
                         "errorMessage": "",
                         "functionName": "color",
-                        "line": 759
+                        "line": 1093
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 18,
-                        "durationMicroseconds": 26,
+                        "durationMicroseconds": 17,
                         "errorMessage": "Cannot access value for name isProfileVisible",
                         "functionName": "visible",
-                        "line": 760
+                        "line": 1094
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 18,
-                        "durationMicroseconds": 29,
+                        "durationMicroseconds": 19,
                         "errorMessage": "Cannot access value for name isProfileVisible",
                         "functionName": "opacity",
-                        "line": 761
+                        "line": 1095
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 23,
-                        "durationMicroseconds": 45,
+                        "durationMicroseconds": 31,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 758
+                        "line": 1092
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 27,
-                        "durationMicroseconds": 114,
+                        "durationMicroseconds": 33,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 767
+                        "line": 1101
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 20,
-                        "durationMicroseconds": 361,
+                        "durationMicroseconds": 264,
                         "errorMessage": "Cannot generate efficient code for call to untyped JavaScript function",
                         "functionName": "color",
-                        "line": 772
+                        "line": 1106
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 22,
-                        "durationMicroseconds": 93,
+                        "durationMicroseconds": 77,
                         "errorMessage": "",
                         "functionName": "visible",
-                        "line": 775
+                        "line": 1109
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 31,
-                        "durationMicroseconds": 75,
+                        "durationMicroseconds": 51,
                         "errorMessage": "",
                         "functionName": "alignment",
-                        "line": 774
+                        "line": 1108
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 16,
-                        "durationMicroseconds": 27,
+                        "durationMicroseconds": 17,
                         "errorMessage": "Cannot access value for name backgroundColor",
                         "functionName": "color",
-                        "line": 786
+                        "line": 1120
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 18,
-                        "durationMicroseconds": 42,
+                        "durationMicroseconds": 28,
                         "errorMessage": "Cannot access value for name isLoggedIn",
                         "functionName": "visible",
-                        "line": 787
+                        "line": 1121
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 23,
-                        "durationMicroseconds": 50,
+                        "durationMicroseconds": 31,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 785
+                        "line": 1119
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 32,
-                        "durationMicroseconds": 374,
+                        "durationMicroseconds": 221,
                         "errorMessage": "Cannot find name startSelectedDate",
                         "functionName": "onCompleted",
-                        "line": 789
+                        "line": 1123
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 27,
-                        "durationMicroseconds": 64,
+                        "durationMicroseconds": 38,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 800
+                        "line": 1134
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 24,
-                        "durationMicroseconds": 32,
+                        "durationMicroseconds": 18,
                         "errorMessage": "Cannot access value for name headers",
                         "functionName": "color",
-                        "line": 807
+                        "line": 1141
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 31,
+                        "durationMicroseconds": 16,
+                        "errorMessage": "Cannot access value for name dividerColor",
+                        "functionName": "color",
+                        "line": 1142
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 35,
+                        "durationMicroseconds": 32,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 1148
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 31,
                         "durationMicroseconds": 23,
-                        "errorMessage": "Cannot access value for name dividerColor",
-                        "functionName": "color",
-                        "line": 808
-                    },
-                    {
-                        "codegenSuccessfull": true,
-                        "column": 35,
-                        "durationMicroseconds": 63,
-                        "errorMessage": "",
-                        "functionName": "fill",
-                        "line": 814
-                    },
-                    {
-                        "codegenSuccessfull": false,
-                        "column": 31,
-                        "durationMicroseconds": 89,
                         "errorMessage": "Cannot access value for name currentUsername",
                         "functionName": "text",
-                        "line": 825
+                        "line": 1159
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 42,
-                        "durationMicroseconds": 190,
+                        "durationMicroseconds": 55,
                         "errorMessage": "",
                         "functionName": "layoutDirection",
-                        "line": 835
+                        "line": 1169
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 40,
-                        "durationMicroseconds": 118,
+                        "durationMicroseconds": 73,
                         "errorMessage": "Cannot access value for name isDarkMode",
                         "functionName": "onClicked",
-                        "line": 857
+                        "line": 1191
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 40,
-                        "durationMicroseconds": 168,
+                        "durationMicroseconds": 92,
                         "errorMessage": "Cannot load property hovered from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
                         "functionName": "color",
-                        "line": 846
+                        "line": 1180
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 41,
-                        "durationMicroseconds": 306,
+                        "durationMicroseconds": 190,
                         "errorMessage": "",
                         "functionName": "source",
-                        "line": 850
+                        "line": 1184
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 51,
-                        "durationMicroseconds": 84,
+                        "durationMicroseconds": 37,
                         "errorMessage": "",
                         "functionName": "centerIn",
-                        "line": 853
+                        "line": 1187
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 41,
-                        "durationMicroseconds": 96,
+                        "durationMicroseconds": 58,
                         "errorMessage": "",
                         "functionName": "target",
-                        "line": 864
+                        "line": 1198
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 46,
-                        "durationMicroseconds": 159,
+                        "durationMicroseconds": 46,
                         "errorMessage": "",
                         "functionName": "type",
-                        "line": 868
+                        "line": 1202
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 43,
-                        "durationMicroseconds": 275,
+                        "durationMicroseconds": 222,
                         "errorMessage": "",
                         "functionName": "text",
-                        "line": 871
+                        "line": 1205
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 46,
-                        "durationMicroseconds": 54,
+                        "durationMicroseconds": 36,
                         "errorMessage": "",
                         "functionName": "visible",
-                        "line": 872
+                        "line": 1206
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 40,
-                        "durationMicroseconds": 515,
+                        "durationMicroseconds": 336,
                         "errorMessage": "Cannot access value for name logger",
                         "functionName": "onClicked",
-                        "line": 895
+                        "line": 1229
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 40,
-                        "durationMicroseconds": 140,
+                        "durationMicroseconds": 97,
                         "errorMessage": "Cannot load property hovered from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
                         "functionName": "color",
-                        "line": 884
+                        "line": 1218
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 51,
-                        "durationMicroseconds": 60,
+                        "durationMicroseconds": 41,
                         "errorMessage": "",
                         "functionName": "centerIn",
-                        "line": 891
+                        "line": 1225
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 41,
-                        "durationMicroseconds": 88,
+                        "durationMicroseconds": 117,
                         "errorMessage": "",
                         "functionName": "target",
-                        "line": 903
+                        "line": 1237
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 46,
-                        "durationMicroseconds": 72,
+                        "durationMicroseconds": 46,
                         "errorMessage": "",
                         "functionName": "type",
-                        "line": 907
+                        "line": 1241
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 46,
-                        "durationMicroseconds": 52,
+                        "durationMicroseconds": 33,
                         "errorMessage": "",
                         "functionName": "visible",
-                        "line": 911
+                        "line": 1245
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 40,
-                        "durationMicroseconds": 561,
+                        "durationMicroseconds": 349,
                         "errorMessage": "Cannot access value for name currentUsername",
                         "functionName": "onClicked",
-                        "line": 940
+                        "line": 1274
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 41,
+                        "durationMicroseconds": 50,
+                        "errorMessage": "",
+                        "functionName": "weight",
+                        "line": 1258
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 40,
+                        "durationMicroseconds": 86,
+                        "errorMessage": "Cannot load property hovered from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
+                        "functionName": "color",
+                        "line": 1262
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 47,
+                        "durationMicroseconds": 142,
+                        "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: call to method rgba, returning QVariant -> QColor stored as QVariant",
+                        "functionName": "color",
+                        "line": 1263
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 39,
                         "durationMicroseconds": 86,
                         "errorMessage": "",
-                        "functionName": "weight",
-                        "line": 924
-                    },
-                    {
-                        "codegenSuccessfull": false,
-                        "column": 40,
-                        "durationMicroseconds": 148,
-                        "errorMessage": "Cannot load property hovered from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
-                        "functionName": "color",
-                        "line": 928
-                    },
-                    {
-                        "codegenSuccessfull": false,
-                        "column": 47,
-                        "durationMicroseconds": 264,
-                        "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: call to method rgba, returning QVariant -> QColor stored as QVariant",
-                        "functionName": "color",
-                        "line": 929
-                    },
-                    {
-                        "codegenSuccessfull": true,
-                        "column": 39,
-                        "durationMicroseconds": 167,
-                        "errorMessage": "",
                         "functionName": "text",
-                        "line": 933
+                        "line": 1267
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 39,
-                        "durationMicroseconds": 126,
+                        "durationMicroseconds": 74,
                         "errorMessage": "",
                         "functionName": "font",
-                        "line": 934
+                        "line": 1268
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 54,
-                        "durationMicroseconds": 88,
+                        "durationMicroseconds": 44,
                         "errorMessage": "",
                         "functionName": "horizontalAlignment",
-                        "line": 936
+                        "line": 1270
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 52,
-                        "durationMicroseconds": 75,
+                        "durationMicroseconds": 39,
                         "errorMessage": "",
                         "functionName": "verticalAlignment",
-                        "line": 937
+                        "line": 1271
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 40,
-                        "durationMicroseconds": 960,
+                        "durationMicroseconds": 656,
                         "errorMessage": "Cannot access value for name logger",
                         "functionName": "onClicked",
-                        "line": 974
+                        "line": 1308
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 41,
-                        "durationMicroseconds": 115,
+                        "durationMicroseconds": 105,
                         "errorMessage": "",
                         "functionName": "weight",
-                        "line": 958
+                        "line": 1292
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 40,
-                        "durationMicroseconds": 163,
+                        "durationMicroseconds": 111,
                         "errorMessage": "Cannot load property hovered from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
                         "functionName": "color",
-                        "line": 962
+                        "line": 1296
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 47,
-                        "durationMicroseconds": 321,
+                        "durationMicroseconds": 238,
                         "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: call to method rgba, returning QVariant -> QColor stored as QVariant",
                         "functionName": "color",
-                        "line": 963
+                        "line": 1297
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 39,
-                        "durationMicroseconds": 116,
+                        "durationMicroseconds": 64,
                         "errorMessage": "",
                         "functionName": "text",
-                        "line": 967
+                        "line": 1301
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 39,
-                        "durationMicroseconds": 123,
+                        "durationMicroseconds": 69,
                         "errorMessage": "",
                         "functionName": "font",
-                        "line": 968
+                        "line": 1302
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 54,
-                        "durationMicroseconds": 78,
+                        "durationMicroseconds": 47,
                         "errorMessage": "",
                         "functionName": "horizontalAlignment",
-                        "line": 970
+                        "line": 1304
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 52,
-                        "durationMicroseconds": 66,
+                        "durationMicroseconds": 46,
                         "errorMessage": "",
                         "functionName": "verticalAlignment",
-                        "line": 971
+                        "line": 1305
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 32,
-                        "durationMicroseconds": 56,
+                        "durationMicroseconds": 26,
                         "errorMessage": "Cannot access value for name cardColor",
                         "functionName": "color",
-                        "line": 1006
+                        "line": 1340
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 39,
-                        "durationMicroseconds": 84,
+                        "durationMicroseconds": 23,
                         "errorMessage": "Cannot access value for name dividerColor",
                         "functionName": "color",
-                        "line": 1009
+                        "line": 1343
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 39,
-                        "durationMicroseconds": 106,
+                        "durationMicroseconds": 34,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 1014
+                        "line": 1348
                     },
                     {
                         "codegenSuccessfull": true,
@@ -1273,111 +1833,671 @@
                         "durationMicroseconds": 62,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 1017
+                        "line": 1351
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 36,
-                        "durationMicroseconds": 58,
+                        "durationMicroseconds": 24,
                         "errorMessage": "Cannot access value for name cardColor",
                         "functionName": "color",
-                        "line": 1065
+                        "line": 1399
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 43,
-                        "durationMicroseconds": 41,
+                        "durationMicroseconds": 21,
                         "errorMessage": "Cannot access value for name dividerColor",
                         "functionName": "color",
-                        "line": 1067
+                        "line": 1401
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 43,
-                        "durationMicroseconds": 67,
+                        "durationMicroseconds": 55,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 1071
+                        "line": 1405
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 36,
-                        "durationMicroseconds": 41,
+                        "durationMicroseconds": 22,
                         "errorMessage": "Cannot access value for name cardColor",
                         "functionName": "color",
-                        "line": 1082
+                        "line": 1416
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 43,
-                        "durationMicroseconds": 51,
+                        "durationMicroseconds": 20,
                         "errorMessage": "Cannot access value for name dividerColor",
                         "functionName": "color",
-                        "line": 1084
+                        "line": 1418
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 43,
-                        "durationMicroseconds": 58,
+                        "durationMicroseconds": 32,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 1088
+                        "line": 1422
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 38,
-                        "durationMicroseconds": 707,
-                        "errorMessage": "Cannot access value for name XMLHttpRequest",
+                        "durationMicroseconds": 115,
+                        "errorMessage": "Cannot generate efficient code for call to untyped JavaScript function",
                         "functionName": "onTriggered",
-                        "line": 1111
+                        "line": 1447
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 36,
-                        "durationMicroseconds": 173,
+                        "durationMicroseconds": 102,
                         "errorMessage": "Cannot load property hovered from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
                         "functionName": "color",
-                        "line": 1107
+                        "line": 1442
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 28,
-                        "durationMicroseconds": 325,
+                        "durationMicroseconds": 167,
                         "errorMessage": "",
                         "functionName": "width",
-                        "line": 1143
+                        "line": 1460
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 29,
-                        "durationMicroseconds": 210,
+                        "durationMicroseconds": 151,
                         "errorMessage": "",
                         "functionName": "height",
-                        "line": 1144
-                    },
-                    {
-                        "codegenSuccessfull": true,
-                        "column": 24,
-                        "durationMicroseconds": 162,
-                        "errorMessage": "",
-                        "functionName": "x",
-                        "line": 1145
-                    },
-                    {
-                        "codegenSuccessfull": true,
-                        "column": 24,
-                        "durationMicroseconds": 320,
-                        "errorMessage": "",
-                        "functionName": "y",
-                        "line": 1146
+                        "line": 1461
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 34,
-                        "durationMicroseconds": 190,
+                        "durationMicroseconds": 53,
                         "errorMessage": "",
                         "functionName": "closePolicy",
-                        "line": 1151
+                        "line": 1464
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 21,
+                        "durationMicroseconds": 0,
+                        "errorMessage": "Functions without type annotations won't be compiled",
+                        "functionName": "openWithTaskId",
+                        "line": 1792
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 39,
+                        "durationMicroseconds": 38,
+                        "errorMessage": "",
+                        "functionName": "centerIn",
+                        "line": 1462
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 32,
+                        "durationMicroseconds": 28,
+                        "errorMessage": "Cannot access value for name cardColor",
+                        "functionName": "color",
+                        "line": 1470
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 39,
+                        "durationMicroseconds": 81,
+                        "errorMessage": "Cannot access value for name dividerColor",
+                        "functionName": "color",
+                        "line": 1472
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 43,
+                        "durationMicroseconds": 37,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 1477
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 43,
+                        "durationMicroseconds": 194,
+                        "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: call to method rgba, returning QVariant -> QColor stored as QVariant",
+                        "functionName": "color",
+                        "line": 1481
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 36,
+                        "durationMicroseconds": 32,
+                        "errorMessage": "Cannot access value for name cardColor",
+                        "functionName": "color",
+                        "line": 1495
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 43,
+                        "durationMicroseconds": 51,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 1493
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 41,
+                        "durationMicroseconds": 48,
+                        "errorMessage": "Cannot load property radius from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
+                        "functionName": "height",
+                        "line": 1502
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 40,
+                        "durationMicroseconds": 39,
+                        "errorMessage": "Cannot load property color from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
+                        "functionName": "color",
+                        "line": 1503
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 47,
+                        "durationMicroseconds": 67,
+                        "errorMessage": "",
+                        "functionName": "left",
+                        "line": 1499
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 48,
+                        "durationMicroseconds": 59,
+                        "errorMessage": "",
+                        "functionName": "right",
+                        "line": 1500
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 49,
+                        "durationMicroseconds": 56,
+                        "errorMessage": "",
+                        "functionName": "bottom",
+                        "line": 1501
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 47,
+                        "durationMicroseconds": 33,
+                        "errorMessage": "",
+                        "functionName": "centerIn",
+                        "line": 1508
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 40,
+                        "durationMicroseconds": 133,
+                        "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: call to method rgba, returning QVariant -> QColor stored as QVariant",
+                        "functionName": "color",
+                        "line": 1517
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 55,
+                        "durationMicroseconds": 35,
+                        "errorMessage": "",
+                        "functionName": "centerIn",
+                        "line": 1520
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 44,
+                        "durationMicroseconds": 31,
+                        "errorMessage": "Cannot access value for name textColor",
+                        "functionName": "color",
+                        "line": 1535
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 49,
+                        "durationMicroseconds": 55,
+                        "errorMessage": "",
+                        "functionName": "weight",
+                        "line": 1533
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 44,
+                        "durationMicroseconds": 29,
+                        "errorMessage": "Cannot access value for name lightTextColor",
+                        "functionName": "color",
+                        "line": 1541
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 39,
+                        "durationMicroseconds": 31,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 1549
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 43,
+                        "durationMicroseconds": 30,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 1554
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 40,
+                        "durationMicroseconds": 44,
+                        "errorMessage": "",
+                        "functionName": "width",
+                        "line": 1559
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 40,
+                        "durationMicroseconds": 141,
+                        "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: call to method rgba, returning QVariant -> QColor stored as QVariant",
+                        "functionName": "color",
+                        "line": 1562
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 47,
+                        "durationMicroseconds": 191,
+                        "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: call to method rgba, returning QVariant -> QColor stored as QVariant",
+                        "functionName": "color",
+                        "line": 1563
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 51,
+                        "durationMicroseconds": 34,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 1567
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 51,
+                        "durationMicroseconds": 48,
+                        "errorMessage": "",
+                        "functionName": "wrapMode",
+                        "line": 1578
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 48,
+                        "durationMicroseconds": 32,
+                        "errorMessage": "Cannot access value for name textColor",
+                        "functionName": "color",
+                        "line": 1580
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 40,
+                        "durationMicroseconds": 45,
+                        "errorMessage": "",
+                        "functionName": "width",
+                        "line": 1589
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 44,
+                        "durationMicroseconds": 29,
+                        "errorMessage": "Cannot access value for name textColor",
+                        "functionName": "color",
+                        "line": 1598
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 49,
+                        "durationMicroseconds": 45,
+                        "errorMessage": "",
+                        "functionName": "weight",
+                        "line": 1596
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 44,
+                        "errorMessage": "",
+                        "functionName": "width",
+                        "line": 1602
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 44,
+                        "durationMicroseconds": 90,
+                        "errorMessage": "Cannot access value for name textColor",
+                        "functionName": "color",
+                        "line": 1605
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 51,
+                        "durationMicroseconds": 71,
+                        "errorMessage": "Cannot access value for name secondaryColor",
+                        "functionName": "color",
+                        "line": 1606
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 51,
+                        "durationMicroseconds": 114,
+                        "errorMessage": "",
+                        "functionName": "width",
+                        "line": 1607
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 55,
+                        "durationMicroseconds": 37,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 1618
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 52,
+                        "durationMicroseconds": 49,
+                        "errorMessage": "",
+                        "functionName": "width",
+                        "line": 1624
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 62,
+                        "durationMicroseconds": 149,
+                        "errorMessage": "",
+                        "functionName": "placeholderText",
+                        "line": 1625
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 55,
+                        "durationMicroseconds": 51,
+                        "errorMessage": "",
+                        "functionName": "wrapMode",
+                        "line": 1626
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 52,
+                        "durationMicroseconds": 33,
+                        "errorMessage": "Cannot access value for name textColor",
+                        "functionName": "color",
+                        "line": 1628
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 60,
+                        "durationMicroseconds": 259,
+                        "errorMessage": "Cannot generate efficient code for call to untyped JavaScript function",
+                        "functionName": "onTextChanged",
+                        "line": 1635
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 47,
+                        "durationMicroseconds": 171,
+                        "errorMessage": "",
+                        "functionName": "text",
+                        "line": 1648
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 48,
+                        "durationMicroseconds": 191,
+                        "errorMessage": "No matching override found. Candidates:\ntype Color for argument 0 cannot be resolved\nFunction expects 2 arguments, but 1 were provided",
+                        "functionName": "color",
+                        "line": 1650
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 56,
+                        "durationMicroseconds": 70,
+                        "errorMessage": "",
+                        "functionName": "right",
+                        "line": 1645
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 57,
+                        "durationMicroseconds": 59,
+                        "errorMessage": "",
+                        "functionName": "bottom",
+                        "line": 1646
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 36,
+                        "durationMicroseconds": 136,
+                        "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: call to method rgba, returning QVariant -> QColor stored as QVariant",
+                        "functionName": "color",
+                        "line": 1666
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 43,
+                        "durationMicroseconds": 33,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 1665
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 41,
+                        "durationMicroseconds": 46,
+                        "errorMessage": "Cannot load property radius from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
+                        "functionName": "height",
+                        "line": 1673
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 40,
+                        "durationMicroseconds": 37,
+                        "errorMessage": "Cannot load property color from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
+                        "functionName": "color",
+                        "line": 1674
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 47,
+                        "durationMicroseconds": 67,
+                        "errorMessage": "",
+                        "functionName": "left",
+                        "line": 1670
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 48,
+                        "durationMicroseconds": 58,
+                        "errorMessage": "",
+                        "functionName": "right",
+                        "line": 1671
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 46,
+                        "durationMicroseconds": 56,
+                        "errorMessage": "",
+                        "functionName": "top",
+                        "line": 1672
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 47,
+                        "durationMicroseconds": 51,
+                        "errorMessage": "",
+                        "functionName": "centerIn",
+                        "line": 1679
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 75,
+                        "errorMessage": "",
+                        "functionName": "onClicked",
+                        "line": 1704
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 44,
+                        "durationMicroseconds": 161,
+                        "errorMessage": "Cannot load property pressed from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
+                        "functionName": "color",
+                        "line": 1691
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 51,
+                        "durationMicroseconds": 30,
+                        "errorMessage": "Cannot access value for name dividerColor",
+                        "functionName": "color",
+                        "line": 1693
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 54,
+                        "durationMicroseconds": 25,
+                        "errorMessage": "Cannot access value for name lightTextColor",
+                        "functionName": "foreground",
+                        "line": 1701
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 46,
+                        "durationMicroseconds": 52,
+                        "errorMessage": "",
+                        "functionName": "weight",
+                        "line": 1702
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 39,
+                        "durationMicroseconds": 92,
+                        "errorMessage": "",
+                        "functionName": "text",
+                        "line": 1710
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 42,
+                        "durationMicroseconds": 135,
+                        "errorMessage": "Cannot generate efficient code for call to untyped JavaScript function",
+                        "functionName": "enabled",
+                        "line": 1711
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 44,
+                        "durationMicroseconds": 808,
+                        "errorMessage": "Cannot access value for name logger",
+                        "functionName": "onClicked",
+                        "line": 1753
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 44,
+                        "durationMicroseconds": 315,
+                        "errorMessage": "Cannot load property pressed from (component in C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml)::parent with type QQuickItem.",
+                        "functionName": "color",
+                        "line": 1719
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 50,
+                        "durationMicroseconds": 62,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 1737
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 56,
+                        "durationMicroseconds": 64,
+                        "errorMessage": "",
+                        "functionName": "right",
+                        "line": 1734
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 65,
+                        "durationMicroseconds": 58,
+                        "errorMessage": "",
+                        "functionName": "verticalCenter",
+                        "line": 1736
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 54,
+                        "durationMicroseconds": 54,
+                        "errorMessage": "",
+                        "functionName": "running",
+                        "line": 1741
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 52,
+                        "durationMicroseconds": 46,
+                        "errorMessage": "",
+                        "functionName": "loops",
+                        "line": 1745
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 46,
+                        "durationMicroseconds": 43,
+                        "errorMessage": "",
+                        "functionName": "weight",
+                        "line": 1751
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 175,
+                        "errorMessage": "",
+                        "functionName": "width",
+                        "line": 1808
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 29,
+                        "durationMicroseconds": 132,
+                        "errorMessage": "",
+                        "functionName": "height",
+                        "line": 1809
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 24,
+                        "durationMicroseconds": 105,
+                        "errorMessage": "",
+                        "functionName": "x",
+                        "line": 1810
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 24,
+                        "durationMicroseconds": 147,
+                        "errorMessage": "",
+                        "functionName": "y",
+                        "line": 1811
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 34,
+                        "durationMicroseconds": 94,
+                        "errorMessage": "",
+                        "functionName": "closePolicy",
+                        "line": 1816
                     },
                     {
                         "codegenSuccessfull": false,
@@ -1385,127 +2505,127 @@
                         "durationMicroseconds": 0,
                         "errorMessage": "Functions without type annotations won't be compiled",
                         "functionName": "show",
-                        "line": 1160
+                        "line": 1825
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 32,
-                        "durationMicroseconds": 51,
+                        "durationMicroseconds": 27,
                         "errorMessage": "Cannot access value for name cardColor",
                         "functionName": "color",
-                        "line": 1154
+                        "line": 1819
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 39,
-                        "durationMicroseconds": 33,
+                        "durationMicroseconds": 20,
                         "errorMessage": "Cannot access value for name dividerColor",
                         "functionName": "color",
-                        "line": 1156
+                        "line": 1821
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 39,
-                        "durationMicroseconds": 56,
+                        "durationMicroseconds": 36,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 1167
+                        "line": 1832
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 36,
-                        "durationMicroseconds": 65,
+                        "durationMicroseconds": 27,
                         "errorMessage": "Cannot access value for name primaryColor",
                         "functionName": "color",
-                        "line": 1174
+                        "line": 1839
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 39,
-                        "durationMicroseconds": 102,
+                        "durationMicroseconds": 49,
                         "errorMessage": "",
                         "functionName": "wrapMode",
-                        "line": 1175
+                        "line": 1840
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 36,
-                        "durationMicroseconds": 75,
+                        "durationMicroseconds": 41,
                         "errorMessage": "",
                         "functionName": "elide",
-                        "line": 1177
+                        "line": 1842
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 36,
-                        "durationMicroseconds": 42,
+                        "durationMicroseconds": 23,
                         "errorMessage": "Cannot access value for name dividerColor",
                         "functionName": "color",
-                        "line": 1183
+                        "line": 1848
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 58,
-                        "durationMicroseconds": 93,
+                        "durationMicroseconds": 52,
                         "errorMessage": "",
                         "functionName": "policy",
-                        "line": 1189
+                        "line": 1854
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 40,
-                        "durationMicroseconds": 98,
+                        "durationMicroseconds": 102,
                         "errorMessage": "",
                         "functionName": "width",
-                        "line": 1193
+                        "line": 1858
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 43,
-                        "durationMicroseconds": 78,
+                        "durationMicroseconds": 56,
                         "errorMessage": "",
                         "functionName": "wrapMode",
-                        "line": 1194
+                        "line": 1859
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 40,
-                        "durationMicroseconds": 49,
+                        "durationMicroseconds": 30,
                         "errorMessage": "Cannot access value for name textColor",
                         "functionName": "color",
-                        "line": 1198
+                        "line": 1863
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 45,
-                        "durationMicroseconds": 69,
+                        "durationMicroseconds": 48,
                         "errorMessage": "",
                         "functionName": "textFormat",
-                        "line": 1201
+                        "line": 1866
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 40,
-                        "durationMicroseconds": 114,
+                        "durationMicroseconds": 129,
                         "errorMessage": "",
                         "functionName": "onClicked",
-                        "line": 1210
+                        "line": 1875
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 47,
-                        "durationMicroseconds": 85,
+                        "durationMicroseconds": 53,
                         "errorMessage": "",
                         "functionName": "alignment",
-                        "line": 1207
+                        "line": 1872
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 50,
-                        "durationMicroseconds": 51,
+                        "durationMicroseconds": 26,
                         "errorMessage": "Cannot access value for name secondaryColor",
                         "functionName": "background",
-                        "line": 1208
+                        "line": 1873
                     },
                     {
                         "codegenSuccessfull": true,
@@ -1513,207 +2633,207 @@
                         "durationMicroseconds": 61,
                         "errorMessage": "",
                         "functionName": "centerIn",
-                        "line": 1220
+                        "line": 1885
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 32,
-                        "durationMicroseconds": 40,
+                        "durationMicroseconds": 21,
                         "errorMessage": "Cannot access value for name cardColor",
                         "functionName": "color",
-                        "line": 1228
+                        "line": 1893
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 39,
-                        "durationMicroseconds": 35,
+                        "durationMicroseconds": 19,
                         "errorMessage": "Cannot access value for name dividerColor",
                         "functionName": "color",
-                        "line": 1230
+                        "line": 1895
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 32,
-                        "durationMicroseconds": 34,
+                        "durationMicroseconds": 23,
                         "errorMessage": "Cannot access value for name cardColor",
                         "functionName": "color",
-                        "line": 1234
+                        "line": 1899
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 39,
-                        "durationMicroseconds": 61,
+                        "durationMicroseconds": 33,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 1236
+                        "line": 1901
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 43,
-                        "durationMicroseconds": 53,
+                        "durationMicroseconds": 31,
                         "errorMessage": "",
                         "functionName": "fill",
-                        "line": 1239
+                        "line": 1904
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 40,
-                        "durationMicroseconds": 49,
+                        "durationMicroseconds": 27,
                         "errorMessage": "Cannot access value for name textColor",
                         "functionName": "color",
-                        "line": 1246
+                        "line": 1911
                     },
                     {
                         "codegenSuccessfull": true,
                         "column": 43,
-                        "durationMicroseconds": 99,
-                        "errorMessage": "",
-                        "functionName": "wrapMode",
-                        "line": 1247
-                    },
-                    {
-                        "codegenSuccessfull": true,
-                        "column": 51,
-                        "durationMicroseconds": 85,
-                        "errorMessage": "",
-                        "functionName": "alignment",
-                        "line": 1252
-                    },
-                    {
-                        "codegenSuccessfull": true,
-                        "column": 48,
-                        "durationMicroseconds": 124,
-                        "errorMessage": "",
-                        "functionName": "onClicked",
-                        "line": 1262
-                    },
-                    {
-                        "codegenSuccessfull": false,
-                        "column": 58,
-                        "durationMicroseconds": 49,
-                        "errorMessage": "Cannot access value for name accentColor",
-                        "functionName": "foreground",
-                        "line": 1260
-                    },
-                    {
-                        "codegenSuccessfull": false,
-                        "column": 48,
-                        "durationMicroseconds": 628,
-                        "errorMessage": "Cannot access value for name logger",
-                        "functionName": "onClicked",
-                        "line": 1272
-                    },
-                    {
-                        "codegenSuccessfull": false,
-                        "column": 58,
-                        "durationMicroseconds": 46,
-                        "errorMessage": "Cannot access value for name secondaryColor",
-                        "functionName": "background",
-                        "line": 1269
-                    },
-                    {
-                        "codegenSuccessfull": true,
-                        "column": 39,
-                        "durationMicroseconds": 73,
-                        "errorMessage": "",
-                        "functionName": "centerIn",
-                        "line": 1291
-                    },
-                    {
-                        "codegenSuccessfull": false,
-                        "column": 32,
-                        "durationMicroseconds": 102,
-                        "errorMessage": "Cannot access value for name cardColor",
-                        "functionName": "color",
-                        "line": 1299
-                    },
-                    {
-                        "codegenSuccessfull": false,
-                        "column": 39,
-                        "durationMicroseconds": 71,
-                        "errorMessage": "Cannot access value for name dividerColor",
-                        "functionName": "color",
-                        "line": 1301
-                    },
-                    {
-                        "codegenSuccessfull": false,
-                        "column": 32,
-                        "durationMicroseconds": 43,
-                        "errorMessage": "Cannot access value for name cardColor",
-                        "functionName": "color",
-                        "line": 1305
-                    },
-                    {
-                        "codegenSuccessfull": true,
-                        "column": 39,
-                        "durationMicroseconds": 80,
-                        "errorMessage": "",
-                        "functionName": "fill",
-                        "line": 1307
-                    },
-                    {
-                        "codegenSuccessfull": true,
-                        "column": 43,
-                        "durationMicroseconds": 61,
-                        "errorMessage": "",
-                        "functionName": "fill",
-                        "line": 1310
-                    },
-                    {
-                        "codegenSuccessfull": false,
-                        "column": 40,
-                        "durationMicroseconds": 49,
-                        "errorMessage": "Cannot access value for name textColor",
-                        "functionName": "color",
-                        "line": 1317
-                    },
-                    {
-                        "codegenSuccessfull": true,
-                        "column": 43,
-                        "durationMicroseconds": 121,
-                        "errorMessage": "",
-                        "functionName": "wrapMode",
-                        "line": 1318
-                    },
-                    {
-                        "codegenSuccessfull": true,
-                        "column": 51,
-                        "durationMicroseconds": 84,
-                        "errorMessage": "",
-                        "functionName": "alignment",
-                        "line": 1323
-                    },
-                    {
-                        "codegenSuccessfull": true,
-                        "column": 48,
-                        "durationMicroseconds": 128,
-                        "errorMessage": "",
-                        "functionName": "onClicked",
-                        "line": 1333
-                    },
-                    {
-                        "codegenSuccessfull": false,
-                        "column": 58,
                         "durationMicroseconds": 47,
-                        "errorMessage": "Cannot access value for name accentColor",
-                        "functionName": "foreground",
-                        "line": 1331
+                        "errorMessage": "",
+                        "functionName": "wrapMode",
+                        "line": 1912
                     },
                     {
-                        "codegenSuccessfull": false,
+                        "codegenSuccessfull": true,
+                        "column": 51,
+                        "durationMicroseconds": 48,
+                        "errorMessage": "",
+                        "functionName": "alignment",
+                        "line": 1917
+                    },
+                    {
+                        "codegenSuccessfull": true,
                         "column": 48,
-                        "durationMicroseconds": 425,
-                        "errorMessage": "Cannot access value for name logger",
+                        "durationMicroseconds": 70,
+                        "errorMessage": "",
                         "functionName": "onClicked",
-                        "line": 1343
+                        "line": 1927
                     },
                     {
                         "codegenSuccessfull": false,
                         "column": 58,
-                        "durationMicroseconds": 43,
+                        "durationMicroseconds": 29,
+                        "errorMessage": "Cannot access value for name accentColor",
+                        "functionName": "foreground",
+                        "line": 1925
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 48,
+                        "durationMicroseconds": 404,
+                        "errorMessage": "Cannot access value for name logger",
+                        "functionName": "onClicked",
+                        "line": 1937
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 58,
+                        "durationMicroseconds": 28,
                         "errorMessage": "Cannot access value for name secondaryColor",
                         "functionName": "background",
-                        "line": 1340
+                        "line": 1934
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 39,
+                        "durationMicroseconds": 88,
+                        "errorMessage": "",
+                        "functionName": "centerIn",
+                        "line": 1956
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 32,
+                        "durationMicroseconds": 23,
+                        "errorMessage": "Cannot access value for name cardColor",
+                        "functionName": "color",
+                        "line": 1964
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 39,
+                        "durationMicroseconds": 19,
+                        "errorMessage": "Cannot access value for name dividerColor",
+                        "functionName": "color",
+                        "line": 1966
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 32,
+                        "durationMicroseconds": 18,
+                        "errorMessage": "Cannot access value for name cardColor",
+                        "functionName": "color",
+                        "line": 1970
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 39,
+                        "durationMicroseconds": 33,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 1972
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 43,
+                        "durationMicroseconds": 31,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 1975
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 40,
+                        "durationMicroseconds": 29,
+                        "errorMessage": "Cannot access value for name textColor",
+                        "functionName": "color",
+                        "line": 1982
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 43,
+                        "durationMicroseconds": 47,
+                        "errorMessage": "",
+                        "functionName": "wrapMode",
+                        "line": 1983
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 51,
+                        "durationMicroseconds": 50,
+                        "errorMessage": "",
+                        "functionName": "alignment",
+                        "line": 1988
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 48,
+                        "durationMicroseconds": 86,
+                        "errorMessage": "",
+                        "functionName": "onClicked",
+                        "line": 1998
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 58,
+                        "durationMicroseconds": 32,
+                        "errorMessage": "Cannot access value for name accentColor",
+                        "functionName": "foreground",
+                        "line": 1996
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 48,
+                        "durationMicroseconds": 266,
+                        "errorMessage": "Cannot access value for name logger",
+                        "functionName": "onClicked",
+                        "line": 2008
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 58,
+                        "durationMicroseconds": 28,
+                        "errorMessage": "Cannot access value for name secondaryColor",
+                        "functionName": "background",
+                        "line": 2005
                     }
                 ],
                 "filepath": "C:/Users/prnl2/OneDrive/Documents/window_logger/Main.qml"

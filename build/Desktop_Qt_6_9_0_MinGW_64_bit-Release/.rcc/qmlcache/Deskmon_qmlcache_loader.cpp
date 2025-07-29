@@ -89,6 +89,13 @@ namespace _qt_qml_window_logger_DateRange_qml {
         reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
     };
 }
+namespace _qt_qml_window_logger_EarlyLeaveDialog_qml { 
+    extern const unsigned char qmlData[];
+    extern const QQmlPrivate::AOTCompiledFunction aotBuiltFunctions[];
+    const QQmlPrivate::CachedQmlUnit unit = {
+        reinterpret_cast<const QV4::CompiledData::Unit*>(&qmlData), &aotBuiltFunctions[0], nullptr
+    };
+}
 
 }
 namespace {
@@ -115,6 +122,7 @@ Registry::Registry() {
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/AddAplicatioRequest.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_AddAplicatioRequest_qml::unit);
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/RequstAppPending.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_RequstAppPending_qml::unit);
     resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/DateRange.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_DateRange_qml::unit);
+    resourcePathToCachedUnit.insert(QStringLiteral("/qt/qml/window_logger/EarlyLeaveDialog.qml"), &QmlCacheGeneratedCode::_qt_qml_window_logger_EarlyLeaveDialog_qml::unit);
     QQmlPrivate::RegisterQmlUnitCacheHook registration;
     registration.structVersion = 0;
     registration.lookupCachedQmlUnit = &lookupCachedUnit;

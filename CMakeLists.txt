@@ -144,6 +144,8 @@ qt_add_qml_module(Deskmon
     QML_FILES AddAplicatioRequest.qml
     QML_FILES RequstAppPending.qml
     QML_FILES DateRange.qml
+    QML_FILES
+    QML_FILES EarlyLeaveDialog.qml
 )
 
 # Menambahkan resource file jika diperlukan

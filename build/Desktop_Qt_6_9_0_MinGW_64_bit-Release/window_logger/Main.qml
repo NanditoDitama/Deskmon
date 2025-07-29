@@ -216,47 +216,68 @@ ApplicationWindow {
     Pop_up_waktuhabis {
         id: warningWindowComponent
     }
+
     function timeStringToMinutes(timeStr) {
-        // Pisahkan jam dan menit
-        var parts = timeStr.split(":")
-        if(parts.length !== 2) return 0
-        return parseInt(parts[0]) * 60 + parseInt(parts[1])
+        // Handle format "Xh Ym" atau "XX:XX"
+        if (timeStr.includes("h") || timeStr.includes("m")) {
+            // Format "Xh Ym" (contoh: 1h 30m)
+            var hours = 0;
+            var minutes = 0;
+
+            // Ekstrak jam
+            var hourIndex = timeStr.indexOf("h");
+            if (hourIndex !== -1) {
+                hours = parseInt(timeStr.substring(0, hourIndex).trim()) || 0;
+            }
+
+            // Ekstrak menit
+            var minIndex = timeStr.indexOf("m");
+            if (minIndex !== -1) {
+                var minPart = timeStr.substring(hourIndex !== -1 ? hourIndex + 1 : 0, minIndex).trim();
+                minutes = parseInt(minPart) || 0;
+            }
+
+            return hours * 60 + minutes;
+        } else {
+            // Format "XX:XX" (asumsi jam:menit)
+            var parts = timeStr.split(":");
+            if (parts.length !== 2) return 0;
+            return (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0);
+        }
     }
 
     onPublic_curent_timeChanged: {
-        console.log("Max:", public_max_time, "Current:", public_curent_time)
+            console.log("Max:", public_max_time, "Current:", public_curent_time)
 
-        // Konversi ke menit
-        var maxMinutes = timeStringToMinutes(public_max_time)
-        var currentMinutes = timeStringToMinutes(public_curent_time)
-        var diffMinutes = maxMinutes - currentMinutes
+            // Konversi ke menit
+            var maxMinutes = timeStringToMinutes(public_max_time)
+            var currentMinutes = timeStringToMinutes(public_curent_time)
+            var diffMinutes = maxMinutes - currentMinutes
 
-        console.log("Selisih menit:", diffMinutes)
+            console.log("Selisih menit:", diffMinutes)
 
-        if(diffMinutes <= 0) {
+            if (diffMinutes <= 0) {
 
-            console.log ("chek 1", isPop_up_waktuhabis_open)
-            if(isPop_up_waktuhabis_open == false){
-                warningWindowComponent.newText = "Waktu anda Sudah Habis"
-                isPop_up_waktuhabis_open = true
-                warningWindowComponent.show()
-                console.log("Waktu sudah habis!")
+                console.log ("chek 1", isPop_up_waktuhabis_open)
+                if(isPop_up_waktuhabis_open == false){
+                    warningWindowComponent.newText = "Waktu anda Sudah Habis"
+                    isPop_up_waktuhabis_open = true
+                    warningWindowComponent.show()
+                    console.log("Waktu sudah habis!")
+                }
             }
-            // Tampilkan popup waktu habis
+            else if(diffMinutes <= 10) {
+                console.log ("chek 2",isPop_up_waktuhabis_kurangdari_open)
+                if(isPop_up_waktuhabis_kurangdari_open == false){
+                    warningWindowComponent.newText = "Waktu tersisa kurang dari 10 menit!"
+                    isPop_up_waktuhabis_kurangdari_open = true
+                    warningWindowComponent.show()
+                    console.log("Waktu tersisa kurang dari 10 menit!")
+                }
+                // Tampilkan peringatan
 
-        }
-        else if(diffMinutes <= 10) {
-            console.log ("chek 2",isPop_up_waktuhabis_kurangdari_open)
-            if(isPop_up_waktuhabis_kurangdari_open == false){
-                warningWindowComponent.newText = "Waktu tersisa kurang dari 10 menit!"
-                isPop_up_waktuhabis_kurangdari_open = true
-                warningWindowComponent.show()
-                console.log("Waktu tersisa kurang dari 10 menit!")
             }
-            // Tampilkan peringatan
-
         }
-    }
 
     function formatDuration(seconds) {
         if (seconds < 60) {
@@ -514,6 +535,319 @@ ApplicationWindow {
             }
         }
     }
+
+    function showEarlyLeaveDialog() {
+            earlyLeaveReasonDialog.open();
+        }
+
+
+        // TAMBAHKAN KOMPONEN DIALOG INI DI DALAM ApplicationWindow
+    Dialog {
+        id: earlyLeaveReasonDialog
+        title: "Alasan Keluar Lebih Awal"
+        modal: true
+        width: Math.min(520, parent.width * 0.9)
+        height: Math.min(450, parent.height * 0.8)
+        anchors.centerIn: parent
+        padding: 0
+
+        closePolicy: Popup.NoAutoClose
+
+        // Enhanced background with subtle shadow effect
+        background: Rectangle {
+            color: cardColor
+            radius: 16
+            border.color: Qt.rgba(dividerColor.r, dividerColor.g, dividerColor.b, 0.3)
+            border.width: 1
+
+            // Subtle shadow effect
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: -2
+                color: "transparent"
+                radius: 18
+                border.color: Qt.rgba(0, 0, 0, 0.1)
+                border.width: 1
+                z: -1
+            }
+        }
+
+        // Custom header with icon and better typography
+        header: Rectangle {
+            height: 90
+            color: "transparent"
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.bottomMargin: 10
+                color: Qt.rgba(dividerColor.r, dividerColor.g, dividerColor.b, 0.3)
+                radius: 16
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: parent.radius
+                    color: parent.color
+                }
+            }
+
+            RowLayout {
+                anchors.centerIn: parent
+                anchors.topMargin: 5
+                spacing: 12
+
+                // Warning icon
+                Rectangle {
+                    width: 40
+                    height: 40
+                    radius: 20
+                    color: Qt.rgba(255, 152, 0, 0.1)
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "⚠️"
+                        font.pixelSize: 20
+                    }
+                }
+
+                Column {
+                    spacing: 4
+
+                    Label {
+                        text: "Keluar Lebih Awal"
+                        font {
+                            pixelSize: 20
+                            weight: Font.Bold
+                        }
+                        color: textColor
+                    }
+
+                    Label {
+                        text: "Mohon berikan alasan yang jelas"
+                        font.pixelSize: 12
+                        color: lightTextColor
+                        opacity: 0.8
+                    }
+                }
+            }
+        }
+
+        contentItem: Item {
+            anchors.fill: parent
+            anchors.margins: 24
+            anchors.topMargin: 100
+
+            Column {
+                anchors.fill: parent
+                spacing: 24
+
+                // Enhanced info section with better visual hierarchy
+                Rectangle {
+                    width: parent.width
+                    height: 70
+                    radius: 12
+                    color: Qt.rgba(33, 150, 243, 0.05)
+                    border.color: Qt.rgba(33, 150, 243, 0.2)
+                    border.width: 1
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 16
+                        spacing: 12
+
+                        Text {
+                            text: "ℹ️"
+                            font.pixelSize: 18
+                        }
+
+                        Label {
+                            text: "Anda akan keluar sebelum waktu kerja selesai.\nAlasan ini akan dicatat dalam sistem kehadiran."
+                            wrapMode: Text.Wrap
+                            Layout.fillWidth: true
+                            color: textColor
+                            font.pixelSize: 13
+                            lineHeight: 1.3
+                        }
+                    }
+                }
+
+                // Enhanced text input section
+                Column {
+                    width: parent.width
+                    spacing: 8
+
+                    Label {
+                        text: "Alasan Keluar Lebih Awal *"
+                        font {
+                            pixelSize: 14
+                            weight: Font.Medium
+                        }
+                        color: textColor
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 140
+                        radius: 12
+                        color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.03)
+                        border.color: reasonInput.activeFocus ? secondaryColor : dividerColor
+                        border.width: reasonInput.activeFocus ? 2 : 1
+
+                        Behavior on border.color {
+                            ColorAnimation { duration: 200 }
+                        }
+
+                        Behavior on border.width {
+                            NumberAnimation { duration: 200 }
+                        }
+
+                        ScrollView {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            clip: true
+
+                            TextArea {
+                                id: reasonInput
+                                width: parent.width
+                                placeholderText: reasonInput.text.length === 0 ? "Contoh: Keperluan keluarga mendesak, jadwal dokter, dll." : ""
+                                wrapMode: Text.Wrap
+                                font.pixelSize: 14
+                                color: textColor
+                                selectByMouse: true
+                                background: Item {}
+
+                                // Character counter
+                                property int maxLength: 500
+
+                                onTextChanged: {
+                                    if (text.length > maxLength) {
+                                        text = text.substring(0, maxLength)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Character counter display
+                        Label {
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            anchors.margins: 8
+                            text: reasonInput.text.length + "/" + reasonInput.maxLength
+                            font.pixelSize: 10
+                            color: reasonInput.text.length > reasonInput.maxLength * 0.9 ?
+                                   Material.color(Material.Red) : lightTextColor
+                            opacity: 0.6
+                        }
+                    }
+                }
+            }
+        }
+
+        // Enhanced footer with better button styling
+        footer: Rectangle {
+            height: 80
+            color: "transparent"
+
+            Rectangle {
+                anchors.fill: parent
+                color: Qt.rgba(0, 0, 0, 0.02)
+                radius: 16
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    height: parent.radius
+                    color: parent.color
+                }
+            }
+
+            RowLayout {
+                anchors.centerIn: parent
+                spacing: 16
+
+                // Cancel button with better styling
+                Button {
+                    text: "Batal"
+                    flat: false
+                    implicitWidth: 100
+                    implicitHeight: 40
+
+                    background: Rectangle {
+                        radius: 8
+                        color: parent.pressed ? Qt.rgba(0, 0, 0, 0.1) :
+                               parent.hovered ? Qt.rgba(0, 0, 0, 0.05) : "transparent"
+                        border.color: dividerColor
+                        border.width: 1
+
+                        Behavior on color {
+                            ColorAnimation { duration: 150 }
+                        }
+                    }
+
+                    Material.foreground: lightTextColor
+                    font.weight: Font.Medium
+
+                    onClicked: earlyLeaveReasonDialog.reject()
+                }
+
+                // Submit button with enhanced styling and loading state
+                Button {
+                    id: submitButton
+                    text: enabled ? "Submit dan Keluar" : "Mengirim..."
+                    enabled: reasonInput.text.trim().length > 0 // Only require non-empty text
+                    implicitWidth: 160
+                    implicitHeight: 40
+
+                    property bool isLoading: false
+
+                    background: Rectangle {
+                        radius: 8
+                        color: parent.enabled ?
+                               (parent.pressed ? Qt.darker(secondaryColor, 1.1) :
+                                parent.hovered ? Qt.lighter(secondaryColor, 1.1) : secondaryColor) :
+                               Qt.rgba(secondaryColor.r, secondaryColor.g, secondaryColor.b, 0.5)
+
+                        Behavior on color {
+                            ColorAnimation { duration: 150 }
+                        }
+
+                        // Loading indicator
+                        Rectangle {
+                            width: 16
+                            height: 16
+                            radius: 8
+                            color: "white"
+                            anchors.right: parent.right
+                            anchors.rightMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: submitButton.isLoading
+                            opacity: 0.8
+
+                            RotationAnimation on rotation {
+                                running: submitButton.isLoading
+                                from: 0
+                                to: 360
+                                duration: 1000
+                                loops: Animation.Infinite
+                            }
+                        }
+                    }
+
+                    Material.foreground: "white"
+                    font.weight: Font.Medium
+
+                    onClicked: {
+                        isLoading = true
+                        enabled = false
+                        logger.submitEarlyLeaveReason(reasonInput.text.trim())
+                    }
+                }
+            }
+        }
+    }
+
 
     Popup {
         id: reviewNotificationPopup
@@ -1093,6 +1427,7 @@ ApplicationWindow {
 
                 }
 
+                // Cari komponen Menu ini di Main.qml
                 Menu {
                     id: stableTaskMenu
                     property int taskId: -1
@@ -1108,34 +1443,364 @@ ApplicationWindow {
                             radius: 4
                         }
 
+                        // UBAH BAGIAN INI
                         onTriggered: {
-                            var payload = {
-                                "status": "need-review"
+                            // Hapus semua logika XMLHttpRequest yang lama dari sini
+
+                            // Panggil dialog baru untuk meminta alasan
+                            needReviewReasonDialog.openWithTaskId(stableTaskMenu.taskId)
+                        }
+                    }
+                }
+                // Tambahkan komponen Dialog ini di dalam file Main.qml
+                Dialog {
+                    id: needReviewReasonDialog
+                    title: "Alasan Permintaan Review"
+                    modal: true
+                    width: Math.min(520, parent.width * 0.9)
+                    height: Math.min(420, parent.height * 0.8)
+                    anchors.centerIn: parent
+                    padding: 0
+                    closePolicy: Popup.NoAutoClose
+
+                    property int taskId: -1 // Untuk menyimpan ID task yang akan di-update
+
+                    // Enhanced background with subtle shadow effect
+                    background: Rectangle {
+                        color: cardColor
+                        radius: 16
+                        border.color: Qt.rgba(dividerColor.r, dividerColor.g, dividerColor.b, 0.3)
+                        border.width: 1
+
+                        // Subtle shadow effect
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: -2
+                            color: "transparent"
+                            radius: 18
+                            border.color: Qt.rgba(0, 0, 0, 0.1)
+                            border.width: 1
+                            z: -1
+                        }
+                    }
+
+                    // Custom header with icon and better typography
+                    header: Rectangle {
+                        height: 90
+                        color: "transparent"
+
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.bottomMargin: 10
+                            color: cardColor
+                            radius: 16
+
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                height: parent.radius
+                                color: parent.color
+                            }
+                        }
+
+                        RowLayout {
+                            anchors.centerIn: parent
+                            anchors.topMargin: 5
+                            spacing: 12
+
+                            // Review icon
+                            Rectangle {
+                                width: 40
+                                height: 40
+                                radius: 20
+                                color: Qt.rgba(33, 150, 243, 0.1)
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "📋"
+                                    font.pixelSize: 20
+                                }
                             }
 
-                            var apiUrl = "https://deskmon.pranala-dt.co.id/api/update-status-task/" +
-                                    stableTaskMenu.taskId + "/" + stableTaskMenu.userId;
+                            Column {
+                                spacing: 4
 
-                            var request = new XMLHttpRequest()
-                            request.open("POST", apiUrl)
-                            request.setRequestHeader("Content-Type", "application/json")
-                            request.setRequestHeader("Authorization", "Bearer " + stableTaskMenu.authToken)
+                                Label {
+                                    text: "Permintaan Review"
+                                    font {
+                                        pixelSize: 20
+                                        weight: Font.Bold
+                                    }
+                                    color: textColor
+                                }
 
-                            request.onreadystatechange = function() {
-                                if (request.readyState === XMLHttpRequest.DONE) {
-                                    if (request.status === 200) {
-                                        console.log("Task status updated to 'need review'")
-                                        logger.fetchAndStoreTasks()
-                                    } else {
-                                        console.error("Failed to update task status:", request.status, request.responseText)
+                                Label {
+                                    text: "Berikan alasan yang jelas untuk review"
+                                    font.pixelSize: 12
+                                    color: lightTextColor
+                                    opacity: 0.8
+                                }
+                            }
+                        }
+                    }
+
+                    contentItem: Item {
+                        anchors.fill: parent
+                        anchors.margins: 24
+                        anchors.topMargin: 100
+
+                        Column {
+                            anchors.fill: parent
+                            spacing: 24
+
+                            // Enhanced info section with better visual hierarchy
+                            Rectangle {
+                                width: parent.width
+                                height: 70
+                                radius: 12
+                                color: Qt.rgba(76, 175, 80, 0.05)
+                                border.color: Qt.rgba(76, 175, 80, 0.2)
+                                border.width: 1
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 16
+                                    spacing: 12
+
+                                    Text {
+                                        text: "💡"
+                                        font.pixelSize: 18
+                                    }
+
+                                    Label {
+                                        text: "Tugas akan dipindahkan ke status 'Need Review'.\nManajer akan menerima notifikasi untuk melakukan review."
+                                        wrapMode: Text.Wrap
+                                        Layout.fillWidth: true
+                                        color: textColor
+                                        font.pixelSize: 13
+                                        lineHeight: 1.3
                                     }
                                 }
                             }
 
-                            request.send(JSON.stringify(payload))
+                            // Enhanced text input section
+                            Column {
+                                width: parent.width
+                                spacing: 8
+
+                                Label {
+                                    text: "Alasan Permintaan Review *"
+                                    font {
+                                        pixelSize: 14
+                                        weight: Font.Medium
+                                    }
+                                    color: textColor
+                                }
+
+                                Rectangle {
+                                    width: parent.width
+                                    height: 140
+                                    radius: 12
+                                    color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.03)
+                                    border.color: reasonInput_.activeFocus ? secondaryColor : dividerColor
+                                    border.width: reasonInput_.activeFocus ? 2 : 1
+
+                                    Behavior on border.color {
+                                        ColorAnimation { duration: 200 }
+                                    }
+
+                                    Behavior on border.width {
+                                        NumberAnimation { duration: 200 }
+                                    }
+
+                                    ScrollView {
+                                        anchors.fill: parent
+                                        anchors.margins: 12
+                                        clip: true
+
+                                        TextArea {
+                                            id: reasonInput_
+                                            width: parent.width
+                                            placeholderText: reasonInput_.text.length === 0 ? "Contoh: Butuh verifikasi dari manajer proyek, ada kendala teknis, dll." : ""
+                                            wrapMode: Text.Wrap
+                                            font.pixelSize: 14
+                                            color: textColor
+                                            selectByMouse: true
+                                            background: Item {}
+
+                                            // Character counter
+                                            property int maxLength: 500
+
+                                            onTextChanged: {
+                                                if (text.length > maxLength) {
+                                                    text = text.substring(0, maxLength)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Character counter display
+                                    Label {
+                                        anchors.right: parent.right
+                                        anchors.bottom: parent.bottom
+                                        anchors.margins: 8
+                                        text: reasonInput_.text.length + "/" + reasonInput_.maxLength
+                                        font.pixelSize: 10
+                                        color: reasonInput_.text.length > reasonInput_.maxLength * 0.9 ?
+                                               Material.color(Material.Red) : lightTextColor
+                                        opacity: 0.6
+                                    }
+                                }
+                            }
                         }
                     }
+
+                    // Enhanced footer with better button styling
+                    footer: Rectangle {
+                        height: 80
+                        color: "transparent"
+
+                        Rectangle {
+                            anchors.fill: parent
+                            color: Qt.rgba(0, 0, 0, 0.02)
+                            radius: 16
+
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                height: parent.radius
+                                color: parent.color
+                            }
+                        }
+
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 16
+
+                            // Cancel button with better styling
+                            Button {
+                                text: "Batal"
+                                flat: false
+                                implicitWidth: 100
+                                implicitHeight: 40
+
+                                background: Rectangle {
+                                    radius: 8
+                                    color: parent.pressed ? Qt.rgba(0, 0, 0, 0.1) :
+                                           parent.hovered ? Qt.rgba(0, 0, 0, 0.05) : "transparent"
+                                    border.color: dividerColor
+                                    border.width: 1
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 150 }
+                                    }
+                                }
+
+                                Material.foreground: lightTextColor
+                                font.weight: Font.Medium
+
+                                onClicked: needReviewReasonDialog.reject()
+                            }
+
+                            // Submit button with enhanced styling and loading state
+                            Button {
+                                id: submitButton_
+                                text: enabled ? "Submit Review" : "Mengirim..."
+                                enabled: reasonInput_.text.trim().length > 0
+                                implicitWidth: 140
+                                implicitHeight: 40
+
+                                property bool isLoading: false
+
+                                background: Rectangle {
+                                    radius: 8
+                                    color: parent.enabled ?
+                                           (parent.pressed ? Qt.darker(secondaryColor, 1.1) :
+                                            parent.hovered ? Qt.lighter(secondaryColor, 1.1) : secondaryColor) :
+                                           Qt.rgba(secondaryColor.r, secondaryColor.g, secondaryColor.b, 0.5)
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 150 }
+                                    }
+
+                                    // Loading indicator
+                                    Rectangle {
+                                        width: 16
+                                        height: 16
+                                        radius: 8
+                                        color: "white"
+                                        anchors.right: parent.right
+                                        anchors.rightMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: submitButton_.isLoading
+                                        opacity: 0.8
+
+                                        RotationAnimation on rotation {
+                                            running: submitButton_.isLoading
+                                            from: 0
+                                            to: 360
+                                            duration: 1000
+                                            loops: Animation.Infinite
+                                        }
+                                    }
+                                }
+
+                                Material.foreground: "white"
+                                font.weight: Font.Medium
+
+                                onClicked: {
+                                    isLoading = true
+                                    enabled = false
+
+                                    // Pindahkan logika XMLHttpRequest ke sini
+                                    var payload = {
+                                        "status": "need-review",
+                                        "alasan": reasonInput_.text.trim()
+                                    };
+
+                                    var apiUrl = "https://deskmon.pranala-dt.co.id/api/update-status-task/" +
+                                                 needReviewReasonDialog.taskId + "/" + logger.currentUserId;
+
+                                    var request = new XMLHttpRequest();
+                                    request.open("POST", apiUrl);
+                                    request.setRequestHeader("Content-Type", "application/json");
+                                    request.setRequestHeader("Authorization", "Bearer " + logger.authToken);
+
+                                    request.onreadystatechange = function() {
+                                        if (request.readyState === XMLHttpRequest.DONE) {
+                                            submitButton_.isLoading = false
+                                            if (request.status === 200) {
+                                                console.log("Task status updated to 'need review' with reason.");
+                                                logger.fetchAndStoreTasks(); // Refresh daftar task
+                                                needReviewReasonDialog.accept(); // Tutup dialog setelah submit
+                                            } else {
+                                                console.error("Failed to update task status:", request.status, request.responseText);
+                                                submitButton_.enabled = true // Re-enable button on error
+                                            }
+                                        }
+                                    };
+
+                                    request.send(JSON.stringify(payload));
+                                }
+                            }
+                        }
+                    }
+
+                    // Fungsi untuk membuka dialog sambil mengirimkan taskId
+                    function openWithTaskId(id) {
+                        taskId = id;
+                        reasonInput_.text = ""; // Kosongkan input setiap kali dialog dibuka
+                        submitButton_.isLoading = false // Reset loading state
+                        submitButton_.enabled = true // Reset button state
+                        open();
+                    }
                 }
+
+
+
+
 
                 // Add these popups at the root level of your QML file
                 Popup {

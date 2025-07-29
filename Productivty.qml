@@ -1057,7 +1057,7 @@ Item {
                                 text: Math.round(workTimer.getProgress() * 100) + "%"
                                 font.pixelSize: 14
                                 font.weight: Font.Bold
-                                color: workTimer.elapsedSeconds >= 28800 ? "#27ae60" : "#e74c3c"
+                                color: workTimer.elapsedSeconds >= 32400 ? "#27ae60" : "#e74c3c"
                             }
                         }
 
@@ -1088,7 +1088,7 @@ Item {
                             }
 
                             Label {
-                                text: "8h"
+                                text: "9h"
                                 font.pixelSize: 10
                                 font.weight: Font.Medium
                                 color: lightTextColor
@@ -1097,21 +1097,20 @@ Item {
                     }
 
 
-                    // Work Timer Object (Sekarang hanya sebagai penyedia data, logika ada di C++)
+
+                    // Ganti QtObject dengan id workTimer yang ada
                     QtObject {
                         id: workTimer
 
                         property int elapsedSeconds: logger.workTimeElapsedSeconds
-                        property int totalWorkSeconds: 28800 // 8 jam
+                        property int totalWorkSeconds: 32400 // 9 jam dalam detik (9 * 3600)
 
+                        // Fungsi yang diubah untuk format "jam dan menit"
                         function getFormattedElapsed() {
-                            var hours = Math.floor(elapsedSeconds / 3600)
-                            var minutes = Math.floor((elapsedSeconds % 3600) / 60)
-                            var seconds = elapsedSeconds % 60
-
-                            return String(hours).padStart(2, '0') + ":" +
-                                    String(minutes).padStart(2, '0') + ":" +
-                                    String(seconds).padStart(2, '0')
+                            if (elapsedSeconds < 0) return "0h 0m";
+                            var hours = Math.floor(elapsedSeconds / 3600);
+                            var minutes = Math.floor((elapsedSeconds % 3600) / 60);
+                            return hours + "h " + minutes + "m";
                         }
 
                         function getProgress() {

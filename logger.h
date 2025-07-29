@@ -145,7 +145,7 @@ public:
 
     Q_INVOKABLE int getAppProductivityType(const QString &appName, const QString &url) const;
 
-
+    Q_INVOKABLE int totalWorkSeconds() const { return 9 * 60 * 60; }
 
 
 
@@ -163,10 +163,14 @@ public slots:
     void handleProductivityAppsResponse(QNetworkReply *reply);
     void handleDailyUsageReportResponse(QNetworkReply *reply);
 
+    Q_INVOKABLE void submitEarlyLeaveReason(const QString &reason);
+
+
 
 private slots:
     void handleTaskFetchReply(QNetworkReply *reply);
-    void updateWorkTimeAndSave(); // Slot baru untuk timer "Time at Work"
+    void fetchWorkTimeFromAPI();
+    void handleFetchWorkTimeResponse(QNetworkReply *reply);
 
 
 
@@ -206,6 +210,7 @@ signals:
     void workTimeElapsedSecondsChanged();
 
     void showTimeWarning(const QString &message);
+    void earlyLeaveReasonSubmitted();
 
 
 
@@ -259,6 +264,7 @@ private:
     QString m_lastKnownUrl;
 
     QTimer m_taskRefreshTimer;
+    QTimer m_apiWorkTimeTimer;
 
 
 
@@ -291,8 +297,7 @@ private:
     qint64 m_pauseStartTime = 0;
     qint64 m_globalTimeUsage = 0;
 
-    // Member baru untuk "Time at Work"
-    QTimer m_workTimer;
+
     int m_workTimeElapsedSeconds = 0;
 
 };
