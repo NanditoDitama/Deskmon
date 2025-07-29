@@ -157,6 +157,7 @@ public slots:
     void logIdle(qint64 startTime, qint64 endTime);
     //void updateTaskTime();
     void refreshAll();
+    void refreshTasks();
     void handleTaskStatusReply(QNetworkReply *reply, int taskId);
     Q_INVOKABLE QVariantList getPendingApplicationRequests();
     void handleProductivityAppsResponse(QNetworkReply *reply);
@@ -256,6 +257,8 @@ private:
     void showAuthTokenErrorMessage();
     bool m_isTokenErrorVisible = false;
     QString m_lastKnownUrl;
+
+    QTimer m_taskRefreshTimer;
 
 
 

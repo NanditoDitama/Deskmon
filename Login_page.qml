@@ -164,4 +164,12 @@ Item {
             }
         }
     }
+    Label {
+        text: "Version: 1.0.1.2"
+        font.pixelSize: 13
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 20
+        anchors.horizontalCenter: parent.horizontalCenter
+        color: "gray"
+    }
 }

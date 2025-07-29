@@ -176,23 +176,18 @@ Item {
                         spacing: 8
 
                         Label {
-                            text: ""
-                            font.pixelSize: 14
-                            color: lightTextColor
-                        }
-
-                        Label {
                             text: {
                                 var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
                                 if (activeTask) {
-                                    // Format waktu ke HH:MM
+                                    // Format waktu ke format "Xh Ym" (contoh: 1h 30m)
                                     var hours = Math.floor(activeTask.time_usage / 3600)
                                     var minutes = Math.floor((activeTask.time_usage % 3600) / 60)
-                                    var here_text = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes)
-                                    public_curent_time = here_text
-                                    return here_text
+                                    var timeText = ""
+                                    if (hours > 0) timeText += hours + "h "
+                                    timeText += minutes + "m"
+                                    return timeText
                                 }
-                                return "00:00"
+                                return "0h 0m"
                             }
                             font.pixelSize: 14
                             color: {
@@ -203,6 +198,7 @@ Item {
                                 return lightTextColor
                             }
                         }
+
                         Rectangle {
                             Layout.fillWidth: true
                             height: 6
@@ -213,7 +209,9 @@ Item {
                                 width: {
                                     var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
                                     if (activeTask) {
-                                        return parent.width * Math.min(1, activeTask.time_usage / activeTask.max_time)
+                                        // Calculate percentage (can be >100%)
+                                        var percentage = Math.min(1.5, activeTask.time_usage / activeTask.max_time) // Cap at 150% for visibility
+                                        return parent.width  * Math.min(1, activeTask.time_usage / activeTask.max_time)
                                     }
                                     return parent.width * Math.min(1, logger.globalTimeUsage / (8 * 3600))
                                 }
@@ -236,19 +234,41 @@ Item {
                                     NumberAnimation { duration: 500 }
                                 }
                             }
+
+                            // Percentage label inside progress bar
+                            Label {
+                                anchors {
+                                    right: parent.right
+                                    rightMargin: 4
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                text: {
+                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                    if (activeTask) {
+                                        var percentage = Math.round((activeTask.time_usage / activeTask.max_time) * 100)
+                                        return percentage + "%"
+                                    }
+                                    return ""
+                                }
+                                font.pixelSize: 9
+                                font.bold: true
+                                color: "white"
+                            }
                         }
+
                         Label {
                             text: {
                                 var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
                                 if (activeTask) {
-                                    // Format waktu maksimal ke HH:MM
+                                    // Format waktu maksimal ke format "Xh Ym" (contoh: 2h 0m)
                                     var hours = Math.floor(activeTask.max_time / 3600)
                                     var minutes = Math.floor((activeTask.max_time % 3600) / 60)
-                                    var time_max  = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes)
-                                    public_max_time = time_max
-                                    return time_max
+                                    var timeText = ""
+                                    if (hours > 0) timeText += hours + "h "
+                                    timeText += minutes + "m"
+                                    return timeText
                                 }
-                                return "00:00"
+                                return "0h 0m"
                             }
                             font.pixelSize: 14
                             color: {
