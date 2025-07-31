@@ -98,14 +98,14 @@
                 "methods": [
                     {
                         "access": "public",
-                        "index": 39,
+                        "index": 41,
                         "isConst": true,
                         "name": "debugShowRawData",
                         "returnType": "QString"
                     },
                     {
                         "access": "public",
-                        "index": 40,
+                        "index": 42,
                         "name": "showLogs",
                         "returnType": "void"
                     },
@@ -117,7 +117,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 41,
+                        "index": 43,
                         "name": "isUsernameTaken",
                         "returnType": "bool"
                     },
@@ -137,7 +137,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 42,
+                        "index": 44,
                         "name": "updateUserProfile",
                         "returnType": "QString"
                     },
@@ -173,13 +173,13 @@
                                 "type": "qreal"
                             }
                         ],
-                        "index": 43,
+                        "index": 45,
                         "name": "cropProfileImage",
                         "returnType": "QString"
                     },
                     {
                         "access": "public",
-                        "index": 44,
+                        "index": 46,
                         "name": "clearLogFilter",
                         "returnType": "void"
                     },
@@ -191,7 +191,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 45,
+                        "index": 47,
                         "name": "validateFilePath",
                         "returnType": "bool"
                     },
@@ -207,7 +207,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 46,
+                        "index": 48,
                         "name": "setLogFilter",
                         "returnType": "void"
                     },
@@ -223,7 +223,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 47,
+                        "index": 49,
                         "name": "updateProfileImage",
                         "returnType": "bool"
                     },
@@ -235,7 +235,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 48,
+                        "index": 50,
                         "name": "getProfileImagePath",
                         "returnType": "QString"
                     },
@@ -247,7 +247,7 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 49,
+                        "index": 51,
                         "name": "setActiveTask",
                         "returnType": "void"
                     },
@@ -259,13 +259,13 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 50,
+                        "index": 52,
                         "name": "finishTask",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 51,
+                        "index": 53,
                         "name": "toggleTaskPause",
                         "returnType": "void"
                     },
@@ -277,14 +277,14 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 52,
+                        "index": 54,
                         "isConst": true,
                         "name": "formatDuration",
                         "returnType": "QString"
                     },
                     {
                         "access": "public",
-                        "index": 53,
+                        "index": 55,
                         "name": "startGlobalTimer",
                         "returnType": "void"
                     },
@@ -296,7 +296,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 54,
+                        "index": 56,
                         "name": "getUserPassword",
                         "returnType": "QString"
                     },
@@ -308,13 +308,13 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 55,
+                        "index": 57,
                         "name": "setIdleThreshold",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 56,
+                        "index": 58,
                         "isConst": true,
                         "name": "getAvailableApps",
                         "returnType": "QVariantList"
@@ -339,13 +339,13 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 57,
+                        "index": 59,
                         "name": "addProductivityApp",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 58,
+                        "index": 60,
                         "isConst": true,
                         "name": "getProductivityApps",
                         "returnType": "QVariantList"
@@ -362,7 +362,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 59,
+                        "index": 61,
                         "name": "authenticate",
                         "returnType": "bool"
                     },
@@ -374,20 +374,20 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 60,
+                        "index": 62,
                         "name": "getUserDepartment",
                         "returnType": "QString"
                     },
                     {
                         "access": "public",
-                        "index": 61,
+                        "index": 63,
                         "isConst": true,
                         "name": "getCurrentUsername",
                         "returnType": "QString"
                     },
                     {
                         "access": "public",
-                        "index": 62,
+                        "index": 64,
                         "isConst": true,
                         "name": "getCurrentUserEmail",
                         "returnType": "QString"
@@ -400,13 +400,13 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 63,
+                        "index": 65,
                         "name": "getUserEmail",
                         "returnType": "QString"
                     },
                     {
                         "access": "public",
-                        "index": 64,
+                        "index": 66,
                         "name": "fetchAndStoreTasks",
                         "returnType": "void"
                     },
@@ -418,13 +418,13 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 65,
+                        "index": 67,
                         "name": "updateTaskStatus",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 66,
+                        "index": 68,
                         "name": "logout",
                         "returnType": "void"
                     },
@@ -448,38 +448,38 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 67,
+                        "index": 69,
                         "name": "sendProductivityAppToAPI",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 68,
+                        "index": 70,
                         "name": "loadWorkTimeData",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 69,
+                        "index": 71,
                         "name": "checkAndCreateNewDayRecord",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 70,
+                        "index": 72,
                         "isConst": true,
                         "name": "calculateTodayProductiveSeconds",
                         "returnType": "int"
                     },
                     {
                         "access": "public",
-                        "index": 71,
+                        "index": 73,
                         "name": "sendProductiveTimeToAPI",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
-                        "index": 72,
+                        "index": 74,
                         "name": "sendDailyUsageReport",
                         "returnType": "void"
                     },
@@ -491,7 +491,7 @@
                                 "type": "int"
                             }
                         ],
-                        "index": 73,
+                        "index": 75,
                         "name": "sendPing",
                         "returnType": "void"
                     },
@@ -515,7 +515,7 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 74,
+                        "index": 76,
                         "name": "sendPausePlayDataToAPI",
                         "returnType": "void"
                     },
@@ -531,14 +531,14 @@
                                 "type": "QString"
                             }
                         ],
-                        "index": 75,
+                        "index": 77,
                         "isConst": true,
                         "name": "getAppProductivityType",
                         "returnType": "int"
                     },
                     {
                         "access": "public",
-                        "index": 76,
+                        "index": 78,
                         "isConst": true,
                         "name": "totalWorkSeconds",
                         "returnType": "int"
@@ -1122,21 +1122,15 @@
                         "returnType": "void"
                     },
                     {
-                        "access": "private",
-                        "arguments": [
-                            {
-                                "name": "reply",
-                                "type": "QNetworkReply*"
-                            }
-                        ],
+                        "access": "public",
                         "index": 36,
-                        "name": "handleTaskFetchReply",
+                        "name": "startPingTimer",
                         "returnType": "void"
                     },
                     {
-                        "access": "private",
+                        "access": "public",
                         "index": 37,
-                        "name": "fetchWorkTimeFromAPI",
+                        "name": "stopPingTimer",
                         "returnType": "void"
                     },
                     {
@@ -1148,6 +1142,24 @@
                             }
                         ],
                         "index": 38,
+                        "name": "handleTaskFetchReply",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "private",
+                        "index": 39,
+                        "name": "fetchWorkTimeFromAPI",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "private",
+                        "arguments": [
+                            {
+                                "name": "reply",
+                                "type": "QNetworkReply*"
+                            }
+                        ],
+                        "index": 40,
                         "name": "handleFetchWorkTimeResponse",
                         "returnType": "void"
                     }

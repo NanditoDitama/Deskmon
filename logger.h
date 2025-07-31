@@ -165,6 +165,8 @@ public slots:
 
     Q_INVOKABLE void submitEarlyLeaveReason(const QString &reason);
 
+    void startPingTimer();
+    void stopPingTimer();
 
 
 private slots:
@@ -253,8 +255,7 @@ private:
     QDateTime m_lastPauseStartTime;
 
     QTimer m_pingTimer;
-    void startPingTimer(int taskId);
-    void stopPingTimer();
+
 
     QTimer m_productivePingTimer;
     QTimer m_usageReportTimer;

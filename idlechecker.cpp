@@ -153,6 +153,10 @@ void IdleChecker::checkIdleTime()
                 m_logger->toggleTaskPause();
             }
             // === PERUBAHAN SELESAI ===
+
+            if (m_logger) {
+                m_logger->stopPingTimer();
+            }
         }
 
         // Log idle every 60 seconds while idle
@@ -171,6 +175,11 @@ void IdleChecker::checkIdleTime()
                 emit idleDetected(m_lastIdleLogTime, currentTime);
                 qDebug() << "Logged final idle period, ended at:" << QDateTime::fromSecsSinceEpoch(currentTime).toString();
             }
+
+            if (m_logger) {
+                m_logger->startPingTimer();
+            }
+
             m_isIdle = false;
             m_lastIdleLogTime = 0;
             m_lastActiveTime = 0;
