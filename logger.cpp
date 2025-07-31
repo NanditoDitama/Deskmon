@@ -64,18 +64,32 @@ Logger::Logger(QObject *parent) : QObject(parent)
     m_isTrackingActive = true;
     m_networkManager = new QNetworkAccessManager(this);
 
-    m_pingTimer.setInterval(30000); // 1 menit
+    // logger.cpp dalam fungsi Logger::Logger
+    m_pingTimer.setInterval(30000); // 30 detik
     connect(&m_pingTimer, &QTimer::timeout, this, [this]() {
-        if (m_activeTaskId != -1 && !m_isTaskPaused) {
-            sendPing(m_activeTaskId);
+        // Ping hanya aktif jika pengguna sudah login (m_currentUserId valid)
+        if (m_currentUserId != -1) {
+            if (m_activeTaskId != -1 && !m_isTaskPaused) {
+                // Jika ada task aktif dan tidak di-pause, kirim ping dengan task_id
+                sendPing(m_activeTaskId);
+            } else {
+                // Jika tidak ada task aktif atau sedang di-pause, kirim ping umum (tanpa task)
+                sendPing(-1); // Kirim -1 untuk menandakan ini adalah ping user, bukan task
+            }
         }
     });
 
-    // Inisialisasi dan mulai timer untuk "Time at Work"
-    connect(&m_workTimer, &QTimer::timeout, this, &Logger::updateWorkTimeAndSave);
-    m_workTimer.start(1000); // 1 detik
-    m_workTimer.start();
+    // // Inisialisasi dan mulai timer untuk "Time at Work"
+    // connect(&m_workTimer, &QTimer::timeout, this, &Logger::updateWorkTimeAndSave);
+    // m_workTimer.start(1000); // 1 detik
+    // m_workTimer.start();
         // Update setiap detik
+
+    m_apiWorkTimeTimer.setInterval(60000); // 1 menit
+    connect(&m_apiWorkTimeTimer, &QTimer::timeout, this, &Logger::fetchWorkTimeFromAPI);
+
+    fetchWorkTimeFromAPI(); // Panggil sekali saat login
+    m_apiWorkTimeTimer.start();
 
     m_productivePingTimer.setInterval(180000); // 3 menit = 180000 ms
     connect(&m_productivePingTimer, &QTimer::timeout, this, &Logger::sendProductiveTimeToAPI);
@@ -244,7 +258,7 @@ void Logger::refreshAll()
     }
     m_isTaskPaused = wasPaused;
     m_activeTaskId = activeTaskBeforeRefresh;
-
+    fetchWorkTimeFromAPI();
     // 3. Perbarui info jendela yang sedang aktif.
     logActiveWindow();
 
@@ -325,14 +339,53 @@ void Logger::sendLogoutToAPI()
     }
     reply->deleteLater();
 }
+void Logger::submitEarlyLeaveReason(const QString &reason)
+{
+    // 1. Pastikan pengguna sudah login dan memiliki token
+    if (m_currentUserId == -1 || m_authToken.isEmpty()) {
+        qWarning() << "Cannot submit reason: No user logged in or no auth token.";
+        // Bahkan jika API gagal, kita harus izinkan aplikasi untuk keluar.
+        emit earlyLeaveReasonSubmitted();
+        return;
+    }
 
+    // 2. Siapkan payload JSON
+    QJsonObject payload;
+    payload["user_id"] = m_currentUserId;
+    payload["alasan"] = reason; // "alasan" berarti "reason"
+
+    // 3. Siapkan network request
+    // !!! PENTING: Ganti dengan endpoint API Anda yang sebenarnya !!!
+    QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/send-alasan"));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
+
+    qDebug() << "Sending early leave reason to API:" << QJsonDocument(payload).toJson();
+
+    // 4. Kirim request POST
+    QNetworkReply* reply = m_networkManager->post(request, QJsonDocument(payload).toJson());
+
+    // 5. Tangani response secara asynchronous
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            qDebug() << "Early leave reason sent successfully. Response:" << reply->readAll();
+        } else {
+            qWarning() << "Failed to send early leave reason:" << reply->errorString();
+        }
+        reply->deleteLater();
+
+        // 6. PENTING: Pancarkan sinyal untuk mengizinkan aplikasi keluar,
+        // terlepas dari apakah panggilan API berhasil atau gagal.
+        emit earlyLeaveReasonSubmitted();
+    });
+}
 void Logger::logout()
 {
     saveWorkTimeData();
     sendWorkTimeToAPI();
     sendLogoutToAPI();
-    m_workTimer.stop();
     m_taskRefreshTimer.stop();
+    m_apiWorkTimeTimer.stop();
 
     // Stop all active tracking
     if (m_activeTaskId != -1) {
@@ -538,6 +591,68 @@ void Logger::initializeProductivityDatabase()
 }
 
 
+
+// Tambahkan di dalam file logger.cpp
+
+void Logger::fetchWorkTimeFromAPI()
+{
+    if (m_currentUserId == -1 || m_authToken.isEmpty()) {
+        qWarning() << "Cannot fetch work time: No user logged in or no auth token.";
+        return;
+    }
+
+    // Ganti dengan URL API endpoint Anda yang sebenarnya
+    QUrl url(QString("https://deskmon.pranala-dt.co.id/api/get-time-at-work/%1").arg(m_currentUserId));
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
+
+    qDebug() << "Fetching work time from API...";
+    QNetworkReply *reply = m_networkManager->get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        handleFetchWorkTimeResponse(reply);
+    });
+}
+
+void Logger::handleFetchWorkTimeResponse(QNetworkReply *reply)
+{
+    if (reply->error() == QNetworkReply::NoError) {
+        QByteArray responseData = reply->readAll();
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
+        if (jsonDoc.isObject()) {
+            QJsonObject jsonObj = jsonDoc.object();
+
+            // 1. Cek apakah request sukses dan memiliki objek "data"
+            if (jsonObj["success"].toBool() && jsonObj.contains("data") && jsonObj["data"].isObject()) {
+
+                // 2. Ekstrak objek "data"
+                QJsonObject dataObj = jsonObj["data"].toObject();
+
+                // 3. Cek dan ambil nilai dari kunci "raw"
+                if (dataObj.contains("raw")) {
+                    int serverSeconds = dataObj["raw"].toInt();
+
+                    // Hanya perbarui dan emit sinyal jika nilainya berubah
+                    if (serverSeconds != m_workTimeElapsedSeconds) {
+                        m_workTimeElapsedSeconds = serverSeconds;
+                        qDebug() << "Work time updated from server:" << m_workTimeElapsedSeconds << "seconds (from 'raw' key)";
+                        emit workTimeElapsedSecondsChanged();
+                    }
+                } else {
+                    qWarning() << "API response 'data' object is missing the 'raw' key.";
+                }
+            } else {
+                qWarning() << "Failed to get 'data' object from API response or request was not successful:" << jsonObj["message"].toString();
+            }
+        }
+    } else {
+        qWarning() << "Failed to fetch work time from API:" << reply->errorString();
+    }
+    reply->deleteLater();
+}
+
+
 void Logger::checkAndCreateNewDayRecord()
 {
     if (m_currentUserId == -1 || !ensureProductivityDatabaseOpen()) return;
@@ -645,16 +760,6 @@ void Logger::sendWorkTimeToAPI()
     });
 }
 
-void Logger::updateWorkTimeAndSave() {
-    if (m_activeTaskId != -1 && !m_isTaskPaused) {
-        m_workTimeElapsedSeconds++;
-        emit workTimeElapsedSecondsChanged();
-
-        if (m_workTimeElapsedSeconds % 10 == 0) {
-            saveWorkTimeData();
-        }
-    }
-}
 
 // Updated getAppProductivityType function
 int Logger::getAppProductivityType(const QString &appName, const QString &url) const
@@ -1224,6 +1329,7 @@ void Logger::checkTaskStatusBeforeStart()
     emit activeTaskChanged();
     emit taskPausedChanged();
     emit trackingActiveChanged();
+    emit taskListChanged();
 }
 
 
@@ -2397,7 +2503,7 @@ QVariantList Logger::taskList() const
             task["status"] = status;
         } else {
             // Inactive task
-            task["status"] = "Pending";
+            task["status"] = status;
         }
 
         tasks.append(task);
@@ -2469,8 +2575,8 @@ void Logger::setActiveTask(int taskId)
         QString prevStatus = query.value(0).toString().toLower();
         QString taskName = query.value(1).toString();
 
-        // Hanya ubah status ke 'Pending' jika bukan 'review' atau 'completed'
-        QString newStatus = (prevStatus == "review" || prevStatus == "completed") ? prevStatus : "Pending";
+        QStringList restrictedStatuses = {"Review", "Need Review", "Need Revise", "completed"};
+        QString newStatus = restrictedStatuses.contains(prevStatus) ? prevStatus : "Pending";
 
         // Hitung time_usage
         qint64 currentEpoch = QDateTime::currentSecsSinceEpoch();
@@ -2485,15 +2591,13 @@ void Logger::setActiveTask(int taskId)
             qWarning() << "Failed to update previous task:" << query.lastError().text();
         }
 
-        // Kirim status stop untuk tugas sebelumnya
-        if (!m_isTaskPaused) {
-            QString currentTime = QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
-            QString startTime = QDateTime::fromSecsSinceEpoch(m_taskStartTime).toString(Qt::ISODateWithMs);
-            sendPausePlayDataToAPI(m_activeTaskId, startTime, currentTime, "pause");
-        }
+        // // Kirim status stop untuk tugas sebelumnya
+        // if (!m_isTaskPaused) {
+        //     QString currentTime = QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
+        //     QString startTime = QDateTime::fromSecsSinceEpoch(m_taskStartTime).toString(Qt::ISODateWithMs);
+        //     sendPausePlayDataToAPI(m_activeTaskId, startTime, currentTime, "pause");
+        // }
 
-        //stopPingTimer();
-        //saveWorkTimeData();
     }
 
     // Jika taskId valid, set tugas baru
@@ -2559,7 +2663,6 @@ void Logger::setActiveTask(int taskId)
                 logQuery.addBindValue(newTime);
                 logQuery.exec();
 
-                startPingTimer(taskId);
 
                 // Emit signals
                 emit taskPausedChanged();
@@ -2588,6 +2691,7 @@ void Logger::setActiveTask(int taskId)
     emit taskListChanged();
 }
 
+// logger.cpp dalam fungsi Logger::sendPing
 void Logger::sendPing(int taskId)
 {
     if (!ensureProductivityDatabaseOpen()) {
@@ -2605,9 +2709,15 @@ void Logger::sendPing(int taskId)
         return;
     }
 
-    // Buat payload JSON sesuai format yang diminta
+    // Buat payload JSON secara dinamis
     QJsonObject payload;
-    payload["task_id"] = QString::number(taskId); // Task ID sebagai string
+    if (taskId != -1) {
+        // Jika ada taskId yang valid, kirim ping untuk task
+        payload["task_id"] = QString::number(taskId);
+    } else {
+        // Jika taskId adalah -1, kirim ping untuk user
+        payload["user_id"] = m_currentUserId;
+    }
 
     // Konfigurasi request
     QNetworkRequest request;
@@ -2623,7 +2733,7 @@ void Logger::sendPing(int taskId)
     // Handle timeout (30 detik)
     QTimer::singleShot(30000, reply, &QNetworkReply::abort);
 
-    // Handle response
+    // Handle response (sisa kode tetap sama)
     connect(reply, &QNetworkReply::finished, [this, reply]() {
         QByteArray responseData = reply->readAll();
         QString responseText = QString::fromUtf8(responseData);
@@ -2638,7 +2748,6 @@ void Logger::sendPing(int taskId)
         if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
             QJsonObject jsonObj = jsonDoc.object();
 
-            // Cek jika response meminta refresh
             if (jsonObj.contains("refresh_required") && jsonObj["refresh_required"].toBool()) {
                 refreshRequired = true;
                 qDebug() << "Server requested application refresh";
@@ -2670,7 +2779,6 @@ void Logger::sendPing(int taskId)
             QMessageBox::warning(nullptr, "API Response", popupMessage);
         }
 
-        // Jika server meminta refresh, panggil refreshAll()
         if (refreshRequired) {
             qDebug() << "Performing application refresh as requested by server";
             this->refreshAll();
@@ -2681,18 +2789,13 @@ void Logger::sendPing(int taskId)
 }
 
 
-
-void Logger::startPingTimer(int taskId)
+void Logger::startPingTimer()
 {
-    if (taskId <= 0 || m_currentUserId == -1) return;
-
-    // Kirim ping pertama segera
-    sendPing(taskId);
-
-    // Mulai timer untuk ping berikutnya
+    sendPing(m_activeTaskId);
     m_pingTimer.start();
-    qDebug() << "Started ping timer for client_id:" << m_currentUserId << "and task_id:" << taskId;
+    qDebug() << "Started ping timer for client_id:";
 }
+
 
 void Logger::stopPingTimer()
 {
@@ -2880,20 +2983,28 @@ void Logger::handleTaskStatusReply(QNetworkReply *reply, int taskId)
     } else {
         qDebug() << "Task status updated to" << dbStatus << "for taskId" << taskId;
         // If task is active and status changed to Review, deselect it
-        if (dbStatus == "review" && m_activeTaskId == taskId) {
-            query.prepare("UPDATE task SET active = 0, paused = 0 WHERE id = :id");
-            query.bindValue(":id", taskId);
-            if (!query.exec()) {
-                qWarning() << "Failed to deselect task ID" << taskId << ":" << query.lastError().text();
-            } else {
-                m_activeTaskId = -1;
-                m_isTaskPaused = false;
-                qDebug() << "Deselected task ID" << taskId << "due to Review status";
-                emit activeTaskChanged();
-                emit taskPausedChanged();
+        QStringList restrictedStatuses = {"Review", "Need Review", "Need Revise"};
+        // Cek jika tugas yang statusnya berubah adalah tugas yang sedang aktif
+        if (restrictedStatuses.contains(dbStatus) && m_activeTaskId == taskId) {
+            qDebug() << "Active task" << taskId << "entered a restricted state:" << dbStatus << ". Attempting to switch.";
 
-                QString pauseMessage = QString("Task '%1' has been paused automatically because it's under review.").arg(taskName);
-                emit taskReviewNotification(pauseMessage);
+            // Cari tugas lain yang valid untuk diaktifkan
+            QSqlQuery findNextTaskQuery(m_productivityDb);
+            findNextTaskQuery.prepare(
+                "SELECT id FROM task WHERE user_id = :user_id AND id != :current_id AND status NOT IN ('Review', 'Need Review', 'Need Revise') LIMIT 1"
+                );
+            findNextTaskQuery.bindValue(":user_id", m_currentUserId);
+            findNextTaskQuery.bindValue(":current_id", taskId);
+
+            if (findNextTaskQuery.exec() && findNextTaskQuery.next()) {
+                // Jika tugas lain ditemukan, panggil setActiveTask.
+                int nextTaskId = findNextTaskQuery.value(0).toInt();
+                qDebug() << "Found next available task:" << nextTaskId << ". Switching...";
+                setActiveTask(nextTaskId);
+            } else {
+                // Jika tidak ada tugas lain, panggil setActiveTask dengan -1 untuk menonaktifkan.
+                qDebug() << "No other available tasks found. Deactivating current task.";
+                setActiveTask(-1);
             }
         }
         emit taskListChanged();
@@ -3079,7 +3190,6 @@ void Logger::toggleTaskPause()
                                    currentTime,
                                    "pause");
 
-            stopPingTimer();
             saveWorkTimeData();
 
             // Update local state
@@ -3114,8 +3224,14 @@ void Logger::toggleTaskPause()
             if (!query.exec()) {
                 throw std::runtime_error("Failed to log play start");
             }
-            startPingTimer(m_activeTaskId);
+
+            // sendPausePlayDataToAPI(m_activeTaskId,
+            //                        m_lastPlayStartTime.toString(Qt::ISODateWithMs),
+            //                        currentTime,
+            //                        "start");
             // Update local state
+
+            sendPing(m_activeTaskId);
             m_isTaskPaused = false;
             m_isTrackingActive = true;
             m_taskStartTime = QDateTime::currentSecsSinceEpoch();
@@ -3143,27 +3259,32 @@ void Logger::toggleTaskPause()
 void Logger::sendPausePlayDataToAPI(int taskId, const QString& startTime,
                                     const QString& endTime, const QString& status)
 {
-
     // 1. Validasi token
     if (m_authToken.isEmpty()) {
         qWarning() << "No authentication token available";
         return;
     }
 
-    // 2. Hanya kirim payload jika status pause (stop)
-    if (status != "pause") {
-        qDebug() << "Skip sending play status to API";
-        return;
-    }
-
-    // 3. Siapkan payload JSON hanya untuk status stop
+    // 3. Siapkan payload JSON dan URL secara dinamis berdasarkan status
     QJsonObject payload;
-    payload["status"] = "stop"; // Hanya kirim status stop
+    QString url; // Variabel untuk menyimpan URL API
+
+    if (status == "pause") {
+        payload["status"] = "stop";
+        url = QString("https://deskmon.pranala-dt.co.id/api/end-implementation/%1").arg(taskId);
+    }
+    // else if (status == "start") {
+    //     payload["status"] = "start";
+    //     url = QString("https://deskmon.pranala-dt.co.id/api/start-implementation/%1").arg(taskId);
+    // }
+    else {
+        qWarning() << "Unknown status for API call:" << status;
+        return; // Jangan kirim jika status tidak dikenali
+    }
 
     // 4. Konfigurasi request PUT
     QNetworkRequest request;
-    QString url = QString("https://deskmon.pranala-dt.co.id/api/end-implementation/%1").arg(taskId);
-    request.setUrl(QUrl(url));
+    request.setUrl(QUrl(url)); // Gunakan URL yang sudah ditentukan
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
 
@@ -3427,11 +3548,9 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
             }
 
 
-
+            m_pingTimer.start();
+            sendPing(m_activeTaskId);
             m_isTokenErrorVisible = false;
-
-            m_workTimer.start(1000);
-            m_workTimer.start();
             // Lanjutkan sisa proses
             setCurrentUserInfo(userId, username, userEmail);
             checkAndCreateNewDayRecord();
@@ -3454,37 +3573,34 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
         qWarning() << "Network error during API login:" << reply->errorString();
     }
 
-    // Jika kode sampai di sini, artinya API login gagal. Lakukan fallback ke login lokal.
-    qDebug() << "Attempting local login fallback...";
-    QSqlQuery localQuery(m_db);
-    localQuery.prepare("SELECT id, username, email, password, token FROM users WHERE email = :loginInput OR username = :loginInput");
-    localQuery.bindValue(":loginInput", loginInput);
+    // // Jika kode sampai di sini, artinya API login gagal. Lakukan fallback ke login lokal.
+    // qDebug() << "Attempting local login fallback...";
+    // QSqlQuery localQuery(m_db);
+    // localQuery.prepare("SELECT id, username, email, password, token FROM users WHERE email = :loginInput OR username = :loginInput");
+    // localQuery.bindValue(":loginInput", loginInput);
 
-    if (localQuery.exec() && localQuery.next()) {
-        if (localQuery.value(3).toString() == hashPassword(password)) {
-            // Login lokal berhasil
-            int userId = localQuery.value(0).toInt();
-            QString username = localQuery.value(1).toString();
-            QString userEmail = localQuery.value(2).toString();
-            m_authToken = localQuery.value(4).toString();
+    // if (localQuery.exec() && localQuery.next()) {
+    //     if (localQuery.value(3).toString() == hashPassword(password)) {
+    //         // Login lokal berhasil
+    //         int userId = localQuery.value(0).toInt();
+    //         QString username = localQuery.value(1).toString();
+    //         QString userEmail = localQuery.value(2).toString();
+    //         m_authToken = localQuery.value(4).toString();
 
-            qDebug() << "Local login successful for user:" << username;
-            qDebug() << "Using stored token:" << (m_authToken.isEmpty() ? "No token" : "Token available");
+    //         qDebug() << "Local login successful for user:" << username;
+    //         qDebug() << "Using stored token:" << (m_authToken.isEmpty() ? "No token" : "Token available");
 
-            setCurrentUserInfo(userId, username, userEmail);
-            checkAndCreateNewDayRecord();
+    //         setCurrentUserInfo(userId, username, userEmail);
+    //         checkAndCreateNewDayRecord();
+    //         loadWorkTimeData();
+    //         startGlobalTimer();
+    //         syncActiveTask();
+    //         if (!m_authToken.isEmpty()) { fetchAndStoreTasks(); }
 
-            m_workTimer.start(1000);
-            m_workTimer.start();
-            loadWorkTimeData();
-            startGlobalTimer();
-            syncActiveTask();
-            if (!m_authToken.isEmpty()) { fetchAndStoreTasks(); }
-
-            reply->deleteLater();
-            return true;
-        }
-    }
+    //         reply->deleteLater();
+    //         return true;
+    //     }
+    // }
 
     qDebug() << "Login failed completely (API and Local).";
     reply->deleteLater();

@@ -67,6 +67,16 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine *engine = nullptr;
     QQuickWindow *qmlWindow = nullptr;
 
+    // Fungsi untuk menampilkan dialog alasan keluar lebih awal
+    auto showEarlyLeaveDialog = [&]() {
+        if (qmlWindow) { // Pastikan window utama sudah ada
+            QMetaObject::invokeMethod(qmlWindow, "showEarlyLeaveDialog");
+        } else {
+            qWarning() << "Main window is not available to show the dialog. Quitting as a fallback.";
+            // Jika window tidak ada, kita tidak bisa menampilkan dialog, jadi langsung keluar.
+            app.quit();
+        }
+    };
     // Function to show QML window
     auto showQmlWindow = [&]() {
         if (!engine) {
@@ -138,7 +148,18 @@ int main(int argc, char *argv[])
         showQmlWindow();
     });
 
-    QObject::connect(quitAction, &QAction::triggered, &app, &QGuiApplication::quit);
+    auto quitApplication = [&]() {
+        if (logger.workTimeElapsedSeconds() < logger.totalWorkSeconds()) {
+            qDebug() << "Work time is less than required. Showing reason dialog.";
+            showEarlyLeaveDialog();
+        } else {
+            qDebug() << "Work time is sufficient. Quitting directly.";
+            app.quit();
+        }
+    };
+
+    QObject::connect(quitAction, &QAction::triggered, &app, quitApplication);
+    QObject::connect(&logger, &Logger::earlyLeaveReasonSubmitted, &app, &QCoreApplication::quit);
     trayIcon.setContextMenu(&trayMenu);
     trayIcon.show();
 

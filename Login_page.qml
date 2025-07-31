@@ -165,7 +165,7 @@ Item {
         }
     }
     Label {
-        text: "Version: 1.0.1.2"
+        text: "Version: 1.0.1.3"
         font.pixelSize: 13
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 20

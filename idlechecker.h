@@ -33,7 +33,7 @@ private:
     qint64 getSystemIdleTimeLinux() const;
 #endif
     QTimer m_timer;
-    int m_idleThreshold = 210; // Default 2 menit
+    int m_idleThreshold = 180;
     qint64 m_lastActiveTime = 0;
     qint64 m_lastIdleLogTime = 0; // Waktu terakhir log idle dicatat
     qint64 m_lastThresholdCheckTime = 0; // Waktu terakhir pemeriksaan threshold
