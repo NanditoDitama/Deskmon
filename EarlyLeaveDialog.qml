@@ -8,10 +8,13 @@ Dialog {
     title: "Alasan Keluar Lebih Awal"
     modal: true
     width: 450
-    height: 300
+    height: 350
     anchors.centerIn: parent
     padding: 0
-    closePolicy: Popup.NoAutoClose // Pengguna harus submit
+    closePolicy: Popup.NoAutoClose // Pengguna harus submit atau batal
+
+    // Signal untuk memberitahu main.cpp bahwa dialog ditutup tanpa submit
+    signal dialogClosed()
 
     background: Rectangle {
         color: Material.dialogColor
@@ -42,20 +45,36 @@ Dialog {
             color: Material.secondaryTextColor
         }
 
-        TextArea {
-            id: reasonInput
+        ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            placeholderText: "Ketik alasan Anda di sini..."
-            wrapMode: Text.Wrap
-            font.pixelSize: 14
-            color: Material.primaryTextColor
-            background: Rectangle {
-                radius: 8
-                color: Qt.rgba(Material.primaryTextColor.r, Material.primaryTextColor.g, Material.primaryTextColor.b, 0.05)
-                border.color: Material.dividerColor
-                border.width: 1
+            Layout.minimumHeight: 120
+
+            TextArea {
+                id: reasonInput
+                placeholderText: "Ketik alasan Anda di sini..."
+                wrapMode: Text.Wrap
+                font.pixelSize: 14
+                color: Material.primaryTextColor
+                selectByMouse: true
+
+                background: Rectangle {
+                    radius: 8
+                    color: Qt.rgba(Material.primaryTextColor.r, Material.primaryTextColor.g, Material.primaryTextColor.b, 0.05)
+                    border.color: reasonInput.activeFocus ? Material.accent : Material.dividerColor
+                    border.width: reasonInput.activeFocus ? 2 : 1
+                }
             }
+        }
+
+        // Status label untuk menampilkan informasi
+        Label {
+            id: statusLabel
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            color: Material.color(Material.Orange)
+            font.pixelSize: 12
+            visible: false
         }
     }
 
@@ -65,21 +84,88 @@ Dialog {
         background: Rectangle { color: "transparent" }
 
         Button {
-            text: "Submit dan Keluar"
+            id: submitButton
+            text: buttonBox.enabled ? "Submit dan Keluar" : "Mengirim..."
             DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
-            enabled: reasonInput.text.trim().length > 5 // Aktifkan jika alasan diisi
-            Material.background: Material.accent
+            enabled: reasonInput.text.trim().length > 5 && buttonBox.enabled
+            Material.background: enabled ? Material.accent : Material.color(Material.Grey)
+            Material.foreground: "white"
+
             onClicked: {
-                buttonBox.enabled = false // Nonaktifkan tombol untuk mencegah klik ganda
+                buttonBox.enabled = false
+                statusLabel.text = "Mengirim data ke server..."
+                statusLabel.visible = true
                 logger.submitEarlyLeaveReason(reasonInput.text.trim())
-                // Dialog akan ditutup secara otomatis oleh main.cpp saat aplikasi keluar
+            }
+        }
+
+        Button {
+            id: cancelButton
+            text: "Batal"
+            DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            Material.background: Material.color(Material.Grey)
+            Material.foreground: "white"
+            enabled: buttonBox.enabled
+
+            onClicked: {
+                dialog.close()
+                dialog.dialogClosed() // Emit signal untuk reset flag di main.cpp
             }
         }
     }
 
-    function show() { // <-- Ganti nama dari 'open' menjadi 'show'
-            reasonInput.text = ""
-            buttonBox.enabled = true
-            dialog.open() // <-- Biarkan ini tetap 'dialog.open()'
+    // Fungsi untuk menampilkan dialog
+    function show() {
+        reasonInput.text = ""
+        resetDialog()
+        dialog.open()
+        reasonInput.forceActiveFocus() // Fokus ke text area
+    }
+
+    // Fungsi untuk reset dialog ke kondisi awal
+    function resetDialog() {
+        buttonBox.enabled = true
+        statusLabel.visible = false
+        statusLabel.text = ""
+    }
+
+    // Handle ketika dialog ditutup
+    onClosed: {
+        resetDialog()
+    }
+
+    // Connect ke logger untuk handle berbagai kondisi
+    Connections {
+        target: logger
+
+        // Fungsi ini akan dipanggil jika submit berhasil
+        function onEarlyLeaveReasonSubmitted() {
+            // Dialog akan tertutup otomatis ketika aplikasi quit
+            statusLabel.text = "Berhasil! Aplikasi akan ditutup..."
+            statusLabel.color = Material.color(Material.Green)
+        }
+
+        //Jika ingin menambahkan handler untuk submit gagal
+        function onEarlyLeaveSubmitFailed(errorMessage) {
+            resetDialog()
+            statusLabel.text = "Gagal: " + errorMessage
+            statusLabel.color = Material.color(Material.Red)
+            statusLabel.visible = true
+        }
+    }
+
+    // Keyboard shortcuts
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
+            if (event.modifiers & Qt.ControlModifier) {
+                if (submitButton.enabled) {
+                    submitButton.clicked()
+                }
+            }
+        } else if (event.key === Qt.Key_Escape) {
+            if (cancelButton.enabled) {
+                cancelButton.clicked()
+            }
+        }
     }
 }

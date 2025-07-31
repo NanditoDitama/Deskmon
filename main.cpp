@@ -30,6 +30,7 @@ int main(int argc, char *argv[])
         logger.logout();
     });
 
+    bool isEarlyLeaveDialogShown = false;
 
 
     // Setup system tray
@@ -67,16 +68,7 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine *engine = nullptr;
     QQuickWindow *qmlWindow = nullptr;
 
-    // Fungsi untuk menampilkan dialog alasan keluar lebih awal
-    auto showEarlyLeaveDialog = [&]() {
-        if (qmlWindow) { // Pastikan window utama sudah ada
-            QMetaObject::invokeMethod(qmlWindow, "showEarlyLeaveDialog");
-        } else {
-            qWarning() << "Main window is not available to show the dialog. Quitting as a fallback.";
-            // Jika window tidak ada, kita tidak bisa menampilkan dialog, jadi langsung keluar.
-            app.quit();
-        }
-    };
+
     // Function to show QML window
     auto showQmlWindow = [&]() {
         if (!engine) {
@@ -104,12 +96,26 @@ int main(int argc, char *argv[])
 
         if (qmlWindow) {
             // Pastikan jendela tidak minimized
+
             qmlWindow->showMaximized();
             qmlWindow->raise();
             qmlWindow->requestActivate(); // Perbaikan: Ganti setActiveWindow
             qDebug() << "QML window shown, state:" << qmlWindow->windowState();
         } else {
             qWarning() << "qmlWindow is null, cannot show window";
+        }
+    };
+    // Fungsi untuk menampilkan dialog alasan keluar lebih awal
+    auto showEarlyLeaveDialog = [&]() {
+        if (qmlWindow) { // Pastikan window utama sudah ada
+            isEarlyLeaveDialogShown = true;  // ===== TAMBAHKAN BARIS INI =====
+            showQmlWindow();  // ===== TAMBAHKAN BARIS INI =====
+            QMetaObject::invokeMethod(qmlWindow, "showEarlyLeaveDialog");
+
+        } else {
+            qWarning() << "Main window is not available to show the dialog. Quitting as a fallback.";
+            // Jika window tidak ada, kita tidak bisa menampilkan dialog, jadi langsung keluar.
+            app.quit();
         }
     };
 
@@ -149,6 +155,12 @@ int main(int argc, char *argv[])
     });
 
     auto quitApplication = [&]() {
+        if (isEarlyLeaveDialogShown) {
+            // Jika dialog sudah ditampilkan, buka aplikasi
+            qDebug() << "Early leave dialog already shown, opening application";
+            showQmlWindow();
+            return;
+        }
         if (logger.workTimeElapsedSeconds() < logger.totalWorkSeconds()) {
             qDebug() << "Work time is less than required. Showing reason dialog.";
             showEarlyLeaveDialog();

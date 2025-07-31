@@ -344,7 +344,7 @@ void Logger::submitEarlyLeaveReason(const QString &reason)
     // 1. Pastikan pengguna sudah login dan memiliki token
     if (m_currentUserId == -1 || m_authToken.isEmpty()) {
         qWarning() << "Cannot submit reason: No user logged in or no auth token.";
-        // Bahkan jika API gagal, kita harus izinkan aplikasi untuk keluar.
+        // Jika tidak ada user/token, langsung keluar tanpa API call
         emit earlyLeaveReasonSubmitted();
         return;
     }
@@ -352,10 +352,9 @@ void Logger::submitEarlyLeaveReason(const QString &reason)
     // 2. Siapkan payload JSON
     QJsonObject payload;
     payload["user_id"] = m_currentUserId;
-    payload["alasan"] = reason; // "alasan" berarti "reason"
+    payload["alasan"] = reason;
 
     // 3. Siapkan network request
-    // !!! PENTING: Ganti dengan endpoint API Anda yang sebenarnya !!!
     QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/send-alasan"));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
@@ -365,18 +364,63 @@ void Logger::submitEarlyLeaveReason(const QString &reason)
     // 4. Kirim request POST
     QNetworkReply* reply = m_networkManager->post(request, QJsonDocument(payload).toJson());
 
-    // 5. Tangani response secara asynchronous
+    // 5. Handle timeout (30 detik)
+    QTimer::singleShot(30000, reply, &QNetworkReply::abort);
+
+    // 6. Tangani response secara asynchronous
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-        if (reply->error() == QNetworkReply::NoError) {
-            qDebug() << "Early leave reason sent successfully. Response:" << reply->readAll();
+        QByteArray responseData = reply->readAll();
+        QString responseText = QString::fromUtf8(responseData);
+
+        bool shouldQuit = false;
+        QString errorMessage;
+
+        // Cek network error terlebih dahulu
+        if (reply->error() != QNetworkReply::NoError) {
+            errorMessage = "Koneksi gagal, silahkan coba lagi.\nError: " + reply->errorString();
         } else {
-            qWarning() << "Failed to send early leave reason:" << reply->errorString();
+            // Parse JSON response
+            QJsonParseError parseError;
+            QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
+
+            if (parseError.error != QJsonParseError::NoError) {
+                errorMessage = "Koneksi gagal, silahkan coba lagi.\nInvalid response format.";
+            } else if (jsonDoc.isObject()) {
+                QJsonObject jsonObj = jsonDoc.object();
+
+                if (jsonObj.contains("success") && jsonObj["success"].isBool()) {
+                    bool success = jsonObj["success"].toBool();
+                    if (success) {
+                        shouldQuit = true;
+                        qDebug() << "Early leave reason sent successfully. Response:" << responseText;
+                    } else {
+                        // success: false - tampilkan pesan error dari server jika ada
+                        QString serverMessage = jsonObj.value("message").toString();
+                        if (serverMessage.isEmpty()) {
+                            errorMessage = "Koneksi gagal, silahkan coba lagi.";
+                        } else {
+                            errorMessage = "Gagal: " + serverMessage + "\nSilahkan coba lagi.";
+                        }
+                    }
+                } else {
+                    errorMessage = "Koneksi gagal, silahkan coba lagi.\nNo success field in response.";
+                }
+            } else {
+                errorMessage = "Koneksi gagal, silahkan coba lagi.\nInvalid JSON response.";
+            }
         }
+
         reply->deleteLater();
 
-        // 6. PENTING: Pancarkan sinyal untuk mengizinkan aplikasi keluar,
-        // terlepas dari apakah panggilan API berhasil atau gagal.
-        emit earlyLeaveReasonSubmitted();
+        if (shouldQuit) {
+            // Berhasil - emit signal untuk quit aplikasi
+            emit earlyLeaveReasonSubmitted();
+        } else {
+            // Gagal - tampilkan MessageBox dan tetap di dialog
+            QMessageBox::warning(nullptr, "Submit Gagal", errorMessage);
+            // Tidak emit earlyLeaveReasonSubmitted() - aplikasi tidak akan quit
+            // User bisa mencoba lagi atau menutup dialog secara manual
+        }
     });
 }
 void Logger::logout()
@@ -2737,15 +2781,21 @@ void Logger::sendPing(int taskId)
     connect(reply, &QNetworkReply::finished, [this, reply]() {
         QByteArray responseData = reply->readAll();
         QString responseText = QString::fromUtf8(responseData);
-
         QJsonParseError parseError;
         QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
 
         bool showPopup = false;
         QString popupMessage;
         bool refreshRequired = false;
+        bool isSuccess = false;  // Flag untuk melacak apakah response sukses
 
-        if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
+        // Cek network error terlebih dahulu
+        if (reply->error() != QNetworkReply::NoError) {
+            showPopup = true;
+            popupMessage = "Network error:\n" + reply->errorString();
+        }
+        // Jika tidak ada network error, parse JSON response
+        else if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
             QJsonObject jsonObj = jsonDoc.object();
 
             if (jsonObj.contains("refresh_required") && jsonObj["refresh_required"].toBool()) {
@@ -2759,6 +2809,7 @@ void Logger::sendPing(int taskId)
                     showPopup = true;
                     popupMessage = "API returned error:\n\n" + responseText;
                 } else {
+                    isSuccess = true;
                     qDebug() << "Success response from server:" << responseText;
                 }
             } else {
@@ -2770,13 +2821,20 @@ void Logger::sendPing(int taskId)
             popupMessage = "Failed to parse JSON response:\n\n" + responseText;
         }
 
-        if (reply->error() != QNetworkReply::NoError) {
-            showPopup = true;
-            popupMessage = "Network error:\n" + reply->errorString();
+        // Logic untuk menampilkan popup dengan pembatasan
+        if (showPopup && !m_errorPopupShown) {
+            // Tampilkan popup error hanya jika belum pernah ditampilkan
+            QMessageBox::warning(nullptr, "API Connection Error", popupMessage);
+            m_errorPopupShown = true;  // Set flag bahwa popup sudah ditampilkan
+        } else if (isSuccess && m_errorPopupShown) {
+            // Jika response sukses dan sebelumnya ada error, reset flag
+            m_errorPopupShown = false;
+            qDebug() << "Connection restored - error popup flag reset";
         }
 
+        // Log error ke console meskipun popup tidak ditampilkan
         if (showPopup) {
-            QMessageBox::warning(nullptr, "API Response", popupMessage);
+            qWarning() << "Ping error (popup suppressed):" << popupMessage;
         }
 
         if (refreshRequired) {
