@@ -266,7 +266,7 @@ private:
 
     QTimer m_taskRefreshTimer;
     QTimer m_apiWorkTimeTimer;
-
+    bool m_errorPopupShown = false;
 
 
 
