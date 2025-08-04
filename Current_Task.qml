@@ -459,7 +459,7 @@ Item {
                                 Layout.preferredHeight: 12
                                 radius: 16
                                 color: menuMouseArea.containsMouse ? Qt.rgba(0, 0, 0, 0.1) : "transparent"
-                                visible: !(delegateRoot.isReview || delegateRoot.isNeedReview || delegateRoot.isNeedRevise)
+                                visible: !(delegateRoot.isReview || delegateRoot.isNeedReview)
 
                                 Rectangle {
                                     anchors.centerIn: parent

@@ -2642,6 +2642,10 @@ void Logger::setActiveTask(int taskId)
         //     sendPausePlayDataToAPI(m_activeTaskId, startTime, currentTime, "pause");
         // }
 
+        if (!m_isTaskPaused) {
+            toggleTaskPause();
+        }
+
     }
 
     // Jika taskId valid, set tugas baru
@@ -2706,6 +2710,7 @@ void Logger::setActiveTask(int taskId)
                 logQuery.addBindValue(taskId);
                 logQuery.addBindValue(newTime);
                 logQuery.exec();
+                sendPing(m_activeTaskId);
 
 
                 // Emit signals

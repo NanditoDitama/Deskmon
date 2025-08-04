@@ -111,17 +111,6 @@ void IdleChecker::checkIdleTime()
         qDebug() << "Idle check skipped: user not logged in";
         return;
     }
-    // Skip checking if tracking is not active or task is paused
-    if (m_logger && (!m_logger->isTrackingActive() || m_logger->isTaskPaused())) {
-        // Ensure idle state is reset when paused or tracking is off
-        if (m_isIdle) {
-            m_isIdle = false;
-            m_lastIdleLogTime = 0;
-            m_lastActiveTime = 0;
-            qDebug() << "Idle checking stopped due to pause or tracking inactive";
-        }
-        return;
-    }
 
     qint64 currentTime = QDateTime::currentSecsSinceEpoch();
 
@@ -136,7 +125,12 @@ void IdleChecker::checkIdleTime()
         return;
     }
 
+    // PERBAIKAN: Cek kondisi tracking/pause SETELAH mendapatkan idle time
+    // Ini memungkinkan penanganan transisi dari idle ke aktif
+    bool shouldSkipDueToState = m_logger && (!m_logger->isTrackingActive() || m_logger->isTaskPaused());
+
     if (idleTime >= m_idleThreshold) {
+        // User sedang idle
         if (!m_isIdle) {
             // Newly idle
             m_lastActiveTime = currentTime - idleTime;
@@ -146,17 +140,21 @@ void IdleChecker::checkIdleTime()
             emit showIdleNotification("Idle Terdeteksi");
             qDebug() << "Sent idle notification: You have been idle";
 
-            // === PERUBAHAN DIMULAI DI SINI ===
-            // Secara otomatis menjeda tugas yang aktif jika pengguna menjadi idle
+            // Auto-pause task ketika idle
             if (m_logger && !m_logger->isTaskPaused()) {
                 qDebug() << "Idle state detected. Automatically pausing the active task.";
                 m_logger->toggleTaskPause();
             }
-            // === PERUBAHAN SELESAI ===
 
             if (m_logger) {
                 m_logger->stopPingTimer();
             }
+        }
+
+        // Skip logging jika tracking tidak aktif atau task di-pause manual
+        if (shouldSkipDueToState) {
+            qDebug() << "Idle logging skipped due to tracking state";
+            return;
         }
 
         // Log idle every 60 seconds while idle
@@ -169,21 +167,38 @@ void IdleChecker::checkIdleTime()
             qDebug() << "Logged idle period, duration:" << durationText;
         }
     } else {
+        // User sedang aktif
         if (m_isIdle) {
-            // Returning from idle
+            // Returning from idle - SELALU JALANKAN BAGIAN INI
+            qDebug() << "Detecting return from idle state";
+
             if (currentTime > m_lastIdleLogTime) {
                 emit idleDetected(m_lastIdleLogTime, currentTime);
                 qDebug() << "Logged final idle period, ended at:" << QDateTime::fromSecsSinceEpoch(currentTime).toString();
             }
 
+            // Auto-resume task ketika kembali aktif
+            if (m_logger && m_logger->isTaskPaused()) {
+                qDebug() << "Returned from idle. Automatically resuming the active task.";
+                m_logger->toggleTaskPause();
+            }
+
+            // Start ping timer (pastikan ini dijalankan)
             if (m_logger) {
+                qDebug() << "Starting ping timer after returning from idle";
                 m_logger->startPingTimer();
             }
 
             m_isIdle = false;
             m_lastIdleLogTime = 0;
             m_lastActiveTime = 0;
-            qDebug() << "Returned from idle";
+            qDebug() << "Returned from idle - state reset complete";
+        }
+
+        // Setelah menangani transisi idle, cek apakah harus skip
+        if (shouldSkipDueToState) {
+            qDebug() << "Further processing skipped due to tracking state";
+            return;
         }
     }
 }
