@@ -267,6 +267,9 @@ private:
     QTimer m_taskRefreshTimer;
     QTimer m_apiWorkTimeTimer;
     bool m_errorPopupShown = false;
+    QString m_lastErrorCategory;  // <-- Ganti dari m_lastErrorHash
+    qint64 m_lastErrorTime = 0;   // <-- Tambahkan ini
+    QMessageBox* m_currentErrorDialog = nullptr;
 
 
 

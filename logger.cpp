@@ -2782,66 +2782,148 @@ void Logger::sendPing(int taskId)
     // Handle timeout (30 detik)
     QTimer::singleShot(30000, reply, &QNetworkReply::abort);
 
-    // Handle response (sisa kode tetap sama)
+    // Handle response
     connect(reply, &QNetworkReply::finished, [this, reply]() {
         QByteArray responseData = reply->readAll();
         QString responseText = QString::fromUtf8(responseData);
         QJsonParseError parseError;
         QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
 
-        bool showPopup = false;
-        QString popupMessage;
+        bool hasError = false;
+        QString errorMessage;
         bool refreshRequired = false;
-        bool isSuccess = false;  // Flag untuk melacak apakah response sukses
+        bool isSuccessResponse = false;
 
         // Cek network error terlebih dahulu
         if (reply->error() != QNetworkReply::NoError) {
-            showPopup = true;
-            popupMessage = "Network error:\n" + reply->errorString();
+            hasError = true;
+            errorMessage = "Network error: " + reply->errorString();
+            qWarning() << "Network error in ping:" << reply->errorString();
         }
         // Jika tidak ada network error, parse JSON response
         else if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
             QJsonObject jsonObj = jsonDoc.object();
 
+            // Cek refresh requirement
             if (jsonObj.contains("refresh_required") && jsonObj["refresh_required"].toBool()) {
                 refreshRequired = true;
                 qDebug() << "Server requested application refresh";
             }
 
+            // Cek success status
             if (jsonObj.contains("success") && jsonObj["success"].isBool()) {
                 bool success = jsonObj["success"].toBool();
                 if (!success) {
-                    showPopup = true;
-                    popupMessage = "API returned error:\n\n" + responseText;
+                    hasError = true;
+                    // Ambil pesan error dari server jika ada
+                    if (jsonObj.contains("message")) {
+                        errorMessage = "Server error: " + jsonObj["message"].toString();
+                    } else {
+                        errorMessage = "Server returned error (no message provided)";
+                    }
+                    qWarning() << "API error:" << errorMessage;
                 } else {
-                    isSuccess = true;
-                    qDebug() << "Success response from server:" << responseText;
+                    isSuccessResponse = true;
+                    qDebug() << "Ping successful:" << responseText;
                 }
             } else {
-                showPopup = true;
-                popupMessage = "Invalid response format (no 'success' field):\n\n" + responseText;
+                hasError = true;
+                errorMessage = "Invalid response format: missing 'success' field";
+                qWarning() << "Invalid API response:" << responseText;
             }
         } else {
-            showPopup = true;
-            popupMessage = "Failed to parse JSON response:\n\n" + responseText;
+            hasError = true;
+            errorMessage = "Failed to parse server response";
+            qWarning() << "JSON parse error:" << parseError.errorString() << "Response:" << responseText;
         }
 
-        // Logic untuk menampilkan popup dengan pembatasan
-        if (showPopup && !m_errorPopupShown) {
-            // Tampilkan popup error hanya jika belum pernah ditampilkan
-            QMessageBox::warning(nullptr, "API Connection Error", popupMessage);
-            m_errorPopupShown = true;  // Set flag bahwa popup sudah ditampilkan
-        } else if (isSuccess && m_errorPopupShown) {
-            // Jika response sukses dan sebelumnya ada error, reset flag
+        // **LOGIKA POPUP ERROR - DENGAN AUTO CLOSE**
+        if (isSuccessResponse) {
+            // Jika sukses, tutup popup yang masih terbuka dan reset flag
+            if (m_errorPopupShown && m_currentErrorDialog) {
+                m_currentErrorDialog->close();
+                m_currentErrorDialog = nullptr;
+                qDebug() << "✅ Connection restored - error popup closed automatically";
+            }
+
+            // Reset semua flag error
             m_errorPopupShown = false;
-            qDebug() << "Connection restored - error popup flag reset";
+            m_lastErrorCategory.clear();
+            m_lastErrorTime = 0;
+            qDebug() << "✅ All error popup flags reset";
+        }
+        else if (hasError) {
+            // Tentukan kategori error
+            QString errorCategory = "unknown";
+            if (errorMessage.contains("Network error")) {
+                errorCategory = "network";
+            } else if (errorMessage.contains("Server error")) {
+                errorCategory = "server";
+            } else if (errorMessage.contains("Invalid response")) {
+                errorCategory = "format";
+            }
+
+            // Waktu sekarang dalam milidetik
+            qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
+
+            qDebug() << "🔍 Error detected:"
+                     << "Category:" << errorCategory
+                     << "Last category:" << m_lastErrorCategory
+                     << "Time since last:" << (currentTime - m_lastErrorTime) << "ms"
+                     << "Popup shown before:" << m_errorPopupShown;
+
+            // Tampilkan popup jika:
+            // 1. Belum pernah ditampilkan popup error ATAU
+            // 2. Kategori error berbeda ATAU
+            // 3. Sudah lebih dari 60 detik sejak popup terakhir (untuk error yang sama)
+            bool shouldShowPopup = false;
+
+            if (!m_errorPopupShown) {
+                shouldShowPopup = true;
+                qDebug() << "📝 First error - will show popup";
+            } else if (m_lastErrorCategory != errorCategory) {
+                shouldShowPopup = true;
+                qDebug() << "📝 Different error category - will show popup";
+            } else if ((currentTime - m_lastErrorTime) > 60000) { // 60 detik
+                shouldShowPopup = true;
+                qDebug() << "📝 Same error but timeout exceeded - will show popup";
+            } else {
+                qDebug() << "🔇 Same error within timeout - popup suppressed";
+            }
+
+            if (shouldShowPopup) {
+                // Create QMessageBox dan simpan referensinya untuk bisa ditutup nanti
+                QTimer::singleShot(0, [this, errorMessage]() {
+                    // Tutup popup lama jika masih ada
+                    if (m_currentErrorDialog) {
+                        m_currentErrorDialog->close();
+                        m_currentErrorDialog = nullptr;
+                    }
+
+                    // Buat popup baru
+                    m_currentErrorDialog = new QMessageBox(QMessageBox::Warning,
+                                                           "API Connection Error",
+                                                           errorMessage,
+                                                           QMessageBox::Ok,
+                                                           nullptr);
+
+                    // Handle ketika user menutup popup manual
+                    connect(m_currentErrorDialog, &QMessageBox::finished, [this]() {
+                        m_currentErrorDialog = nullptr;
+                    });
+
+                    // Tampilkan popup
+                    m_currentErrorDialog->show();
+                });
+
+                m_errorPopupShown = true;
+                m_lastErrorCategory = errorCategory;
+                m_lastErrorTime = currentTime;
+                qDebug() << "❌ Error popup scheduled for:" << errorMessage;
+            }
         }
 
-        // Log error ke console meskipun popup tidak ditampilkan
-        if (showPopup) {
-            qWarning() << "Ping error (popup suppressed):" << popupMessage;
-        }
-
+        // Handle refresh requirement
         if (refreshRequired) {
             qDebug() << "Performing application refresh as requested by server";
             this->refreshAll();

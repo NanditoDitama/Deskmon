@@ -24,6 +24,7 @@ private slots:
     void checkIdleTime();
 private:
     qint64 getSystemIdleTime() const;
+    bool m_autoPausedByIdle = false;
 
 #ifdef Q_OS_WIN
     qint64 getSystemIdleTimeWindows() const;
@@ -39,5 +40,6 @@ private:
     qint64 m_lastThresholdCheckTime = 0; // Waktu terakhir pemeriksaan threshold
     bool m_isIdle = false;
     Logger* m_logger;
+
 };
 #endif
