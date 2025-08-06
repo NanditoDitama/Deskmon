@@ -271,7 +271,7 @@ private:
     qint64 m_lastErrorTime = 0;   // <-- Tambahkan ini
     QMessageBox* m_currentErrorDialog = nullptr;
 
-
+    QString m_lastShownPingError;
 
 
 #ifdef Q_OS_WIN

@@ -102,6 +102,8 @@ Logger::Logger(QObject *parent) : QObject(parent)
     connect(&m_taskRefreshTimer, &QTimer::timeout, this, &Logger::refreshTasks);
     m_taskRefreshTimer.start();
 
+    m_lastShownPingError.clear();
+
 
 }
 Logger::~Logger()
@@ -261,6 +263,7 @@ void Logger::refreshAll()
     fetchWorkTimeFromAPI();
     // 3. Perbarui info jendela yang sedang aktif.
     logActiveWindow();
+    syncActiveTask();
 
     // 4. Pancarkan sinyal untuk memberitahu UI agar memperbarui tampilannya.
     emit taskListChanged();
@@ -604,11 +607,10 @@ void Logger::initializeProductivityDatabase()
                     "task TEXT NOT NULL, "
                     "max_time INTEGER NOT NULL, "
                     "time_usage INTEGER NOT NULL, "
-                    "completed_time INTEGER NOT NULL)"
+                    "completed_time INTEGER NOT NULL, "
                     "user_id INTEGER NOT NULL)")) {
         qWarning() << "Failed to create completed_tasks table:" << query.lastError().text();
     }
-    // Di logger.cpp - fungsi initializeProductivityDatabase()
     if (!query.exec("CREATE TABLE IF NOT EXISTS idle_settings ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "threshold_seconds INTEGER)")) {
@@ -617,7 +619,7 @@ void Logger::initializeProductivityDatabase()
     if (!query.exec("CREATE TABLE IF NOT EXISTS log_paused ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "task_id INTEGER NOT NULL, "
-                    "start_reality TEXT NOT NULL, "  // ISO 8601 format: 'YYYY-MM-DDTHH:MM:SS.SSSSSSZ'
+                    "start_reality TEXT NOT NULL, "
                     "end_reality TEXT, "
                     "current_status TEXT NOT NULL, "  // 'pause' or 'play'
                     "FOREIGN KEY(task_id) REFERENCES task(id))")) {
@@ -1267,7 +1269,7 @@ void Logger::sendProductiveTimeToAPI()
     }
 
     int productiveSeconds = calculateTodayProductiveSeconds();
-    qDebug() << "Sending productive time:" << productiveSeconds << "seconds";
+
 
     QJsonObject payload;
     payload["user_id"] = m_currentUserId;
@@ -2599,6 +2601,11 @@ void Logger::migrateProductivityDatabase()
 
 void Logger::setActiveTask(int taskId)
 {
+    if (taskId == m_activeTaskId && !m_isTaskPaused) {
+        qDebug() << "Task" << taskId << "is already active and running. No action needed.";
+        return;
+    }
+
     if (!ensureProductivityDatabaseOpen()) {
         qWarning() << "Cannot set active task: Database is not open";
         return;
@@ -2783,150 +2790,60 @@ void Logger::sendPing(int taskId)
     QTimer::singleShot(30000, reply, &QNetworkReply::abort);
 
     // Handle response
-    connect(reply, &QNetworkReply::finished, [this, reply]() {
-        QByteArray responseData = reply->readAll();
-        QString responseText = QString::fromUtf8(responseData);
-        QJsonParseError parseError;
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        QString currentError; // Variabel untuk menyimpan error pada ping kali ini
 
-        bool hasError = false;
-        QString errorMessage;
-        bool refreshRequired = false;
-        bool isSuccessResponse = false;
-
-        // Cek network error terlebih dahulu
+        // 1. Cek dulu error koneksi jaringan (paling umum)
         if (reply->error() != QNetworkReply::NoError) {
-            hasError = true;
-            errorMessage = "Network error: " + reply->errorString();
-            qWarning() << "Network error in ping:" << reply->errorString();
-        }
-        // Jika tidak ada network error, parse JSON response
-        else if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
-            QJsonObject jsonObj = jsonDoc.object();
+            currentError = "Koneksi ke server gagal. Periksa jaringan internet Anda.";
+            qWarning() << "Ping network error:" << reply->errorString();
+        } else {
+            // 2. Jika koneksi berhasil, periksa respons dari server
+            QByteArray responseData = reply->readAll();
+            QJsonParseError parseError;
+            QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
 
-            // Cek refresh requirement
-            if (jsonObj.contains("refresh_required") && jsonObj["refresh_required"].toBool()) {
-                refreshRequired = true;
-                qDebug() << "Server requested application refresh";
-            }
-
-            // Cek success status
-            if (jsonObj.contains("success") && jsonObj["success"].isBool()) {
-                bool success = jsonObj["success"].toBool();
-                if (!success) {
-                    hasError = true;
-                    // Ambil pesan error dari server jika ada
-                    if (jsonObj.contains("message")) {
-                        errorMessage = "Server error: " + jsonObj["message"].toString();
-                    } else {
-                        errorMessage = "Server returned error (no message provided)";
-                    }
-                    qWarning() << "API error:" << errorMessage;
-                } else {
-                    isSuccessResponse = true;
-                    qDebug() << "Ping successful:" << responseText;
-                }
+            if (parseError.error != QJsonParseError::NoError) {
+                currentError = "Gagal membaca respons dari server.";
+                qWarning() << "Ping JSON parse error:" << parseError.errorString();
             } else {
-                hasError = true;
-                errorMessage = "Invalid response format: missing 'success' field";
-                qWarning() << "Invalid API response:" << responseText;
+                QJsonObject jsonObj = jsonDoc.object();
+                // 3. Cek jika server merespons "success: false"
+                if (jsonObj.contains("success") && !jsonObj["success"].toBool()) {
+                    QString serverMessage = jsonObj.value("message").toString("Terjadi masalah pada server.");
+                    currentError = "API Error: " + serverMessage;
+                    qWarning() << "Ping API error:" << serverMessage;
+                }
+            }
+        }
+
+        // --- Logika Inti untuk Mengontrol Pop-up ---
+        if (!currentError.isEmpty()) {
+            // Jika ada error terdeteksi...
+            // Cek apakah error ini berbeda dari error terakhir yang ditampilkan
+            if (currentError != m_lastShownPingError) {
+                // Ini adalah error baru! Tampilkan pop-up.
+                QMessageBox::warning(nullptr, "Koneksi Bermasalah", currentError);
+                // Simpan error ini ke "memori" agar tidak ditampilkan lagi
+                m_lastShownPingError = currentError;
+            } else {
+                // Error yang sama terjadi lagi, abaikan pop-up (hanya log untuk debug)
+                qDebug() << "Suppressed repeated ping error:" << currentError;
             }
         } else {
-            hasError = true;
-            errorMessage = "Failed to parse server response";
-            qWarning() << "JSON parse error:" << parseError.errorString() << "Response:" << responseText;
-        }
-
-        // **LOGIKA POPUP ERROR - DENGAN AUTO CLOSE**
-        if (isSuccessResponse) {
-            // Jika sukses, tutup popup yang masih terbuka dan reset flag
-            if (m_errorPopupShown && m_currentErrorDialog) {
-                m_currentErrorDialog->close();
-                m_currentErrorDialog = nullptr;
-                qDebug() << "✅ Connection restored - error popup closed automatically";
+            // Ping berhasil dan tidak ada error!
+            // Jika sebelumnya ada error, kita reset "memori"
+            if (!m_lastShownPingError.isEmpty()) {
+                qDebug() << "Ping successful, connection restored. Clearing error state.";
+                m_lastShownPingError.clear(); // Hapus memori error
             }
 
-            // Reset semua flag error
-            m_errorPopupShown = false;
-            m_lastErrorCategory.clear();
-            m_lastErrorTime = 0;
-            qDebug() << "✅ All error popup flags reset";
-        }
-        else if (hasError) {
-            // Tentukan kategori error
-            QString errorCategory = "unknown";
-            if (errorMessage.contains("Network error")) {
-                errorCategory = "network";
-            } else if (errorMessage.contains("Server error")) {
-                errorCategory = "server";
-            } else if (errorMessage.contains("Invalid response")) {
-                errorCategory = "format";
+            // (Opsional) Tetap jalankan refresh jika diminta server
+            QJsonObject jsonObj = QJsonDocument::fromJson(reply->readAll()).object();
+            if (jsonObj.contains("refresh_required") && jsonObj["refresh_required"].toBool()) {
+                qDebug() << "Server requested application refresh";
+                this->refreshAll();
             }
-
-            // Waktu sekarang dalam milidetik
-            qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
-
-            qDebug() << "🔍 Error detected:"
-                     << "Category:" << errorCategory
-                     << "Last category:" << m_lastErrorCategory
-                     << "Time since last:" << (currentTime - m_lastErrorTime) << "ms"
-                     << "Popup shown before:" << m_errorPopupShown;
-
-            // Tampilkan popup jika:
-            // 1. Belum pernah ditampilkan popup error ATAU
-            // 2. Kategori error berbeda ATAU
-            // 3. Sudah lebih dari 60 detik sejak popup terakhir (untuk error yang sama)
-            bool shouldShowPopup = false;
-
-            if (!m_errorPopupShown) {
-                shouldShowPopup = true;
-                qDebug() << "📝 First error - will show popup";
-            } else if (m_lastErrorCategory != errorCategory) {
-                shouldShowPopup = true;
-                qDebug() << "📝 Different error category - will show popup";
-            } else if ((currentTime - m_lastErrorTime) > 60000) { // 60 detik
-                shouldShowPopup = true;
-                qDebug() << "📝 Same error but timeout exceeded - will show popup";
-            } else {
-                qDebug() << "🔇 Same error within timeout - popup suppressed";
-            }
-
-            if (shouldShowPopup) {
-                // Create QMessageBox dan simpan referensinya untuk bisa ditutup nanti
-                QTimer::singleShot(0, [this, errorMessage]() {
-                    // Tutup popup lama jika masih ada
-                    if (m_currentErrorDialog) {
-                        m_currentErrorDialog->close();
-                        m_currentErrorDialog = nullptr;
-                    }
-
-                    // Buat popup baru
-                    m_currentErrorDialog = new QMessageBox(QMessageBox::Warning,
-                                                           "API Connection Error",
-                                                           errorMessage,
-                                                           QMessageBox::Ok,
-                                                           nullptr);
-
-                    // Handle ketika user menutup popup manual
-                    connect(m_currentErrorDialog, &QMessageBox::finished, [this]() {
-                        m_currentErrorDialog = nullptr;
-                    });
-
-                    // Tampilkan popup
-                    m_currentErrorDialog->show();
-                });
-
-                m_errorPopupShown = true;
-                m_lastErrorCategory = errorCategory;
-                m_lastErrorTime = currentTime;
-                qDebug() << "❌ Error popup scheduled for:" << errorMessage;
-            }
-        }
-
-        // Handle refresh requirement
-        if (refreshRequired) {
-            qDebug() << "Performing application refresh as requested by server";
-            this->refreshAll();
         }
 
         reply->deleteLater();

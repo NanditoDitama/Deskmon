@@ -8,7 +8,7 @@ import QtQuick.Window
 
 ApplicationWindow {
     id: window
-    title: qsTr("Deskmon")
+    title: qsTr("Deskmon - v1.0.1.5")
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 900
