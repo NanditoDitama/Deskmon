@@ -17,6 +17,7 @@
 #include <QBuffer>
 #include <QRegularExpression>
 #include <QMessageBox>
+#include <QApplication>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -35,7 +36,78 @@
 #include <IOKit/IOKitLib.h>
 #include <IOKit/IOKitKeys.h>
 #include <IOKit/IOKitLib.h>
+#elif defined(Q_OS_LINUX)
+// X11 and desktop environment
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/Xatom.h>
+#include <X11/extensions/Xrandr.h>
+#include <X11/extensions/shape.h>
 
+// System and process management
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <sys/utsname.h>
+#include <sys/sysinfo.h>
+#include <sys/statvfs.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <pwd.h>
+#include <grp.h>
+
+// File and directory operations
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+
+// GTK/GLib (if using GTK integration)
+#ifdef HAVE_GTK
+#include <gtk/gtk.h>
+#include <gio/gio.h>
+#include <glib.h>
+#endif
+
+// D-Bus (for desktop notifications and system integration)
+#ifdef HAVE_DBUS
+#include <dbus/dbus.h>
+#endif
+
+// For desktop file handling and MIME types
+#include <magic.h>
+#include <mntent.h>
+
+// Network and system info
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+// Memory and CPU info
+#include <sys/resource.h>
+#include <sys/times.h>
+
+// For file system monitoring (inotify)
+#include <sys/inotify.h>
+
+// Audio system (if needed)
+#ifdef HAVE_PULSEAUDIO
+#include <pulse/pulseaudio.h>
+#endif
+
+#ifdef HAVE_ALSA
+#include <alsa/asoundlib.h>
+#endif
+
+// Threading
+#include <pthread.h>
+
+// Standard C libraries commonly used on Linux
+#include <cstdlib>
+#include <cstring>
+#include <cerrno>
+#include <climits>
 #else
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -2790,60 +2862,150 @@ void Logger::sendPing(int taskId)
     QTimer::singleShot(30000, reply, &QNetworkReply::abort);
 
     // Handle response
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-        QString currentError; // Variabel untuk menyimpan error pada ping kali ini
+    connect(reply, &QNetworkReply::finished, [this, reply]() {
+        QByteArray responseData = reply->readAll();
+        QString responseText = QString::fromUtf8(responseData);
+        QJsonParseError parseError;
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
 
-        // 1. Cek dulu error koneksi jaringan (paling umum)
+        bool hasError = false;
+        QString errorMessage;
+        bool refreshRequired = false;
+        bool isSuccessResponse = false;
+
+        // Cek network error terlebih dahulu
         if (reply->error() != QNetworkReply::NoError) {
-            currentError = "Koneksi ke server gagal. Periksa jaringan internet Anda.";
-            qWarning() << "Ping network error:" << reply->errorString();
-        } else {
-            // 2. Jika koneksi berhasil, periksa respons dari server
-            QByteArray responseData = reply->readAll();
-            QJsonParseError parseError;
-            QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
+            hasError = true;
+            errorMessage = "Network error: " + reply->errorString();
+            qWarning() << "Network error in ping:" << reply->errorString();
+        }
+        // Jika tidak ada network error, parse JSON response
+        else if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
+            QJsonObject jsonObj = jsonDoc.object();
 
-            if (parseError.error != QJsonParseError::NoError) {
-                currentError = "Gagal membaca respons dari server.";
-                qWarning() << "Ping JSON parse error:" << parseError.errorString();
-            } else {
-                QJsonObject jsonObj = jsonDoc.object();
-                // 3. Cek jika server merespons "success: false"
-                if (jsonObj.contains("success") && !jsonObj["success"].toBool()) {
-                    QString serverMessage = jsonObj.value("message").toString("Terjadi masalah pada server.");
-                    currentError = "API Error: " + serverMessage;
-                    qWarning() << "Ping API error:" << serverMessage;
+            // Cek refresh requirement
+            if (jsonObj.contains("refresh_required") && jsonObj["refresh_required"].toBool()) {
+                refreshRequired = true;
+                qDebug() << "Server requested application refresh";
+            }
+
+            // Cek success status
+            if (jsonObj.contains("success") && jsonObj["success"].isBool()) {
+                bool success = jsonObj["success"].toBool();
+                if (!success) {
+                    hasError = true;
+                    // Ambil pesan error dari server jika ada
+                    if (jsonObj.contains("message")) {
+                        errorMessage = "Server error: " + jsonObj["message"].toString();
+                    } else {
+                        errorMessage = "Server returned error (no message provided)";
+                    }
+                    qWarning() << "API error:" << errorMessage;
+                } else {
+                    isSuccessResponse = true;
+                    qDebug() << "Ping successful:" << responseText;
                 }
+            } else {
+                hasError = true;
+                errorMessage = "Invalid response format: missing 'success' field";
+                qWarning() << "Invalid API response:" << responseText;
+            }
+        } else {
+            hasError = true;
+            errorMessage = "Failed to parse server response";
+            qWarning() << "JSON parse error:" << parseError.errorString() << "Response:" << responseText;
+        }
+
+        // **LOGIKA POPUP ERROR - DENGAN AUTO CLOSE**
+        if (isSuccessResponse) {
+            // Jika sukses, tutup popup yang masih terbuka dan reset flag
+            if (m_errorPopupShown && m_currentErrorDialog) {
+                m_currentErrorDialog->close();
+                m_currentErrorDialog = nullptr;
+                qDebug() << "✅ Connection restored - error popup closed automatically";
+            }
+
+            // Reset semua flag error
+            m_errorPopupShown = false;
+            m_lastErrorCategory.clear();
+            m_lastErrorTime = 0;
+            qDebug() << "✅ All error popup flags reset";
+        }
+        else if (hasError) {
+            // Tentukan kategori error
+            QString errorCategory = "unknown";
+            if (errorMessage.contains("Network error")) {
+                errorCategory = "network";
+            } else if (errorMessage.contains("Server error")) {
+                errorCategory = "server";
+            } else if (errorMessage.contains("Invalid response")) {
+                errorCategory = "format";
+            }
+
+            // Waktu sekarang dalam milidetik
+            qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
+
+            qDebug() << "🔍 Error detected:"
+                     << "Category:" << errorCategory
+                     << "Last category:" << m_lastErrorCategory
+                     << "Time since last:" << (currentTime - m_lastErrorTime) << "ms"
+                     << "Popup shown before:" << m_errorPopupShown;
+
+            // Tampilkan popup jika:
+            // 1. Belum pernah ditampilkan popup error ATAU
+            // 2. Kategori error berbeda ATAU
+            // 3. Sudah lebih dari 60 detik sejak popup terakhir (untuk error yang sama)
+            bool shouldShowPopup = false;
+
+            if (!m_errorPopupShown) {
+                shouldShowPopup = true;
+                qDebug() << "📝 First error - will show popup";
+            } else if (m_lastErrorCategory != errorCategory) {
+                shouldShowPopup = true;
+                qDebug() << "📝 Different error category - will show popup";
+            } else if ((currentTime - m_lastErrorTime) > 60000) { // 60 detik
+                shouldShowPopup = true;
+                qDebug() << "📝 Same error but timeout exceeded - will show popup";
+            } else {
+                qDebug() << "🔇 Same error within timeout - popup suppressed";
+            }
+
+            if (shouldShowPopup) {
+                // Create QMessageBox dan simpan referensinya untuk bisa ditutup nanti
+                QTimer::singleShot(0, [this, errorMessage]() {
+                    // Tutup popup lama jika masih ada
+                    if (m_currentErrorDialog) {
+                        m_currentErrorDialog->close();
+                        m_currentErrorDialog = nullptr;
+                    }
+
+                    // Buat popup baru
+                    m_currentErrorDialog = new QMessageBox(QMessageBox::Warning,
+                                                           "API Connection Error",
+                                                           errorMessage,
+                                                           QMessageBox::Ok,
+                                                           nullptr);
+
+                    // Handle ketika user menutup popup manual
+                    connect(m_currentErrorDialog, &QMessageBox::finished, [this]() {
+                        m_currentErrorDialog = nullptr;
+                    });
+
+                    // Tampilkan popup
+                    m_currentErrorDialog->show();
+                });
+
+                m_errorPopupShown = true;
+                m_lastErrorCategory = errorCategory;
+                m_lastErrorTime = currentTime;
+                qDebug() << "❌ Error popup scheduled for:" << errorMessage;
             }
         }
 
-        // --- Logika Inti untuk Mengontrol Pop-up ---
-        if (!currentError.isEmpty()) {
-            // Jika ada error terdeteksi...
-            // Cek apakah error ini berbeda dari error terakhir yang ditampilkan
-            if (currentError != m_lastShownPingError) {
-                // Ini adalah error baru! Tampilkan pop-up.
-                QMessageBox::warning(nullptr, "Koneksi Bermasalah", currentError);
-                // Simpan error ini ke "memori" agar tidak ditampilkan lagi
-                m_lastShownPingError = currentError;
-            } else {
-                // Error yang sama terjadi lagi, abaikan pop-up (hanya log untuk debug)
-                qDebug() << "Suppressed repeated ping error:" << currentError;
-            }
-        } else {
-            // Ping berhasil dan tidak ada error!
-            // Jika sebelumnya ada error, kita reset "memori"
-            if (!m_lastShownPingError.isEmpty()) {
-                qDebug() << "Ping successful, connection restored. Clearing error state.";
-                m_lastShownPingError.clear(); // Hapus memori error
-            }
-
-            // (Opsional) Tetap jalankan refresh jika diminta server
-            QJsonObject jsonObj = QJsonDocument::fromJson(reply->readAll()).object();
-            if (jsonObj.contains("refresh_required") && jsonObj["refresh_required"].toBool()) {
-                qDebug() << "Server requested application refresh";
-                this->refreshAll();
-            }
+        // Handle refresh requirement
+        if (refreshRequired) {
+            qDebug() << "Performing application refresh as requested by server";
+            this->refreshAll();
         }
 
         reply->deleteLater();
@@ -3619,6 +3781,7 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
             loadWorkTimeData();
             startGlobalTimer();
             syncActiveTask();
+            checkForUpdates();
             fetchAndStoreTasks();
             m_usageReportTimer.start();
             m_isTrackingActive = true;
@@ -4238,6 +4401,81 @@ QString Logger::getProfileImagePath(const QString &username)
 
     qWarning() << "No user found with username:" << username;
     return "";
+}
+QString Logger::statusMessage() const
+{
+    return m_statusMessage;
+}
+
+// 2. Tambahkan implementasi fungsi utama
+void Logger::checkForUpdates()
+{
+    // Ganti dengan versi aplikasi Anda saat ini
+    const QString currentVersion = "1.0.2.2";
+
+    // Ganti dengan URL file version.json Anda di GitHub
+    QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");
+
+    qDebug() << "Mengecek update dari:" << url.toString();
+
+    QNetworkRequest request(url);
+    QNetworkReply *reply = m_networkManager->get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [=]() {
+        if (reply->error() != QNetworkReply::NoError) {
+            QString errorMsg = "Gagal mengecek update: " + reply->errorString();
+            emit showStatusMessage(errorMsg);
+            reply->deleteLater();
+            return;
+        }
+
+        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+        if (!doc.isObject()) {
+            qWarning() << "Format JSON update tidak valid.";
+            emit showStatusMessage("Format file update di server tidak valid.");
+            reply->deleteLater();
+            return;
+        }
+
+        QJsonObject obj = doc.object();
+        QString serverVersion = obj.value("version").toString();
+
+        // Logika perbandingan versi (sederhana)
+        if (serverVersion > currentVersion) {
+            qDebug() << "Update tersedia! Versi server:" << serverVersion;
+            QString notes = obj.value("releaseNotes").toString();
+
+            // Kirim sinyal ke QML bahwa update ditemukan
+            emit updateAvailable(serverVersion, notes);
+        } else {
+            qDebug() << "Aplikasi sudah versi terbaru.";
+            emit showStatusMessage("Aplikasi Anda sudah versi terbaru.");
+        }
+
+        reply->deleteLater();
+    });
+}
+
+void Logger::launchMaintenanceTool()
+{
+    // Dapatkan path dari direktori tempat aplikasi ini berjalan
+    QString appDir = QApplication::applicationDirPath();
+
+    // Buat path lengkap ke DeskmonTool.exe
+    QString maintenanceToolPath = QDir(appDir).filePath("DeskmonTool.exe");
+
+    qDebug() << "Mencari Maintenance Tool di:" << maintenanceToolPath;
+
+    if (!QFile::exists(maintenanceToolPath)) {
+        qWarning() << "DeskmonTool.exe tidak ditemukan!";
+        QMessageBox::critical(nullptr, "Error", "File update (DeskmonTool.exe) tidak ditemukan.");
+        return;
+    }
+
+    // Jalankan Maintenance Tool dan tutup aplikasi ini
+    qDebug() << "Menjalankan Maintenance Tool dan menutup aplikasi...";
+    QProcess::startDetached(maintenanceToolPath);
+    QApplication::quit();
 }
 
 Logger::WindowInfo Logger::getActiveWindowInfo()

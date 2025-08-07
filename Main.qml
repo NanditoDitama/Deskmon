@@ -8,10 +8,11 @@ import QtQuick.Window
 
 ApplicationWindow {
     id: window
-    title: qsTr("Deskmon - v1.0.1.5")
+    title: qsTr("Deskmon - v" + appVersion)
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 900
+    property string appVersion: "1.0.2.2"
 
     Rectangle {
         id: notification
@@ -185,7 +186,7 @@ ApplicationWindow {
         else {
             isDarkMode = Material.theme === Material.Dark
         }
-            window.visibility = Window.Maximized
+        window.visibility = Window.Maximized
 
     }
 
@@ -247,37 +248,37 @@ ApplicationWindow {
     }
 
     onPublic_curent_timeChanged: {
-            console.log("Max:", public_max_time, "Current:", public_curent_time)
+        console.log("Max:", public_max_time, "Current:", public_curent_time)
 
-            // Konversi ke menit
-            var maxMinutes = timeStringToMinutes(public_max_time)
-            var currentMinutes = timeStringToMinutes(public_curent_time)
-            var diffMinutes = maxMinutes - currentMinutes
+        // Konversi ke menit
+        var maxMinutes = timeStringToMinutes(public_max_time)
+        var currentMinutes = timeStringToMinutes(public_curent_time)
+        var diffMinutes = maxMinutes - currentMinutes
 
-            console.log("Selisih menit:", diffMinutes)
+        console.log("Selisih menit:", diffMinutes)
 
-            if (diffMinutes <= 0) {
+        if (diffMinutes <= 0) {
 
-                console.log ("chek 1", isPop_up_waktuhabis_open)
-                if(isPop_up_waktuhabis_open == false){
-                    warningWindowComponent.newText = "Waktu anda Sudah Habis"
-                    isPop_up_waktuhabis_open = true
-                    warningWindowComponent.show()
-                    console.log("Waktu sudah habis!")
-                }
-            }
-            else if(diffMinutes <= 10) {
-                console.log ("chek 2",isPop_up_waktuhabis_kurangdari_open)
-                if(isPop_up_waktuhabis_kurangdari_open == false){
-                    warningWindowComponent.newText = "Waktu tersisa kurang dari 10 menit!"
-                    isPop_up_waktuhabis_kurangdari_open = true
-                    warningWindowComponent.show()
-                    console.log("Waktu tersisa kurang dari 10 menit!")
-                }
-                // Tampilkan peringatan
-
+            console.log ("chek 1", isPop_up_waktuhabis_open)
+            if(isPop_up_waktuhabis_open == false){
+                warningWindowComponent.newText = "Waktu anda Sudah Habis"
+                isPop_up_waktuhabis_open = true
+                warningWindowComponent.show()
+                console.log("Waktu sudah habis!")
             }
         }
+        else if(diffMinutes <= 10) {
+            console.log ("chek 2",isPop_up_waktuhabis_kurangdari_open)
+            if(isPop_up_waktuhabis_kurangdari_open == false){
+                warningWindowComponent.newText = "Waktu tersisa kurang dari 10 menit!"
+                isPop_up_waktuhabis_kurangdari_open = true
+                warningWindowComponent.show()
+                console.log("Waktu tersisa kurang dari 10 menit!")
+            }
+            // Tampilkan peringatan
+
+        }
+    }
 
     function formatDuration(seconds) {
         if (seconds < 60) {
@@ -537,11 +538,11 @@ ApplicationWindow {
     }
 
     function showEarlyLeaveDialog() {
-            earlyLeaveReasonDialog.open();
-        }
+        earlyLeaveReasonDialog.open();
+    }
 
 
-        // TAMBAHKAN KOMPONEN DIALOG INI DI DALAM ApplicationWindow
+    // TAMBAHKAN KOMPONEN DIALOG INI DI DALAM ApplicationWindow
     Dialog {
         id: earlyLeaveReasonDialog
         title: "Alasan Keluar Lebih Awal"
@@ -736,7 +737,7 @@ ApplicationWindow {
                             text: reasonInput.text.length + "/" + reasonInput.maxLength
                             font.pixelSize: 10
                             color: reasonInput.text.length > reasonInput.maxLength * 0.9 ?
-                                   Material.color(Material.Red) : lightTextColor
+                                       Material.color(Material.Red) : lightTextColor
                             opacity: 0.6
                         }
                     }
@@ -777,7 +778,7 @@ ApplicationWindow {
                     background: Rectangle {
                         radius: 8
                         color: parent.pressed ? Qt.rgba(0, 0, 0, 0.1) :
-                               parent.hovered ? Qt.rgba(0, 0, 0, 0.05) : "transparent"
+                                                parent.hovered ? Qt.rgba(0, 0, 0, 0.05) : "transparent"
                         border.color: dividerColor
                         border.width: 1
 
@@ -805,9 +806,9 @@ ApplicationWindow {
                     background: Rectangle {
                         radius: 8
                         color: parent.enabled ?
-                               (parent.pressed ? Qt.darker(secondaryColor, 1.1) :
-                                parent.hovered ? Qt.lighter(secondaryColor, 1.1) : secondaryColor) :
-                               Qt.rgba(secondaryColor.r, secondaryColor.g, secondaryColor.b, 0.5)
+                                   (parent.pressed ? Qt.darker(secondaryColor, 1.1) :
+                                                     parent.hovered ? Qt.lighter(secondaryColor, 1.1) : secondaryColor) :
+                                   Qt.rgba(secondaryColor.r, secondaryColor.g, secondaryColor.b, 0.5)
 
                         Behavior on color {
                             ColorAnimation { duration: 150 }
@@ -1161,12 +1162,28 @@ ApplicationWindow {
                         color: "white"
                         opacity: 0.8
                     }
+                    Text {
+                        text: "Buka Deskmon Website↗"
+                        color: "green"
+                        font.underline: true
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Qt.openUrlExternally("https://deskmon.pranala-dt.co.id/")
+                        }
+                    }
 
                     Item { Layout.fillWidth: true }
 
                     Row {
+                        id: headerButtonsRow
                         spacing: 12
                         layoutDirection: Qt.RightToLeft
+
+                        property string update_newVersion: ""
+                        property string update_newReleaseNotes: ""
+                        property string update_newDownloadUrl: ""
 
                         // Dark mode toggle button
                         RoundButton {
@@ -1314,10 +1331,293 @@ ApplicationWindow {
                                 profileImagePath = ":/profilImage.png"
                             }
                         }
+
+                        Button {
+                            id: updateBtn
+                            text: "Cek Update"
+                            height: 40
+
+                            onClicked: logger.checkForUpdates()
+
+                            // Styling (sama seperti tombol lain)
+                            padding: 12; font { family: "Segoe UI"; pixelSize: 14; weight: Font.Medium }
+                            background: Rectangle { radius: 8; color: parent.hovered ? Qt.rgba(1,1,1,0.2) : "transparent"; border.color: Qt.rgba(1,1,1,0.3); border.width: 1 }
+                            contentItem: Text { text: parent.text; font: parent.font; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        }
+
+
+
+                    }
+                }
+                Label {
+                    id: statusLabel
+                    anchors.centerIn: parent // Tampilkan di tengah layar
+                    padding: 12
+                    text: "Ini adalah pesan status"
+                    visible: false // Awalnya sembunyi
+                    z: 9999 // Pastikan selalu di atas elemen lain
+
+                    background: Rectangle {
+                        color: Qt.rgba(0, 0, 0, 0.7) // Latar belakang gelap semi-transparan
+                        radius: 8
+                    }
+
+                    font.pixelSize: 16
+                    color: primaryColor
+
+                    // Animasi untuk muncul dan hilang dengan halus
+                    opacity: 0
+                    Behavior on opacity { NumberAnimation { duration: 300 } }
+                }
+
+                // 2. Timer untuk menyembunyikan Label setelah 3 detik
+                Timer {
+                    id: statusTimer
+                    interval: 3000 // 3 detik
+                    repeat: false
+                    onTriggered: {
+                        // Sembunyikan label dengan mengubah opacity-nya
+                        statusLabel.opacity = 0
                     }
                 }
             }
+            Connections {
+                target: logger
 
+                function onUpdateAvailable(version, releaseNotes, downloadUrl) {
+                    console.log("QML: Update tersedia!", version)
+
+                    // Simpan info ke properti yang sudah ada di header
+                    headerButtonsRow.update_newVersion = version
+                    headerButtonsRow.update_newReleaseNotes = releaseNotes
+
+                    // Buka dialog yang sudah kita siapkan
+                    updateDialog.open()
+                }
+
+                function onShowStatusMessage(message) {
+                    statusLabel.text = message    // Atur teks label
+                    statusLabel.visible = true    // Tampilkan label
+                    statusLabel.opacity = 1       // Set opacity agar terlihat
+                    statusTimer.restart()         // Mulai timer 3 detik
+                }
+            }
+
+            // Letakkan di level atas ApplicationWindow Anda
+
+            Dialog {
+                id: updateDialog
+                title: ""
+                modal: true
+                width: 480
+                height: 520
+                anchors.centerIn: parent
+
+                // Modern styling properties
+                background: Rectangle {
+                    color: "#1e1e1e"
+                    radius: 12
+                    border.width: 1
+                    border.color: "#3d3d3d"
+
+                    // Subtle gradient overlay
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        gradient: Gradient {
+                            GradientStop { position: 0.0; color: "#252525" }
+                            GradientStop { position: 1.0; color: "#1a1a1a" }
+                        }
+                        opacity: 0.8
+                    }
+                }
+
+                // Content container
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    color: "transparent"
+                    radius: 11
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 24
+                        spacing: 0
+
+                        // Header section
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 80
+
+                            Rectangle {
+                                width: 56
+                                height: 56
+                                radius: 12
+                                color: "#007ACC"
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                // Modern update icon using simple shapes
+                                Rectangle {
+                                    width: 24
+                                    height: 24
+                                    radius: 12
+                                    color: "#ffffff"
+                                    anchors.centerIn: parent
+
+                                    Rectangle {
+                                        width: 8
+                                        height: 8
+                                        radius: 4
+                                        color: "#007ACC"
+                                        anchors.centerIn: parent
+                                    }
+                                }
+                            }
+
+                            Column {
+                                anchors.left: parent.left
+                                anchors.leftMargin: 72
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 4
+
+                                Label {
+                                    text: "Pembaruan Tersedia"
+                                    font.pixelSize: 20
+                                    font.weight: Font.DemiBold
+                                    color: "#ffffff"
+                                }
+
+                                Label {
+                                    text: "Versi " + headerButtonsRow.update_newVersion
+                                    font.pixelSize: 14
+                                    color: "#007ACC"
+                                    font.weight: Font.Medium
+                                }
+                            }
+                        }
+
+                        // Separator line
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 1
+                            Layout.topMargin: 16
+                            Layout.bottomMargin: 20
+                            color: "#3d3d3d"
+                        }
+
+                        // Release notes section
+                        ScrollView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Layout.maximumHeight: 120
+                            clip: true
+
+                            background: Rectangle {
+                                color: "#2d2d2d"
+                                radius: 8
+                                border.width: 1
+                                border.color: "#404040"
+                            }
+
+                            Label {
+                                width: parent.width
+                                text: headerButtonsRow.update_newReleaseNotes
+                                wrapMode: Text.Wrap
+                                font.pixelSize: 13
+                                color: "#cccccc"
+                                lineHeight: 1.4
+                                padding: 16
+                            }
+                        }
+
+                        // Spacer
+                        Item {
+                            Layout.fillHeight: true
+                            Layout.minimumHeight: 20
+                        }
+
+                        // Action buttons
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 44
+                            spacing: 12
+
+                            Item { Layout.fillWidth: true } // Push buttons to right
+
+                            Button {
+                                Layout.preferredWidth: 100
+                                Layout.preferredHeight: 36
+                                text: "Nanti"
+
+                                background: Rectangle {
+                                    radius: 8
+                                    color: parent.hovered ? "#404040" : "#2d2d2d"
+                                    border.width: 1
+                                    border.color: parent.hovered ? "#555555" : "#404040"
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 150 }
+                                    }
+                                    Behavior on border.color {
+                                        ColorAnimation { duration: 150 }
+                                    }
+                                }
+
+                                contentItem: Text {
+                                    text: parent.text
+                                    font.pixelSize: 13
+                                    font.weight: Font.Medium
+                                    color: "#cccccc"
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+
+                                onClicked: updateDialog.close()
+                            }
+
+                            Button {
+                                Layout.preferredWidth: 140
+                                Layout.preferredHeight: 36
+                                text: "Update Sekarang"
+
+                                background: Rectangle {
+                                    radius: 8
+                                    color: parent.hovered ? "#0086d4" : "#007ACC"
+
+                                    // Subtle inner glow
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: parent.radius
+                                        color: "transparent"
+                                        border.width: 1
+                                        border.color: "#4da6d9"
+                                        opacity: 0.3
+                                    }
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 150 }
+                                    }
+                                }
+
+                                contentItem: Text {
+                                    text: parent.text
+                                    font.pixelSize: 13
+                                    font.weight: Font.DemiBold
+                                    color: "#ffffff"
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+
+                                onClicked: {
+                                    logger.launchMaintenanceTool()
+                                    updateDialog.close()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             // Main Content
             GridLayout {
@@ -1648,7 +1948,7 @@ ApplicationWindow {
                                         text: reasonInput_.text.length + "/" + reasonInput_.maxLength
                                         font.pixelSize: 10
                                         color: reasonInput_.text.length > reasonInput_.maxLength * 0.9 ?
-                                               Material.color(Material.Red) : lightTextColor
+                                                   Material.color(Material.Red) : lightTextColor
                                         opacity: 0.6
                                     }
                                 }
@@ -1689,7 +1989,7 @@ ApplicationWindow {
                                 background: Rectangle {
                                     radius: 8
                                     color: parent.pressed ? Qt.rgba(0, 0, 0, 0.1) :
-                                           parent.hovered ? Qt.rgba(0, 0, 0, 0.05) : "transparent"
+                                                            parent.hovered ? Qt.rgba(0, 0, 0, 0.05) : "transparent"
                                     border.color: dividerColor
                                     border.width: 1
 
@@ -1717,9 +2017,9 @@ ApplicationWindow {
                                 background: Rectangle {
                                     radius: 8
                                     color: parent.enabled ?
-                                           (parent.pressed ? Qt.darker(secondaryColor, 1.1) :
-                                            parent.hovered ? Qt.lighter(secondaryColor, 1.1) : secondaryColor) :
-                                           Qt.rgba(secondaryColor.r, secondaryColor.g, secondaryColor.b, 0.5)
+                                               (parent.pressed ? Qt.darker(secondaryColor, 1.1) :
+                                                                 parent.hovered ? Qt.lighter(secondaryColor, 1.1) : secondaryColor) :
+                                               Qt.rgba(secondaryColor.r, secondaryColor.g, secondaryColor.b, 0.5)
 
                                     Behavior on color {
                                         ColorAnimation { duration: 150 }
@@ -1761,7 +2061,7 @@ ApplicationWindow {
                                     };
 
                                     var apiUrl = "https://deskmon.pranala-dt.co.id/api/update-status-task/" +
-                                                 needReviewReasonDialog.taskId + "/" + logger.currentUserId;
+                                            needReviewReasonDialog.taskId + "/" + logger.currentUserId;
 
                                     var request = new XMLHttpRequest();
                                     request.open("POST", apiUrl);

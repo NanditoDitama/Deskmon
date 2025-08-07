@@ -146,9 +146,9 @@ void IdleChecker::checkIdleTime()
             }
             // === PERUBAHAN SELESAI ===
 
-            if (m_logger) {
-                m_logger->stopPingTimer();
-            }
+            // if (m_logger) {
+            //     m_logger->stopPingTimer();
+            // }
         }
 
         // Log idle every 60 seconds while idle
@@ -174,9 +174,9 @@ void IdleChecker::checkIdleTime()
                 qDebug() << "Returned from idle. Automatically resuming the active task.";
                 m_logger->toggleTaskPause();
             }
-            if (m_logger){
-                m_logger->startPingTimer();
-            }
+            // if (m_logger){
+            //     m_logger->startPingTimer();
+            // }
 
             m_isIdle = false;
             m_lastIdleLogTime = 0;

@@ -149,6 +149,9 @@ public:
 
 
 
+    Q_INVOKABLE void launchMaintenanceTool();
+    QString statusMessage() const;
+    Q_INVOKABLE void checkForUpdates();
 
 
 
@@ -173,7 +176,6 @@ private slots:
     void handleTaskFetchReply(QNetworkReply *reply);
     void fetchWorkTimeFromAPI();
     void handleFetchWorkTimeResponse(QNetworkReply *reply);
-
 
 
 
@@ -215,7 +217,9 @@ signals:
     void earlyLeaveReasonSubmitted();
 
 
-
+    void showStatusMessage(const QString &message);
+    void statusMessageChanged();
+    void updateAvailable(const QString &newVersion, const QString &releaseNotes);
 
 
 private:
@@ -272,6 +276,7 @@ private:
     QMessageBox* m_currentErrorDialog = nullptr;
 
     QString m_lastShownPingError;
+    QString m_statusMessage;
 
 
 #ifdef Q_OS_WIN
