@@ -12,7 +12,9 @@ ApplicationWindow {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 900
-    property string appVersion: "1.0.2.2"
+    property string appVersion: "1.0.2.3"
+
+
 
     Rectangle {
         id: notification
@@ -180,15 +182,39 @@ ApplicationWindow {
     property color headers : isDarkMode ? "#1E1E1E" : "#00e0a8"
     // Coba deteksi tema sistem saat startup
     Component.onCompleted: {
+
         if (typeof Qt.styleHints !== "undefined") {
             isDarkMode = Qt.styleHints.colorScheme === Qt.Dark
         }
         else {
             isDarkMode = Material.theme === Material.Dark
         }
+        if (logger.currentUserId === -1) {
+            stackView.clear()
+            stackView.push("Login_page.qml")
+            console.log("ke halaman login untuk login ulang")
+        }
         window.visibility = Window.Maximized
 
     }
+
+    function goToLoginPage() {
+        stackView.clear()
+        stackView.push(Qt.resolvedUrl("Login_page.qml"))
+        console.log("ke halaman login untuk login ulang2")
+    }
+
+
+    Connections {
+        target: logger
+        function onRequestLoginPage() {
+            isLoggedIn = false
+            isProfileVisible = false
+            showRegisterPage = false
+            console.log("mencoba untuk login ulang")
+        }
+    }
+
 
     // Sync Material theme dengan mode kita
     Material.theme: isDarkMode ? Material.Dark : Material.Light

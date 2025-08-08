@@ -80,6 +80,7 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         "updateAvailable",
         "newVersion",
         "releaseNotes",
+        "requestLoginPage",
         "logActiveWindow",
         "logIdle",
         "startTime",
@@ -96,7 +97,6 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         "submitEarlyLeaveReason",
         "reason",
         "startPingTimer",
-        "stopPingTimer",
         "handleTaskFetchReply",
         "fetchWorkTimeFromAPI",
         "handleFetchWorkTimeResponse",
@@ -263,47 +263,47 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         QtMocHelpers::SignalData<void(const QString &, const QString &)>(38, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::QString, 39 }, { QMetaType::QString, 40 },
         }}),
+        // Signal 'requestLoginPage'
+        QtMocHelpers::SignalData<void()>(41, 2, QMC::AccessPublic, QMetaType::Void),
         // Slot 'logActiveWindow'
-        QtMocHelpers::SlotData<void()>(41, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(42, 2, QMC::AccessPublic, QMetaType::Void),
         // Slot 'logIdle'
-        QtMocHelpers::SlotData<void(qint64, qint64)>(42, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::LongLong, 43 }, { QMetaType::LongLong, 44 },
+        QtMocHelpers::SlotData<void(qint64, qint64)>(43, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::LongLong, 44 }, { QMetaType::LongLong, 45 },
         }}),
         // Slot 'refreshAll'
-        QtMocHelpers::SlotData<void()>(45, 2, QMC::AccessPublic, QMetaType::Void),
-        // Slot 'refreshTasks'
         QtMocHelpers::SlotData<void()>(46, 2, QMC::AccessPublic, QMetaType::Void),
+        // Slot 'refreshTasks'
+        QtMocHelpers::SlotData<void()>(47, 2, QMC::AccessPublic, QMetaType::Void),
         // Slot 'handleTaskStatusReply'
-        QtMocHelpers::SlotData<void(QNetworkReply *, int)>(47, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { 0x80000000 | 48, 49 }, { QMetaType::Int, 27 },
+        QtMocHelpers::SlotData<void(QNetworkReply *, int)>(48, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 49, 50 }, { QMetaType::Int, 27 },
         }}),
         // Slot 'getPendingApplicationRequests'
-        QtMocHelpers::SlotData<QVariantList()>(50, 2, QMC::AccessPublic, 0x80000000 | 51),
+        QtMocHelpers::SlotData<QVariantList()>(51, 2, QMC::AccessPublic, 0x80000000 | 52),
         // Slot 'handleProductivityAppsResponse'
-        QtMocHelpers::SlotData<void(QNetworkReply *)>(52, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { 0x80000000 | 48, 49 },
+        QtMocHelpers::SlotData<void(QNetworkReply *)>(53, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 49, 50 },
         }}),
         // Slot 'handleDailyUsageReportResponse'
-        QtMocHelpers::SlotData<void(QNetworkReply *)>(53, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { 0x80000000 | 48, 49 },
+        QtMocHelpers::SlotData<void(QNetworkReply *)>(54, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 49, 50 },
         }}),
         // Slot 'submitEarlyLeaveReason'
-        QtMocHelpers::SlotData<void(const QString &)>(54, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 55 },
+        QtMocHelpers::SlotData<void(const QString &)>(55, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 56 },
         }}),
         // Slot 'startPingTimer'
-        QtMocHelpers::SlotData<void()>(56, 2, QMC::AccessPublic, QMetaType::Void),
-        // Slot 'stopPingTimer'
         QtMocHelpers::SlotData<void()>(57, 2, QMC::AccessPublic, QMetaType::Void),
         // Slot 'handleTaskFetchReply'
         QtMocHelpers::SlotData<void(QNetworkReply *)>(58, 2, QMC::AccessPrivate, QMetaType::Void, {{
-            { 0x80000000 | 48, 49 },
+            { 0x80000000 | 49, 50 },
         }}),
         // Slot 'fetchWorkTimeFromAPI'
         QtMocHelpers::SlotData<void()>(59, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'handleFetchWorkTimeResponse'
         QtMocHelpers::SlotData<void(QNetworkReply *)>(60, 2, QMC::AccessPrivate, QMetaType::Void, {{
-            { 0x80000000 | 48, 49 },
+            { 0x80000000 | 49, 50 },
         }}),
         // Method 'debugShowRawData'
         QtMocHelpers::MethodData<QString() const>(61, 2, QMC::AccessPublic, QMetaType::QString),
@@ -365,13 +365,13 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
             { QMetaType::Int, 88 },
         }}),
         // Method 'getAvailableApps'
-        QtMocHelpers::MethodData<QVariantList() const>(92, 2, QMC::AccessPublic, 0x80000000 | 51),
+        QtMocHelpers::MethodData<QVariantList() const>(92, 2, QMC::AccessPublic, 0x80000000 | 52),
         // Method 'addProductivityApp'
         QtMocHelpers::MethodData<void(const QString &, const QString &, const QString &, int)>(93, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::QString, 94 }, { QMetaType::QString, 95 }, { QMetaType::QString, 96 }, { QMetaType::Int, 97 },
         }}),
         // Method 'getProductivityApps'
-        QtMocHelpers::MethodData<QVariantList() const>(98, 2, QMC::AccessPublic, 0x80000000 | 51),
+        QtMocHelpers::MethodData<QVariantList() const>(98, 2, QMC::AccessPublic, 0x80000000 | 52),
         // Method 'authenticate'
         QtMocHelpers::MethodData<bool(const QString &, const QString &)>(99, 2, QMC::AccessPublic, QMetaType::Bool, {{
             { QMetaType::QString, 100 }, { QMetaType::QString, 101 },
@@ -416,7 +416,7 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         }}),
         // Method 'sendPausePlayDataToAPI'
         QtMocHelpers::MethodData<void(int, const QString &, const QString &, const QString &)>(116, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::Int, 27 }, { QMetaType::QString, 43 }, { QMetaType::QString, 44 }, { QMetaType::QString, 117 },
+            { QMetaType::Int, 27 }, { QMetaType::QString, 44 }, { QMetaType::QString, 45 }, { QMetaType::QString, 117 },
         }}),
         // Method 'getAppProductivityType'
         QtMocHelpers::MethodData<int(const QString &, const QString &) const>(118, 2, QMC::AccessPublic, QMetaType::Int, {{
@@ -441,7 +441,7 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         // property 'productivityStats'
         QtMocHelpers::PropertyData<QVariantMap>(126, 0x80000000 | 127, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 4),
         // property 'taskList'
-        QtMocHelpers::PropertyData<QVariantList>(128, 0x80000000 | 51, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 5),
+        QtMocHelpers::PropertyData<QVariantList>(128, 0x80000000 | 52, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 5),
         // property 'activeTaskId'
         QtMocHelpers::PropertyData<int>(129, QMetaType::Int, QMC::DefaultPropertyFlags, 6),
         // property 'isTaskPaused'
@@ -517,18 +517,18 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         case 27: _t->showStatusMessage((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
         case 28: _t->statusMessageChanged(); break;
         case 29: _t->updateAvailable((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
-        case 30: _t->logActiveWindow(); break;
-        case 31: _t->logIdle((*reinterpret_cast< std::add_pointer_t<qint64>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<qint64>>(_a[2]))); break;
-        case 32: _t->refreshAll(); break;
-        case 33: _t->refreshTasks(); break;
-        case 34: _t->handleTaskStatusReply((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[2]))); break;
-        case 35: { QVariantList _r = _t->getPendingApplicationRequests();
+        case 30: _t->requestLoginPage(); break;
+        case 31: _t->logActiveWindow(); break;
+        case 32: _t->logIdle((*reinterpret_cast< std::add_pointer_t<qint64>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<qint64>>(_a[2]))); break;
+        case 33: _t->refreshAll(); break;
+        case 34: _t->refreshTasks(); break;
+        case 35: _t->handleTaskStatusReply((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[2]))); break;
+        case 36: { QVariantList _r = _t->getPendingApplicationRequests();
             if (_a[0]) *reinterpret_cast< QVariantList*>(_a[0]) = std::move(_r); }  break;
-        case 36: _t->handleProductivityAppsResponse((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
-        case 37: _t->handleDailyUsageReportResponse((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
-        case 38: _t->submitEarlyLeaveReason((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
-        case 39: _t->startPingTimer(); break;
-        case 40: _t->stopPingTimer(); break;
+        case 37: _t->handleProductivityAppsResponse((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
+        case 38: _t->handleDailyUsageReportResponse((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
+        case 39: _t->submitEarlyLeaveReason((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
+        case 40: _t->startPingTimer(); break;
         case 41: _t->handleTaskFetchReply((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
         case 42: _t->fetchWorkTimeFromAPI(); break;
         case 43: _t->handleFetchWorkTimeResponse((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
@@ -597,14 +597,7 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
         switch (_id) {
         default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
-        case 34:
-            switch (*reinterpret_cast<int*>(_a[1])) {
-            default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
-            case 0:
-                *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType::fromType< QNetworkReply* >(); break;
-            }
-            break;
-        case 36:
+        case 35:
             switch (*reinterpret_cast<int*>(_a[1])) {
             default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
             case 0:
@@ -612,6 +605,13 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
             }
             break;
         case 37:
+            switch (*reinterpret_cast<int*>(_a[1])) {
+            default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
+            case 0:
+                *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType::fromType< QNetworkReply* >(); break;
+            }
+            break;
+        case 38:
             switch (*reinterpret_cast<int*>(_a[1])) {
             default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
             case 0:
@@ -694,6 +694,8 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         if (QtMocHelpers::indexOfMethod<void (Logger::*)()>(_a, &Logger::statusMessageChanged, 28))
             return;
         if (QtMocHelpers::indexOfMethod<void (Logger::*)(const QString & , const QString & )>(_a, &Logger::updateAvailable, 29))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (Logger::*)()>(_a, &Logger::requestLoginPage, 30))
             return;
     }
     if (_c == QMetaObject::RegisterPropertyMetaType) {
@@ -945,5 +947,11 @@ void Logger::statusMessageChanged()
 void Logger::updateAvailable(const QString & _t1, const QString & _t2)
 {
     QMetaObject::activate<void>(this, &staticMetaObject, 29, nullptr, _t1, _t2);
+}
+
+// SIGNAL 30
+void Logger::requestLoginPage()
+{
+    QMetaObject::activate(this, &staticMetaObject, 30, nullptr);
 }
 QT_WARNING_POP

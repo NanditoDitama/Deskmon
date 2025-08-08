@@ -980,12 +980,18 @@
                     "index": 29,
                     "name": "updateAvailable",
                     "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 30,
+                    "name": "requestLoginPage",
+                    "returnType": "void"
                 }
             ],
             "slots": [
                 {
                     "access": "public",
-                    "index": 30,
+                    "index": 31,
                     "name": "logActiveWindow",
                     "returnType": "void"
                 },
@@ -1001,19 +1007,19 @@
                             "type": "qint64"
                         }
                     ],
-                    "index": 31,
+                    "index": 32,
                     "name": "logIdle",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
-                    "index": 32,
+                    "index": 33,
                     "name": "refreshAll",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
-                    "index": 33,
+                    "index": 34,
                     "name": "refreshTasks",
                     "returnType": "void"
                 },
@@ -1029,13 +1035,13 @@
                             "type": "int"
                         }
                     ],
-                    "index": 34,
+                    "index": 35,
                     "name": "handleTaskStatusReply",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
-                    "index": 35,
+                    "index": 36,
                     "name": "getPendingApplicationRequests",
                     "returnType": "QVariantList"
                 },
@@ -1047,7 +1053,7 @@
                             "type": "QNetworkReply*"
                         }
                     ],
-                    "index": 36,
+                    "index": 37,
                     "name": "handleProductivityAppsResponse",
                     "returnType": "void"
                 },
@@ -1059,7 +1065,7 @@
                             "type": "QNetworkReply*"
                         }
                     ],
-                    "index": 37,
+                    "index": 38,
                     "name": "handleDailyUsageReportResponse",
                     "returnType": "void"
                 },
@@ -1071,20 +1077,14 @@
                             "type": "QString"
                         }
                     ],
-                    "index": 38,
+                    "index": 39,
                     "name": "submitEarlyLeaveReason",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
-                    "index": 39,
-                    "name": "startPingTimer",
-                    "returnType": "void"
-                },
-                {
-                    "access": "public",
                     "index": 40,
-                    "name": "stopPingTimer",
+                    "name": "startPingTimer",
                     "returnType": "void"
                 },
                 {

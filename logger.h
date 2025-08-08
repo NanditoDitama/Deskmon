@@ -169,7 +169,7 @@ public slots:
     Q_INVOKABLE void submitEarlyLeaveReason(const QString &reason);
 
     void startPingTimer();
-    void stopPingTimer();
+    // void stopPingTimer();
 
 
 private slots:
@@ -220,6 +220,8 @@ signals:
     void showStatusMessage(const QString &message);
     void statusMessageChanged();
     void updateAvailable(const QString &newVersion, const QString &releaseNotes);
+
+    void requestLoginPage();
 
 
 private:
@@ -277,6 +279,7 @@ private:
 
     QString m_lastShownPingError;
     QString m_statusMessage;
+    bool m_isReauthenticating = false;
 
 
 #ifdef Q_OS_WIN

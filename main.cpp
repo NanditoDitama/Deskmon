@@ -18,6 +18,8 @@ int main(int argc, char *argv[])
     app.setQuitOnLastWindowClosed(true);
 
     // Initialize components
+
+
     Logger logger;
     logger.checkAndCreateNewDayRecord();
     logger.loadWorkTimeData();
@@ -69,6 +71,9 @@ int main(int argc, char *argv[])
     QQuickWindow *qmlWindow = nullptr;
 
 
+    QMetaObject::invokeMethod(qmlWindow, "goToLoginPage");
+
+
     // Function to show QML window
     auto showQmlWindow = [&]() {
         if (!engine) {
@@ -118,6 +123,12 @@ int main(int argc, char *argv[])
             app.quit();
         }
     };
+
+
+    if (logger.currentUserId() == -1) {
+        qDebug() << "No user logged in, redirecting to login page...";
+        QMetaObject::invokeMethod(qmlWindow, "onRequestLoginPage");
+    }
 
     // Connect show action
     QObject::connect(showAction, &QAction::triggered, &app, showQmlWindow);

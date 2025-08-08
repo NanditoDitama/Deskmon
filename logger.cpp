@@ -248,6 +248,8 @@ void Logger::showAuthTokenErrorMessage()
 
     // Setelah pengguna menekan OK, panggil logout
     logout();
+    emit requestLoginPage();
+    m_isTokenErrorVisible = false;
 }
 
 void Logger::refreshAll()
@@ -2837,17 +2839,13 @@ void Logger::sendPing(int taskId)
         return;
     }
 
-    // Buat payload JSON secara dinamis
     QJsonObject payload;
     if (taskId != -1) {
-        // Jika ada taskId yang valid, kirim ping untuk task
         payload["task_id"] = QString::number(taskId);
     } else {
-        // Jika taskId adalah -1, kirim ping untuk user
         payload["user_id"] = m_currentUserId;
     }
 
-    // Konfigurasi request
     QNetworkRequest request;
     request.setUrl(QUrl("https://deskmon.pranala-dt.co.id/api/ping"));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
@@ -2855,13 +2853,9 @@ void Logger::sendPing(int taskId)
 
     qDebug() << "Sending ping with payload:" << QJsonDocument(payload).toJson();
 
-    // Kirim request POST
     QNetworkReply* reply = m_networkManager->post(request, QJsonDocument(payload).toJson());
-
-    // Handle timeout (30 detik)
     QTimer::singleShot(30000, reply, &QNetworkReply::abort);
 
-    // Handle response
     connect(reply, &QNetworkReply::finished, [this, reply]() {
         QByteArray responseData = reply->readAll();
         QString responseText = QString::fromUtf8(responseData);
@@ -2872,35 +2866,42 @@ void Logger::sendPing(int taskId)
         QString errorMessage;
         bool refreshRequired = false;
         bool isSuccessResponse = false;
+        bool isAuthError = false; // Flag untuk error autentikasi prioritas
 
-        // Cek network error terlebih dahulu
         if (reply->error() != QNetworkReply::NoError) {
             hasError = true;
             errorMessage = "Network error: " + reply->errorString();
             qWarning() << "Network error in ping:" << reply->errorString();
+
+            // Cek apakah ini error autentikasi (prioritas utama)
+            if (reply->errorString().contains("Host requires authentication", Qt::CaseInsensitive)) {
+                isAuthError = true;
+                showAuthTokenErrorMessage();
+            }
         }
-        // Jika tidak ada network error, parse JSON response
         else if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
             QJsonObject jsonObj = jsonDoc.object();
 
-            // Cek refresh requirement
             if (jsonObj.contains("refresh_required") && jsonObj["refresh_required"].toBool()) {
                 refreshRequired = true;
                 qDebug() << "Server requested application refresh";
             }
 
-            // Cek success status
             if (jsonObj.contains("success") && jsonObj["success"].isBool()) {
                 bool success = jsonObj["success"].toBool();
                 if (!success) {
                     hasError = true;
-                    // Ambil pesan error dari server jika ada
-                    if (jsonObj.contains("message")) {
-                        errorMessage = "Server error: " + jsonObj["message"].toString();
-                    } else {
+                    errorMessage = jsonObj.value("message").toString().trimmed();
+                    if (errorMessage.isEmpty()) {
                         errorMessage = "Server returned error (no message provided)";
                     }
                     qWarning() << "API error:" << errorMessage;
+
+                    // Cek apakah ini error autentikasi (prioritas utama)
+                    if (errorMessage.contains("Host requires authentication", Qt::CaseInsensitive)) {
+                        isAuthError = true;
+                        showAuthTokenErrorMessage();
+                    }
                 } else {
                     isSuccessResponse = true;
                     qDebug() << "Ping successful:" << responseText;
@@ -2916,82 +2917,85 @@ void Logger::sendPing(int taskId)
             qWarning() << "JSON parse error:" << parseError.errorString() << "Response:" << responseText;
         }
 
-        // **LOGIKA POPUP ERROR - DENGAN AUTO CLOSE**
         if (isSuccessResponse) {
-            // Jika sukses, tutup popup yang masih terbuka dan reset flag
+            // Tutup popup error yang sedang tampil jika koneksi berhasil
             if (m_errorPopupShown && m_currentErrorDialog) {
                 m_currentErrorDialog->close();
                 m_currentErrorDialog = nullptr;
                 qDebug() << "✅ Connection restored - error popup closed automatically";
             }
 
-            // Reset semua flag error
             m_errorPopupShown = false;
             m_lastErrorCategory.clear();
             m_lastErrorTime = 0;
-            qDebug() << "✅ All error popup flags reset";
         }
         else if (hasError) {
-            // Tentukan kategori error
-            QString errorCategory = "unknown";
-            if (errorMessage.contains("Network error")) {
-                errorCategory = "network";
-            } else if (errorMessage.contains("Server error")) {
-                errorCategory = "server";
-            } else if (errorMessage.contains("Invalid response")) {
-                errorCategory = "format";
+            // Jika ada error autentikasi, prioritaskan dan hilangkan error lain
+            if (isAuthError) {
+                // Tutup dialog error sebelumnya jika ada
+                if (m_currentErrorDialog) {
+                    m_currentErrorDialog->close();
+                    m_currentErrorDialog = nullptr;
+                    qDebug() << "🔄 Closed previous error dialog for authentication priority";
+                }
+
+                // Reset status error popup untuk memaksa tampil error autentikasi
+                m_errorPopupShown = false;
+                m_lastErrorCategory = "auth";
+                m_lastErrorTime = QDateTime::currentMSecsSinceEpoch();
+
+                qDebug() << "🔑 Authentication error has priority - other errors suppressed";
+                reply->deleteLater();
+                return; // Keluar dari fungsi, jangan tampilkan error lain
             }
 
-            // Waktu sekarang dalam milidetik
+            // Proses error non-autentikasi hanya jika tidak ada error autentikasi
+            QString errorCategory = "unknown";
+            if (errorMessage.contains("Network error")) errorCategory = "network";
+            else if (errorMessage.contains("Server error")) errorCategory = "server";
+            else if (errorMessage.contains("Invalid response")) errorCategory = "format";
+
             qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
-
-            qDebug() << "🔍 Error detected:"
-                     << "Category:" << errorCategory
-                     << "Last category:" << m_lastErrorCategory
-                     << "Time since last:" << (currentTime - m_lastErrorTime) << "ms"
-                     << "Popup shown before:" << m_errorPopupShown;
-
-            // Tampilkan popup jika:
-            // 1. Belum pernah ditampilkan popup error ATAU
-            // 2. Kategori error berbeda ATAU
-            // 3. Sudah lebih dari 60 detik sejak popup terakhir (untuk error yang sama)
             bool shouldShowPopup = false;
 
-            if (!m_errorPopupShown) {
-                shouldShowPopup = true;
-                qDebug() << "📝 First error - will show popup";
-            } else if (m_lastErrorCategory != errorCategory) {
-                shouldShowPopup = true;
-                qDebug() << "📝 Different error category - will show popup";
-            } else if ((currentTime - m_lastErrorTime) > 60000) { // 60 detik
-                shouldShowPopup = true;
-                qDebug() << "📝 Same error but timeout exceeded - will show popup";
-            } else {
-                qDebug() << "🔇 Same error within timeout - popup suppressed";
+            // Cek apakah perlu menampilkan popup error
+            if (!m_errorPopupShown) shouldShowPopup = true;
+            else if (m_lastErrorCategory != errorCategory) shouldShowPopup = true;
+            else if ((currentTime - m_lastErrorTime) > 60000) shouldShowPopup = true; // 1 menit
+
+            // Daftar pesan yang tidak perlu ditampilkan (selain auth error)
+            static const QStringList suppressedErrors = {
+                "No active task implementation found",
+                "Your task is not in On Progress status"
+            };
+
+            bool isSuppressed = false;
+            for (const QString &pattern : suppressedErrors) {
+                if (errorMessage.contains(pattern, Qt::CaseInsensitive) ||
+                    reply->errorString().contains(pattern, Qt::CaseInsensitive)) {
+                    isSuppressed = true;
+                    qDebug() << "🔕 Suppressed error message:" << errorMessage;
+                    break;
+                }
             }
 
-            if (shouldShowPopup) {
-                // Create QMessageBox dan simpan referensinya untuk bisa ditutup nanti
+            if (shouldShowPopup && !isSuppressed) {
+                // Pastikan hanya satu dialog error yang muncul
                 QTimer::singleShot(0, [this, errorMessage]() {
-                    // Tutup popup lama jika masih ada
                     if (m_currentErrorDialog) {
                         m_currentErrorDialog->close();
                         m_currentErrorDialog = nullptr;
+                        qDebug() << "🔄 Closed previous error dialog before showing new one";
                     }
 
-                    // Buat popup baru
                     m_currentErrorDialog = new QMessageBox(QMessageBox::Warning,
                                                            "API Connection Error",
                                                            errorMessage,
                                                            QMessageBox::Ok,
                                                            nullptr);
-
-                    // Handle ketika user menutup popup manual
                     connect(m_currentErrorDialog, &QMessageBox::finished, [this]() {
                         m_currentErrorDialog = nullptr;
                     });
-
-                    // Tampilkan popup
                     m_currentErrorDialog->show();
                 });
 
@@ -3002,7 +3006,6 @@ void Logger::sendPing(int taskId)
             }
         }
 
-        // Handle refresh requirement
         if (refreshRequired) {
             qDebug() << "Performing application refresh as requested by server";
             this->refreshAll();
@@ -3013,6 +3016,7 @@ void Logger::sendPing(int taskId)
 }
 
 
+
 void Logger::startPingTimer()
 {
     sendPing(m_activeTaskId);
@@ -3021,11 +3025,11 @@ void Logger::startPingTimer()
 }
 
 
-void Logger::stopPingTimer()
-{
-    m_pingTimer.stop();
-    qDebug() << "Stopped ping timer";
-}
+// void Logger::stopPingTimer()
+// {
+//     m_pingTimer.stop();
+//     qDebug() << "Stopped ping timer";
+// }
 
 
 QString Logger::getUserPassword(const QString &username) {
@@ -4411,7 +4415,7 @@ QString Logger::statusMessage() const
 void Logger::checkForUpdates()
 {
     // Ganti dengan versi aplikasi Anda saat ini
-    const QString currentVersion = "1.0.2.2";
+    const QString currentVersion = "1.0.2.3";
 
     // Ganti dengan URL file version.json Anda di GitHub
     QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");
