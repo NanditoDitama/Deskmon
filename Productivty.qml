@@ -142,6 +142,7 @@ Item {
                         property real currentPercentage: 0
 
 
+
                         NumberAnimation on currentPercentage {
                             id: percentageAnim
                             from: 0
@@ -154,7 +155,6 @@ Item {
                         RowLayout {
                             anchors.fill: parent
                             spacing: 12
-
 
 
                             // App icon placeholder
@@ -353,29 +353,47 @@ Item {
 
 
                             // App icon placeholder
-                            Rectangle {
+                            Item {
                                 Layout.preferredWidth: 24
                                 Layout.preferredHeight: 24
-                                radius: 4
-                                color: Qt.rgba(
-                                           Math.random() * 0.5 + 0.3,
-                                           Math.random() * 0.5 + 0.3,
-                                           Math.random() * 0.5 + 0.3,
-                                           0.2
-                                           )
 
-                                Label {
-                                    text: modelData.name.charAt(0).toUpperCase()
-                                    anchors.centerIn: parent
-                                    font {
-                                        family: "Segoe UI"
-                                        weight: Font.Bold
-                                        pixelSize: 12
+                                // Fallback Rectangle (original placeholder with the initial letter)
+                                Rectangle {
+                                    id: fallbackIcon
+                                    anchors.fill: parent
+                                    radius: 4
+                                    color: Qt.rgba(
+                                               Math.random() * 0.5 + 0.3,
+                                               Math.random() * 0.5 + 0.3,
+                                               Math.random() * 0.5 + 0.3,
+                                               0.2
+                                               )
+                                    // Only show this placeholder if the web icon fails to load
+                                    visible: webIcon.status !== Image.Ready
+
+                                    Label {
+                                        text: modelData.name ? modelData.name.charAt(0).toUpperCase() : "?"
+                                        anchors.centerIn: parent
+                                        font {
+                                            family: "Segoe UI"
+                                            weight: Font.Bold
+                                            pixelSize: 12
+                                        }
+                                        color: primaryColor
                                     }
-                                    color: primaryColor
+                                }
+
+                                // Website Favicon Image
+                                Image {
+                                    id: webIcon
+                                    anchors.fill: parent
+                                    // Use a favicon service to get the icon from the domain name
+                                    source: "https://www.google.com/s2/favicons?sz=32&domain=" + modelData.name
+                                    asynchronous: true // Load image in the background
+                                    smooth: true
+                                    fillMode: Image.PreserveAspectFit // Ensure icon is not stretched
                                 }
                             }
-
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true

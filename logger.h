@@ -155,6 +155,8 @@ public:
 
 
 
+
+
 public slots:
     void logActiveWindow();
     void logIdle(qint64 startTime, qint64 endTime);
@@ -222,6 +224,8 @@ signals:
     void updateAvailable(const QString &newVersion, const QString &releaseNotes);
 
     void requestLoginPage();
+    void currentAppIconPathChanged();
+
 
 
 private:

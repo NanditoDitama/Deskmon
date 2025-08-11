@@ -19,6 +19,8 @@
 #include <QMessageBox>
 #include <QApplication>
 
+#include <QTemporaryFile>
+
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <psapi.h>
@@ -1822,27 +1824,27 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
 
     QJsonArray appsArray = jsonObj["data"].isArray() ? jsonObj["data"].toArray() : QJsonArray();
 
-    qDebug() << "==============================================";
-    qDebug() << "Received" << appsArray.size() << "productivity apps from server:";
-    qDebug() << "==============================================";
+    // qDebug() << "==============================================";
+    // qDebug() << "Received" << appsArray.size() << "productivity apps from server:";
+    // qDebug() << "==============================================";
 
-    for (const QJsonValue &appValue : appsArray) {
-        if (!appValue.isObject()) continue;
+    // for (const QJsonValue &appValue : appsArray) {
+    //     if (!appValue.isObject()) continue;
 
-        QJsonObject appObj = appValue.toObject();
-        QString appName = appObj["application_name"].toString();
-        QString status = appObj["productivity_status"].toString().toLower();
-        QString processName = appObj["process_name"].toString();
-        QString url = appObj["url"].toString();
-        int userId = appObj["user_id"].toInt();
+    //     QJsonObject appObj = appValue.toObject();
+    //     QString appName = appObj["application_name"].toString();
+    //     QString status = appObj["productivity_status"].toString().toLower();
+    //     QString processName = appObj["process_name"].toString();
+    //     QString url = appObj["url"].toString();
+    //     int userId = appObj["user_id"].toInt();
 
-        qDebug() << "App:" << appName
-                 << "| Process:" << (processName.isEmpty() ? "N/A" : processName)
-                 << "| URL:" << (url.isEmpty() ? "N/A" : url)
-                 << "| Status:" << status
-                 << "| User ID:" << userId;
-    }
-    qDebug() << "==============================================";
+    //     qDebug() << "App:" << appName
+    //              << "| Process:" << (processName.isEmpty() ? "N/A" : processName)
+    //              << "| URL:" << (url.isEmpty() ? "N/A" : url)
+    //              << "| Status:" << status
+    //              << "| User ID:" << userId;
+    // }
+    // qDebug() << "==============================================";
 
     if (!m_productivityDb.transaction()) {
         qWarning() << "Failed to start transaction";
@@ -1962,7 +1964,6 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
                     }
                 } else {
                     unchangedCount++;
-                    qDebug() << "Exact match app unchanged:" << serverApp.appName << "for user" << serverApp.userId;
                 }
                 break; // Keluar dari loop karena sudah menemukan exact match
             }
@@ -4132,6 +4133,8 @@ void Logger::logActiveWindow()
     m_currentWindowTitle = currentInfo.title;
     emit currentAppNameChanged();
     emit currentWindowTitleChanged();
+
+    emit currentAppIconPathChanged();
 }
 
 void Logger::syncActiveTask()
@@ -4481,6 +4484,7 @@ void Logger::launchMaintenanceTool()
     QProcess::startDetached(maintenanceToolPath);
     QApplication::quit();
 }
+
 
 Logger::WindowInfo Logger::getActiveWindowInfo()
 {
