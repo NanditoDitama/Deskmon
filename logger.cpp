@@ -4543,11 +4543,11 @@ Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
 
         if (appProcess.waitForFinished(5000)) {
             info.appName = QString(appProcess.readAllStandardOutput()).trimmed();
-            qDebug() << "App name:" << info.appName;
+            // qDebug() << "App name:" << info.appName;
         } else {
             appProcess.kill();
-            qDebug() << "App name script timed out";
-            qDebug() << "Error:" << appProcess.readAllStandardError();
+            // qDebug() << "App name script timed out";
+            // qDebug() << "Error:" << appProcess.readAllStandardError();
         }
     }
 
@@ -4561,11 +4561,11 @@ Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
 
         if (titleProcess.waitForFinished(5000)) {
             info.title = QString(titleProcess.readAllStandardOutput()).trimmed();
-            qDebug() << "Window title:" << info.title;
+            // qDebug() << "Window title:" << info.title;
         } else {
             titleProcess.kill();
-            qDebug() << "Window title script timed out";
-            qDebug() << "Error:" << titleProcess.readAllStandardError();
+            // qDebug() << "Window title script timed out";
+            // qDebug() << "Error:" << titleProcess.readAllStandardError();
         }
     }
 
