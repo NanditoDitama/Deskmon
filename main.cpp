@@ -113,7 +113,6 @@ int main(int argc, char *argv[])
     // Fungsi untuk menampilkan dialog alasan keluar lebih awal
     auto showEarlyLeaveDialog = [&]() {
         if (qmlWindow) { // Pastikan window utama sudah ada
-            isEarlyLeaveDialogShown = true;  // ===== TAMBAHKAN BARIS INI =====
             showQmlWindow();  // ===== TAMBAHKAN BARIS INI =====
             QMetaObject::invokeMethod(qmlWindow, "showEarlyLeaveDialog");
 

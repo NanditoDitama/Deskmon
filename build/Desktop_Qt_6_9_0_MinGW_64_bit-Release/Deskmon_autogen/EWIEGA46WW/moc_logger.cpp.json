@@ -262,7 +262,7 @@
                     "access": "public",
                     "arguments": [
                         {
-                            "name": "email",
+                            "name": "loginInput",
                             "type": "QString"
                         },
                         {
@@ -272,7 +272,7 @@
                     ],
                     "index": 65,
                     "name": "authenticate",
-                    "returnType": "bool"
+                    "returnType": "QString"
                 },
                 {
                     "access": "public",

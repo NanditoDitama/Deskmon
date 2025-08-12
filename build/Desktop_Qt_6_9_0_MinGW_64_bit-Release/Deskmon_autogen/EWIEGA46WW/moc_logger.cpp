@@ -140,7 +140,7 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         "productivityType",
         "getProductivityApps",
         "authenticate",
-        "email",
+        "loginInput",
         "password",
         "getUserDepartment",
         "getCurrentUsername",
@@ -376,7 +376,7 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         // Method 'getProductivityApps'
         QtMocHelpers::MethodData<QVariantList() const>(99, 2, QMC::AccessPublic, 0x80000000 | 53),
         // Method 'authenticate'
-        QtMocHelpers::MethodData<bool(const QString &, const QString &)>(100, 2, QMC::AccessPublic, QMetaType::Bool, {{
+        QtMocHelpers::MethodData<QString(const QString &, const QString &)>(100, 2, QMC::AccessPublic, QMetaType::QString, {{
             { QMetaType::QString, 101 }, { QMetaType::QString, 102 },
         }}),
         // Method 'getUserDepartment'
@@ -567,8 +567,8 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         case 63: _t->addProductivityApp((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[4]))); break;
         case 64: { QVariantList _r = _t->getProductivityApps();
             if (_a[0]) *reinterpret_cast< QVariantList*>(_a[0]) = std::move(_r); }  break;
-        case 65: { bool _r = _t->authenticate((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])));
-            if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = std::move(_r); }  break;
+        case 65: { QString _r = _t->authenticate((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])));
+            if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
         case 66: { QString _r = _t->getUserDepartment((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
         case 67: { QString _r = _t->getCurrentUsername();

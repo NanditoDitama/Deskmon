@@ -12,7 +12,7 @@ ApplicationWindow {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 900
-    property string appVersion: "1.0.2.3"
+    property string appVersion: "1.0.2.4"
 
 
 
@@ -459,7 +459,7 @@ ApplicationWindow {
         } catch (e) {
             // Jika parsing gagal (misalnya, string bukanlah URL yang valid),
             // coba ambil bagian pertama sebelum garis miring sebagai fallback.
-            console.log("Gagal mem-parsing URL, mencoba fallback:", urlString);
+
             let domain = urlString.split('/')[0];
             if (domain.startsWith("www.")) {
                 return domain.substring(4);
@@ -1188,17 +1188,7 @@ ApplicationWindow {
                         color: "white"
                         opacity: 0.8
                     }
-                    Text {
-                        text: "Buka Deskmon Website↗"
-                        color: "green"
-                        font.underline: true
 
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: Qt.openUrlExternally("https://deskmon.pranala-dt.co.id/")
-                        }
-                    }
 
                     Item { Layout.fillWidth: true }
 
@@ -1371,7 +1361,37 @@ ApplicationWindow {
                             contentItem: Text { text: parent.text; font: parent.font; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
 
+                        Button {
+                            id: deskmonButton
+                            width: 40 // Set both width and height to make it a square
+                            height: 40
 
+                            // Set the button's background and text color
+                            background: Rectangle {
+                                radius: 8
+                                color: parent.hovered ? Qt.rgba(1, 1, 1, 0.2) : "transparent"
+                                border.color: Qt.rgba(1, 1, 1, 0.3)
+                                border.width: 1
+                            }
+
+                            contentItem: Item {
+                                anchors.fill: parent
+
+                                Image {
+                                    id: externalLinkIcon
+                                    source: "qrc:/icons/website.svg"
+                                    sourceSize.width: 20
+                                    sourceSize.height: 20
+                                    anchors.centerIn: parent // Center the icon inside the button
+                                }
+                            }
+
+                            // Set cursor and handle click event
+                            onClicked: Qt.openUrlExternally("https://deskmon.pranala-dt.co.id/")
+                            ToolTip.text: "Deskmon Website"
+                            ToolTip.visible: hovered
+                            ToolTip.delay: 500
+                        }
 
                     }
                 }

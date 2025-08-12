@@ -106,7 +106,7 @@ public:
     QAbstractItemModel* productiveAppsModel() const { return m_productiveAppsModel; }
     QAbstractItemModel* nonProductiveAppsModel() const { return m_nonProductiveAppsModel; }
 
-    Q_INVOKABLE bool authenticate(const QString &email, const QString &password);
+    Q_INVOKABLE QString authenticate(const QString &loginInput, const QString &password);
     QString authToken() const { return m_authToken; }
     QString userEmail() const { return m_userEmail; }
 

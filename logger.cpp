@@ -21,6 +21,7 @@
 
 #include <QTemporaryFile>
 
+
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <psapi.h>
@@ -430,7 +431,7 @@ void Logger::submitEarlyLeaveReason(const QString &reason)
 
     // 2. Siapkan payload JSON
     QJsonObject payload;
-    payload["user_id"] = m_currentUserId;
+    payload["email"] = m_currentUserEmail;
     payload["alasan"] = reason;
 
     // 3. Siapkan network request
@@ -1233,7 +1234,7 @@ int Logger::calculateTodayProductiveSeconds() const
             }
         }
 
-        qDebug() << "\nTop Productive Domains (Browser Apps):";
+        // qDebug() << "\nTop Productive Domains (Browser Apps):";
         QList<QPair<int, QString>> sortedDomains;
         for (auto it = domainProductivityTime.begin(); it != domainProductivityTime.end(); ++it) {
             if (it.value() > 0) {
@@ -1245,7 +1246,7 @@ int Logger::calculateTodayProductiveSeconds() const
             qDebug() << QString("%1: %2").arg(pair.second, -30).arg(formatDuration(pair.first));
         }
 
-        qDebug() << "\nTop Productive Apps (Non-Browser):";
+        // qDebug() << "\nTop Productive Apps (Non-Browser):";
         QList<QPair<int, QString>> sortedApps;
         for (auto it = appProductivityTime.begin(); it != appProductivityTime.end(); ++it) {
             if (it.value() > 0) {
@@ -3693,11 +3694,11 @@ void Logger::showLogs()
     emit logContentChanged();
 }
 
-bool Logger::authenticate(const QString &loginInput, const QString &password)
+QString Logger::authenticate(const QString &loginInput, const QString &password)
 {
     if (!ensureDatabaseOpen()) {
         qWarning() << "Cannot authenticate: Database is not open";
-        return false;
+        return "Database is not open";
     }
 
     // Deteksi apakah input adalah email atau username
@@ -3732,18 +3733,35 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
     // 2. Kirim request dan tunggu response
     QNetworkReply *reply = m_networkManager->post(request, data);
     QEventLoop loop;
+    QTimer::singleShot(10000, &loop, &QEventLoop::quit);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
 
+    // Cek apakah request timeout
+    if (!reply->isFinished()) {
+        reply->abort();
+        reply->deleteLater();
+        return "Koneksi ke server gagal atau timeout.\n Periksa koneksi internet Anda.";
+    }
+
     // 3. Handle response dari API
-    if (reply->error() == QNetworkReply::NoError) {
-        QByteArray response = reply->readAll();
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(response);
-        QJsonObject jsonObj = jsonResponse.object();
+    QByteArray response = reply->readAll();
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(response);
+    QJsonObject jsonObj = jsonResponse.object();
 
-        qDebug() << "API Response:" << jsonResponse.toJson(QJsonDocument::Compact);
+    qDebug() << "API Response:" << jsonResponse.toJson(QJsonDocument::Compact);
 
-        if (jsonObj["success"].toBool()) {
+    // Periksa apakah ada error jaringan yang sebenarnya
+    if (reply->error() != QNetworkReply::NoError &&
+        reply->error() != QNetworkReply::AuthenticationRequiredError &&
+        reply->error() != QNetworkReply::ProtocolInvalidOperationError) {
+        qWarning() << "Network error during API login:" << reply->errorString();
+        reply->deleteLater();
+        return "Koneksi ke server gagal. Periksa koneksi \n internet, username, dan pasword Anda.";
+    }
+
+    // Periksa apakah API login berhasil
+    if (jsonObj["success"].toBool()) {
             // Jika API login berhasil
             qDebug() << "API login successful. Storing user data...";
 
@@ -3795,13 +3813,16 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
 
 
             reply->deleteLater();
-            return true;
+            return "";
         } else {
-            qWarning() << "API Login failed:" << jsonObj["message"].toString();
+            // Jika API login gagal, ambil pesan error dari server
+            QString serverMessage = jsonObj["message"].toString();
+            reply->deleteLater();
+            // Kembalikan pesan error dari server
+            return serverMessage.isEmpty() ? "Username atau password salah." : serverMessage;
         }
-    } else {
-        qWarning() << "Network error during API login:" << reply->errorString();
-    }
+
+
 
     // // Jika kode sampai di sini, artinya API login gagal. Lakukan fallback ke login lokal.
     // qDebug() << "Attempting local login fallback...";
@@ -3834,7 +3855,7 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
 
     qDebug() << "Login failed completely (API and Local).";
     reply->deleteLater();
-    return false;
+    return "Terjadi kesalahan yang tidak diketahui.";
 }
 
 // Helper function untuk set current user info dan emit signals
@@ -4283,6 +4304,12 @@ void Logger::logWindowChange(const Logger::WindowInfo &info, qint64 startTime, q
         qWarning() << "Cannot log window change: No user logged in";
         return;
     }
+    QString urlToLog = info.url;
+
+    if (!urlToLog.isEmpty() && (urlToLog.contains(' ') || !urlToLog.contains('.'))) {
+        qDebug() << "URL Ditolak (dianggap query pencarian):" << urlToLog;
+        urlToLog.clear();
+    }
 
     QSqlQuery query(m_db);
     query.prepare("INSERT INTO log (id_user, start_time, end_time, app_name, title, url) "
@@ -4292,7 +4319,9 @@ void Logger::logWindowChange(const Logger::WindowInfo &info, qint64 startTime, q
     query.bindValue(":end", endTime);
     query.bindValue(":app", info.appName);
     query.bindValue(":title", info.title);
-    query.bindValue(":url", info.url.isEmpty() ? QVariant() : info.url);
+
+    // Gunakan variabel 'urlToLog' yang sudah divalidasi.
+    query.bindValue(":url", urlToLog.isEmpty() ? QVariant() : urlToLog);
 
     if (!query.exec()) {
         qWarning() << "Failed to log window change:" << query.lastError().text();
@@ -4418,7 +4447,7 @@ QString Logger::statusMessage() const
 void Logger::checkForUpdates()
 {
     // Ganti dengan versi aplikasi Anda saat ini
-    const QString currentVersion = "1.0.2.3";
+    const QString currentVersion = "1.0.2.4";
 
     // Ganti dengan URL file version.json Anda di GitHub
     QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");
