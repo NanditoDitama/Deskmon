@@ -285,6 +285,10 @@ private:
     QString m_statusMessage;
     bool m_isReauthenticating = false;
 
+    QHash<QString, int> m_cachedAppTypes;    // Non-browser apps (nama aplikasi)
+    QHash<QString, int> m_cachedDomainTypes;
+\
+void updateProductivityCache();
 
 #ifdef Q_OS_WIN
     WindowInfo getActiveWindowInfoWindows();

@@ -21,7 +21,6 @@
 
 #include <QTemporaryFile>
 
-
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <psapi.h>
@@ -883,15 +882,28 @@ void Logger::sendWorkTimeToAPI()
     });
 }
 
-
-// Updated getAppProductivityType function
-int Logger::getAppProductivityType(const QString &appName, const QString &url) const
+void Logger::updateProductivityCache()
 {
+    m_cachedAppTypes.clear();
+    m_cachedDomainTypes.clear();
+
     if (!ensureProductivityDatabaseOpen() || m_currentUserId == -1) {
-        return 0;
+        qWarning() << "Cannot update productivity cache: DB not open or no user";
+        return;
     }
 
-    // Helper function untuk normalisasi string
+    QSqlQuery query(m_productivityDb);
+    query.prepare(R"(
+        SELECT aplikasi, url, jenis, for_user
+        FROM aplikasi
+        WHERE jenis IN (1, 2)
+    )");
+
+    if (!query.exec()) {
+        qWarning() << "Failed to load productivity apps cache:" << query.lastError().text();
+        return;
+    }
+
     auto normalizeString = [](const QString &str) {
         return str.toLower()
         .remove(' ')
@@ -899,31 +911,10 @@ int Logger::getAppProductivityType(const QString &appName, const QString &url) c
             .remove('_')
             .remove('.');
     };
-
-    // Helper function untuk cek user permission
-    auto checkUserPermission = [this](const QString &forUsers) -> bool {
-        if (forUsers == "0") {
-            return true; // Global untuk semua user
-        }
-
-        QString currentUserStr = QString::number(m_currentUserId);
-        QStringList userList = forUsers.split(',', Qt::SkipEmptyParts);
-
-        for (const QString &userId : userList) {
-            if (userId.trimmed() == currentUserStr) {
-                return true;
-            }
-        }
-
-        return false;
-    };
     auto extractDomain = [](const QString &url) -> QString {
         if (url.isEmpty()) return "";
-
         QUrl qurl(url);
         QString domain = qurl.host();
-
-        // Jika QUrl gagal parse, coba ekstrak manual
         if (domain.isEmpty()) {
             QRegularExpression domainRegex(R"((?:https?://)?(?:www\.)?([^/]+))");
             QRegularExpressionMatch match = domainRegex.match(url);
@@ -931,101 +922,79 @@ int Logger::getAppProductivityType(const QString &appName, const QString &url) c
                 domain = match.captured(1);
             }
         }
-
-        // Hapus www. prefix
         if (domain.startsWith("www.")) {
             domain = domain.mid(4);
         }
-
         return domain.toLower();
     };
 
-    // Cek apakah ini aplikasi browser atau non-browser
-    bool isBrowserApp = !url.isEmpty();
+    while (query.next()) {
+        QString appName = query.value(0).toString();
+        QString url = query.value(1).toString();
+        int jenis = query.value(2).toInt();
 
-    if (isBrowserApp) {
-        // BROWSER APPLICATION: Gunakan domain matching
-        QString domain = extractDomain(url);
-        if (domain.isEmpty()) {
-            return 0; // Tidak bisa ekstrak domain
-        }
-
-        QSqlQuery query(m_productivityDb);
-        query.prepare(R"(
-            SELECT url, jenis, for_user
-            FROM aplikasi
-            WHERE url IS NOT NULL
-            AND url != ''
-        )");
-        query.bindValue(":userPattern", "%," + QString::number(m_currentUserId) + ",%");
-
-        if (query.exec()) {
-            while (query.next()) {
-                QString dbUrl = query.value(0).toString();
-                int jenis = query.value(1).toInt();
-                QString forUsers = query.value(2).toString();
-
-                // Check user permission
-                if (!checkUserPermission(forUsers)) {
-                    continue;
-                }
-
-                QString dbDomain = extractDomain(dbUrl);
-                if (dbDomain.isEmpty()) continue;
-
-                // Exact domain match
-                if (domain == dbDomain) {
-                    return jenis;
-                }
-
-                // Check if domain contains subdomain match
-                if (domain.endsWith("." + dbDomain) || dbDomain.endsWith("." + domain)) {
-                    return jenis;
-                }
+        if (!url.isEmpty()) {
+            QString domain = extractDomain(url);
+            if (!domain.isEmpty()) {
+                m_cachedDomainTypes[domain] = jenis;
             }
-        }
-    } else {
-        // NON-BROWSER APPLICATION: Gunakan app name matching
-        QString normApp = normalizeString(appName);
-
-        QSqlQuery query(m_productivityDb);
-        query.prepare(R"(
-            SELECT aplikasi, jenis, for_user
-            FROM aplikasi
-            WHERE (url IS NULL OR url = '')
-            AND aplikasi IS NOT NULL
-            AND aplikasi != ''
-        )");
-        query.bindValue(":userPattern", "%," + QString::number(m_currentUserId) + ",%");
-
-        if (query.exec()) {
-            while (query.next()) {
-                QString dbApp = query.value(0).toString();
-                int jenis = query.value(1).toInt();
-                QString forUsers = query.value(2).toString();
-
-                // Check user permission
-                if (!checkUserPermission(forUsers)) {
-                    continue;
-                }
-
-                QString normDbApp = normalizeString(dbApp);
-
-                // Exact match
-                if (normApp == normDbApp) {
-                    return jenis;
-                }
-
-                // Contains match (kedua arah)
-                if (normApp.contains(normDbApp) || normDbApp.contains(normApp)) {
-                    return jenis;
-                }
-            }
+        } else if (!appName.isEmpty()) {
+            m_cachedAppTypes[normalizeString(appName)] = jenis;
         }
     }
 
-    return 0; // Default neutral
+    qDebug() << "Productivity cache updated:"
+             << m_cachedAppTypes.size() << "apps,"
+             << m_cachedDomainTypes.size() << "domains.";
 }
+int Logger::getAppProductivityType(const QString &appName, const QString &url) const
+{
+    if (m_currentUserId == -1) {
+        return 0;
+    }
+
+    auto normalizeString = [](const QString &str) {
+        return str.toLower()
+        .remove(' ')
+            .remove('-')
+            .remove('_')
+            .remove('.');
+    };
+    auto extractDomain = [](const QString &url) -> QString {
+        if (url.isEmpty()) return "";
+        QUrl qurl(url);
+        QString domain = qurl.host();
+        if (domain.isEmpty()) {
+            QRegularExpression domainRegex(R"((?:https?://)?(?:www\.)?([^/]+))");
+            QRegularExpressionMatch match = domainRegex.match(url);
+            if (match.hasMatch()) {
+                domain = match.captured(1);
+            }
+        }
+        if (domain.startsWith("www.")) {
+            domain = domain.mid(4);
+        }
+        return domain.toLower();
+    };
+
+    // Browser app
+    if (!url.isEmpty()) {
+        QString domain = extractDomain(url);
+        if (m_cachedDomainTypes.contains(domain)) {
+            return m_cachedDomainTypes.value(domain);
+        }
+    }
+    // Non-browser app
+    else {
+        QString normApp = normalizeString(appName);
+        if (m_cachedAppTypes.contains(normApp)) {
+            return m_cachedAppTypes.value(normApp);
+        }
+    }
+
+    return 0; // Neutral jika tidak ditemukan
+}
+
 
 // Updated calculateTodayProductiveSeconds function
 int Logger::calculateTodayProductiveSeconds() const
@@ -1037,233 +1006,49 @@ int Logger::calculateTodayProductiveSeconds() const
     QString today = QDate::currentDate().toString("yyyy-MM-dd");
     int totalProductiveSeconds = 0;
 
-    // Helper function untuk cek user permission
-    auto checkUserPermission = [this](const QString &forUsers) -> bool {
-        if (forUsers == "0") {
-            return true; // Global untuk semua user
-        }
-
-        QString currentUserStr = QString::number(m_currentUserId);
-        QStringList userList = forUsers.split(',', Qt::SkipEmptyParts);
-
-        for (const QString &userId : userList) {
-            if (userId.trimmed() == currentUserStr) {
-                return true;
-            }
-        }
-
-        return false;
-    };
-    auto extractDomain = [](const QString &url) -> QString {
-        if (url.isEmpty()) return QString();
-
-        QUrl qurl(url);
-        QString host = qurl.host();
-
-        if (host.isEmpty()) {
-            QRegularExpression domainRegex(R"((?:https?://)?(?:www\.)?([^/]+))");
-            QRegularExpressionMatch match = domainRegex.match(url);
-            if (match.hasMatch()) {
-                host = match.captured(1);
-            }
-        }
-
-        if (host.startsWith("www.")) {
-            host = host.mid(4);
-        }
-
-        return host.toLower();
-    };
-
-    // Helper function untuk normalisasi string
-    auto normalizeString = [](const QString &str) {
-        return str.toLower()
-        .remove(' ')
-            .remove('-')
-            .remove('_')
-            .remove('.');
-    };
-
-    // 1. Load productivity rules from database
-    QHash<QString, int> productiveApps;     // Non-browser apps
-    QHash<QString, int> productiveDomains;  // Browser domains
-
-    if (ensureProductivityDatabaseOpen()) {
-        QSqlQuery query(m_productivityDb);
-        query.prepare(R"(
-            SELECT aplikasi, url, jenis, for_user
-            FROM aplikasi
-            WHERE jenis IN (1, 2)
-        )");
-        query.bindValue(":userPattern", "%," + QString::number(m_currentUserId) + ",%");
-
-        if (query.exec()) {
-            while (query.next()) {
-                QString appName = query.value(0).toString();
-                QString url = query.value(1).toString();
-                int type = query.value(2).toInt();
-                QString forUsers = query.value(3).toString();
-
-                // Check user permission
-                if (!checkUserPermission(forUsers)) {
-                    continue;
-                }
-
-                if (!url.isEmpty()) {
-                    // Browser app rule - store by domain
-                    QString domain = extractDomain(url);
-                    if (!domain.isEmpty()) {
-                        productiveDomains[domain] = type;
-                    }
-                } else if (!appName.isEmpty()) {
-                    // Non-browser app rule
-                    productiveApps[appName] = type;
-                }
-            }
-        }
+    // Pastikan database produktivitas terbuka
+    if (!ensureProductivityDatabaseOpen()) {
+        qWarning() << "Productivity database not open";
+        return 0;
     }
 
-    // 2. Process today's activity logs
-    QSqlQuery logQuery(m_db);
-    logQuery.prepare(R"(
-        SELECT start_time, end_time, app_name, title, url
+    // Query langsung menghitung total detik produktif dengan join
+    QSqlQuery query(m_db);
+    query.prepare(R"(
+        SELECT IFNULL(SUM(end_time - start_time), 0) AS productive_seconds
         FROM log
-        WHERE id_user = :user_id
-        AND date(start_time, 'unixepoch', 'localtime') = :today
-        ORDER BY start_time ASC
+        JOIN aplikasi
+        ON (
+            (log.url IS NOT NULL AND log.url != '' AND aplikasi.url IS NOT NULL AND aplikasi.url != ''
+             AND LOWER(log.url) LIKE '%' || LOWER(aplikasi.url) || '%')
+            OR
+            (log.app_name IS NOT NULL AND log.app_name != '' AND aplikasi.aplikasi IS NOT NULL AND aplikasi.aplikasi != ''
+             AND LOWER(log.app_name) LIKE '%' || LOWER(aplikasi.aplikasi) || '%')
+        )
+        WHERE log.id_user = :user_id
+          AND date(log.start_time, 'unixepoch', 'localtime') = :today
+          AND aplikasi.jenis = 1
     )");
-    logQuery.bindValue(":user_id", m_currentUserId);
-    logQuery.bindValue(":today", today);
 
-    if (logQuery.exec()) {
-        QHash<QString, int> appProductivityTime;
-        QHash<QString, int> domainProductivityTime;
-        QHash<QString, int> matchStats;
+    query.bindValue(":user_id", m_currentUserId);
+    query.bindValue(":today", today);
 
-        while (logQuery.next()) {
-            qint64 start = logQuery.value(0).toLongLong();
-            qint64 end = logQuery.value(1).toLongLong();
-            QString appName = logQuery.value(2).toString();
-            QString title = logQuery.value(3).toString();
-            QString url = logQuery.value(4).toString();
-
-            int duration = end - start;
-            if (duration <= 0) continue;
-
-            int productivityType = 0;
-            QString matchMethod = "none";
-            QString matchedItem = "";
-
-            bool isBrowserApp = !url.isEmpty();
-
-            if (isBrowserApp) {
-                // Browser application - check domain
-                QString domain = extractDomain(url);
-                if (!domain.isEmpty()) {
-                    // Direct domain match
-                    if (productiveDomains.contains(domain)) {
-                        productivityType = productiveDomains[domain];
-                        matchMethod = "domain_exact";
-                        matchedItem = domain;
-                    } else {
-                        // Check for subdomain matches
-                        for (auto it = productiveDomains.begin(); it != productiveDomains.end(); ++it) {
-                            const QString &ruleDomain = it.key();
-                            if (domain.endsWith("." + ruleDomain) || ruleDomain.endsWith("." + domain)) {
-                                productivityType = it.value();
-                                matchMethod = "domain_subdomain";
-                                matchedItem = ruleDomain;
-                                break;
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Non-browser application - check app name
-                QString normApp = normalizeString(appName);
-
-                // Direct app match
-                for (auto it = productiveApps.begin(); it != productiveApps.end(); ++it) {
-                    const QString &ruleApp = it.key();
-                    QString normRuleApp = normalizeString(ruleApp);
-
-                    if (normApp == normRuleApp) {
-                        productivityType = it.value();
-                        matchMethod = "app_exact";
-                        matchedItem = ruleApp;
-                        break;
-                    } else if (normApp.contains(normRuleApp) || normRuleApp.contains(normApp)) {
-                        productivityType = it.value();
-                        matchMethod = "app_contains";
-                        matchedItem = ruleApp;
-                        break;
-                    }
-                }
-            }
-
-            bool isProductive = (productivityType == 1);
-
-            if (isProductive) {
-                totalProductiveSeconds += duration;
-
-                if (isBrowserApp) {
-                    QString domain = extractDomain(url);
-                    if (!domain.isEmpty()) {
-                        domainProductivityTime[domain] += duration;
-                    }
-                } else {
-                    appProductivityTime[appName] += duration;
-                }
-
-                matchStats[matchMethod] += duration;
-            }
-        }
-
-        // 3. Debug output
-        qDebug() << "==== Updated Productivity Breakdown ====";
-        qDebug() << "Total Productive Time:" << formatDuration(totalProductiveSeconds);
-
-        qDebug() << "\nMatching Method Statistics:";
-        for (auto it = matchStats.begin(); it != matchStats.end(); ++it) {
-            if (totalProductiveSeconds > 0) {
-                double percentage = (double)it.value() / totalProductiveSeconds * 100;
-                qDebug() << QString("%1: %2 (%3%)")
-                                .arg(it.key(), -20)
-                                .arg(formatDuration(it.value()))
-                                .arg(percentage, 0, 'f', 1);
-            }
-        }
-
-        // qDebug() << "\nTop Productive Domains (Browser Apps):";
-        QList<QPair<int, QString>> sortedDomains;
-        for (auto it = domainProductivityTime.begin(); it != domainProductivityTime.end(); ++it) {
-            if (it.value() > 0) {
-                sortedDomains.append(qMakePair(it.value(), it.key()));
-            }
-        }
-        std::sort(sortedDomains.begin(), sortedDomains.end(), std::greater<QPair<int, QString>>());
-        for (const auto &pair : sortedDomains.mid(0, 10)) {
-            qDebug() << QString("%1: %2").arg(pair.second, -30).arg(formatDuration(pair.first));
-        }
-
-        // qDebug() << "\nTop Productive Apps (Non-Browser):";
-        QList<QPair<int, QString>> sortedApps;
-        for (auto it = appProductivityTime.begin(); it != appProductivityTime.end(); ++it) {
-            if (it.value() > 0) {
-                sortedApps.append(qMakePair(it.value(), it.key()));
-            }
-        }
-        std::sort(sortedApps.begin(), sortedApps.end(), std::greater<QPair<int, QString>>());
-        for (const auto &pair : sortedApps.mid(0, 10)) {
-            qDebug() << QString("%1: %2").arg(pair.second, -30).arg(formatDuration(pair.first));
-        }
-
-    } else {
-        qWarning() << "Failed to fetch today's logs:" << logQuery.lastError().text();
+    if (!query.exec()) {
+        qWarning() << "Failed to calculate productive seconds:" << query.lastError().text();
+        return 0;
     }
+
+    if (query.next()) {
+        totalProductiveSeconds = query.value(0).toInt();
+    }
+
+    // Debug output seperti versi lama
+    qDebug() << "==== Productivity Calculation (Optimized) ====";
+    qDebug() << "Total Productive Time:" << formatDuration(totalProductiveSeconds);
 
     return totalProductiveSeconds;
 }
+
 
 // Updated productivityStats function
 QVariantMap Logger::productivityStats() const
@@ -1448,7 +1233,7 @@ void Logger::checkTaskStatusBeforeStart()
         }
     }
 
-
+    updateProductivityCache();
     emit activeTaskChanged();
     emit taskPausedChanged();
     emit trackingActiveChanged();
@@ -2041,6 +1826,7 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
         qWarning() << "Failed to sync productivity apps with database";
         m_productivityDb.rollback();
     }
+    updateProductivityCache();
 }
 
 void Logger::refreshProductivityModels()
