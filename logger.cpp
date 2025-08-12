@@ -17,6 +17,9 @@
 #include <QBuffer>
 #include <QRegularExpression>
 #include <QMessageBox>
+#include <QApplication>
+
+#include <QTemporaryFile>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -35,7 +38,78 @@
 #include <IOKit/IOKitLib.h>
 #include <IOKit/IOKitKeys.h>
 #include <IOKit/IOKitLib.h>
+#elif defined(Q_OS_LINUX)
+// X11 and desktop environment
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/Xatom.h>
+#include <X11/extensions/Xrandr.h>
+#include <X11/extensions/shape.h>
 
+// System and process management
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <sys/utsname.h>
+#include <sys/sysinfo.h>
+#include <sys/statvfs.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <pwd.h>
+#include <grp.h>
+
+// File and directory operations
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+
+// GTK/GLib (if using GTK integration)
+#ifdef HAVE_GTK
+#include <gtk/gtk.h>
+#include <gio/gio.h>
+#include <glib.h>
+#endif
+
+// D-Bus (for desktop notifications and system integration)
+#ifdef HAVE_DBUS
+#include <dbus/dbus.h>
+#endif
+
+// For desktop file handling and MIME types
+#include <magic.h>
+#include <mntent.h>
+
+// Network and system info
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+// Memory and CPU info
+#include <sys/resource.h>
+#include <sys/times.h>
+
+// For file system monitoring (inotify)
+#include <sys/inotify.h>
+
+// Audio system (if needed)
+#ifdef HAVE_PULSEAUDIO
+#include <pulse/pulseaudio.h>
+#endif
+
+#ifdef HAVE_ALSA
+#include <alsa/asoundlib.h>
+#endif
+
+// Threading
+#include <pthread.h>
+
+// Standard C libraries commonly used on Linux
+#include <cstdlib>
+#include <cstring>
+#include <cerrno>
+#include <climits>
 #else
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -101,6 +175,8 @@ Logger::Logger(QObject *parent) : QObject(parent)
     m_taskRefreshTimer.setInterval(180000);
     connect(&m_taskRefreshTimer, &QTimer::timeout, this, &Logger::refreshTasks);
     m_taskRefreshTimer.start();
+
+    m_lastShownPingError.clear();
 
 
 }
@@ -174,6 +250,8 @@ void Logger::showAuthTokenErrorMessage()
 
     // Setelah pengguna menekan OK, panggil logout
     logout();
+    emit requestLoginPage();
+    m_isTokenErrorVisible = false;
 }
 
 void Logger::refreshAll()
@@ -261,6 +339,7 @@ void Logger::refreshAll()
     fetchWorkTimeFromAPI();
     // 3. Perbarui info jendela yang sedang aktif.
     logActiveWindow();
+    syncActiveTask();
 
     // 4. Pancarkan sinyal untuk memberitahu UI agar memperbarui tampilannya.
     emit taskListChanged();
@@ -604,11 +683,10 @@ void Logger::initializeProductivityDatabase()
                     "task TEXT NOT NULL, "
                     "max_time INTEGER NOT NULL, "
                     "time_usage INTEGER NOT NULL, "
-                    "completed_time INTEGER NOT NULL)"
+                    "completed_time INTEGER NOT NULL, "
                     "user_id INTEGER NOT NULL)")) {
         qWarning() << "Failed to create completed_tasks table:" << query.lastError().text();
     }
-    // Di logger.cpp - fungsi initializeProductivityDatabase()
     if (!query.exec("CREATE TABLE IF NOT EXISTS idle_settings ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "threshold_seconds INTEGER)")) {
@@ -617,7 +695,7 @@ void Logger::initializeProductivityDatabase()
     if (!query.exec("CREATE TABLE IF NOT EXISTS log_paused ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "task_id INTEGER NOT NULL, "
-                    "start_reality TEXT NOT NULL, "  // ISO 8601 format: 'YYYY-MM-DDTHH:MM:SS.SSSSSSZ'
+                    "start_reality TEXT NOT NULL, "
                     "end_reality TEXT, "
                     "current_status TEXT NOT NULL, "  // 'pause' or 'play'
                     "FOREIGN KEY(task_id) REFERENCES task(id))")) {
@@ -1267,7 +1345,7 @@ void Logger::sendProductiveTimeToAPI()
     }
 
     int productiveSeconds = calculateTodayProductiveSeconds();
-    qDebug() << "Sending productive time:" << productiveSeconds << "seconds";
+
 
     QJsonObject payload;
     payload["user_id"] = m_currentUserId;
@@ -1746,27 +1824,27 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
 
     QJsonArray appsArray = jsonObj["data"].isArray() ? jsonObj["data"].toArray() : QJsonArray();
 
-    qDebug() << "==============================================";
-    qDebug() << "Received" << appsArray.size() << "productivity apps from server:";
-    qDebug() << "==============================================";
+    // qDebug() << "==============================================";
+    // qDebug() << "Received" << appsArray.size() << "productivity apps from server:";
+    // qDebug() << "==============================================";
 
-    for (const QJsonValue &appValue : appsArray) {
-        if (!appValue.isObject()) continue;
+    // for (const QJsonValue &appValue : appsArray) {
+    //     if (!appValue.isObject()) continue;
 
-        QJsonObject appObj = appValue.toObject();
-        QString appName = appObj["application_name"].toString();
-        QString status = appObj["productivity_status"].toString().toLower();
-        QString processName = appObj["process_name"].toString();
-        QString url = appObj["url"].toString();
-        int userId = appObj["user_id"].toInt();
+    //     QJsonObject appObj = appValue.toObject();
+    //     QString appName = appObj["application_name"].toString();
+    //     QString status = appObj["productivity_status"].toString().toLower();
+    //     QString processName = appObj["process_name"].toString();
+    //     QString url = appObj["url"].toString();
+    //     int userId = appObj["user_id"].toInt();
 
-        qDebug() << "App:" << appName
-                 << "| Process:" << (processName.isEmpty() ? "N/A" : processName)
-                 << "| URL:" << (url.isEmpty() ? "N/A" : url)
-                 << "| Status:" << status
-                 << "| User ID:" << userId;
-    }
-    qDebug() << "==============================================";
+    //     qDebug() << "App:" << appName
+    //              << "| Process:" << (processName.isEmpty() ? "N/A" : processName)
+    //              << "| URL:" << (url.isEmpty() ? "N/A" : url)
+    //              << "| Status:" << status
+    //              << "| User ID:" << userId;
+    // }
+    // qDebug() << "==============================================";
 
     if (!m_productivityDb.transaction()) {
         qWarning() << "Failed to start transaction";
@@ -1886,7 +1964,6 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
                     }
                 } else {
                     unchangedCount++;
-                    qDebug() << "Exact match app unchanged:" << serverApp.appName << "for user" << serverApp.userId;
                 }
                 break; // Keluar dari loop karena sudah menemukan exact match
             }
@@ -2599,6 +2676,11 @@ void Logger::migrateProductivityDatabase()
 
 void Logger::setActiveTask(int taskId)
 {
+    if (taskId == m_activeTaskId && !m_isTaskPaused) {
+        qDebug() << "Task" << taskId << "is already active and running. No action needed.";
+        return;
+    }
+
     if (!ensureProductivityDatabaseOpen()) {
         qWarning() << "Cannot set active task: Database is not open";
         return;
@@ -2641,6 +2723,10 @@ void Logger::setActiveTask(int taskId)
         //     QString startTime = QDateTime::fromSecsSinceEpoch(m_taskStartTime).toString(Qt::ISODateWithMs);
         //     sendPausePlayDataToAPI(m_activeTaskId, startTime, currentTime, "pause");
         // }
+
+        if (!m_isTaskPaused) {
+            toggleTaskPause();
+        }
 
     }
 
@@ -2706,6 +2792,7 @@ void Logger::setActiveTask(int taskId)
                 logQuery.addBindValue(taskId);
                 logQuery.addBindValue(newTime);
                 logQuery.exec();
+                sendPing(m_activeTaskId);
 
 
                 // Emit signals
@@ -2753,17 +2840,13 @@ void Logger::sendPing(int taskId)
         return;
     }
 
-    // Buat payload JSON secara dinamis
     QJsonObject payload;
     if (taskId != -1) {
-        // Jika ada taskId yang valid, kirim ping untuk task
         payload["task_id"] = QString::number(taskId);
     } else {
-        // Jika taskId adalah -1, kirim ping untuk user
         payload["user_id"] = m_currentUserId;
     }
 
-    // Konfigurasi request
     QNetworkRequest request;
     request.setUrl(QUrl("https://deskmon.pranala-dt.co.id/api/ping"));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
@@ -2771,30 +2854,32 @@ void Logger::sendPing(int taskId)
 
     qDebug() << "Sending ping with payload:" << QJsonDocument(payload).toJson();
 
-    // Kirim request POST
     QNetworkReply* reply = m_networkManager->post(request, QJsonDocument(payload).toJson());
-
-    // Handle timeout (30 detik)
     QTimer::singleShot(30000, reply, &QNetworkReply::abort);
 
-    // Handle response (sisa kode tetap sama)
     connect(reply, &QNetworkReply::finished, [this, reply]() {
         QByteArray responseData = reply->readAll();
         QString responseText = QString::fromUtf8(responseData);
         QJsonParseError parseError;
         QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
 
-        bool showPopup = false;
-        QString popupMessage;
+        bool hasError = false;
+        QString errorMessage;
         bool refreshRequired = false;
-        bool isSuccess = false;  // Flag untuk melacak apakah response sukses
+        bool isSuccessResponse = false;
+        bool isAuthError = false; // Flag untuk error autentikasi prioritas
 
-        // Cek network error terlebih dahulu
         if (reply->error() != QNetworkReply::NoError) {
-            showPopup = true;
-            popupMessage = "Network error:\n" + reply->errorString();
+            hasError = true;
+            errorMessage = "Network error: " + reply->errorString();
+            qWarning() << "Network error in ping:" << reply->errorString();
+
+            // Cek apakah ini error autentikasi (prioritas utama)
+            if (reply->errorString().contains("Host requires authentication", Qt::CaseInsensitive)) {
+                isAuthError = true;
+                showAuthTokenErrorMessage();
+            }
         }
-        // Jika tidak ada network error, parse JSON response
         else if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
             QJsonObject jsonObj = jsonDoc.object();
 
@@ -2806,35 +2891,120 @@ void Logger::sendPing(int taskId)
             if (jsonObj.contains("success") && jsonObj["success"].isBool()) {
                 bool success = jsonObj["success"].toBool();
                 if (!success) {
-                    showPopup = true;
-                    popupMessage = "API returned error:\n\n" + responseText;
+                    hasError = true;
+                    errorMessage = jsonObj.value("message").toString().trimmed();
+                    if (errorMessage.isEmpty()) {
+                        errorMessage = "Server returned error (no message provided)";
+                    }
+                    qWarning() << "API error:" << errorMessage;
+
+                    // Cek apakah ini error autentikasi (prioritas utama)
+                    if (errorMessage.contains("Host requires authentication", Qt::CaseInsensitive)) {
+                        isAuthError = true;
+                        showAuthTokenErrorMessage();
+                    }
                 } else {
-                    isSuccess = true;
-                    qDebug() << "Success response from server:" << responseText;
+                    isSuccessResponse = true;
+                    qDebug() << "Ping successful:" << responseText;
                 }
             } else {
-                showPopup = true;
-                popupMessage = "Invalid response format (no 'success' field):\n\n" + responseText;
+                hasError = true;
+                errorMessage = "Invalid response format: missing 'success' field";
+                qWarning() << "Invalid API response:" << responseText;
             }
         } else {
-            showPopup = true;
-            popupMessage = "Failed to parse JSON response:\n\n" + responseText;
+            hasError = true;
+            errorMessage = "Failed to parse server response";
+            qWarning() << "JSON parse error:" << parseError.errorString() << "Response:" << responseText;
         }
 
-        // Logic untuk menampilkan popup dengan pembatasan
-        if (showPopup && !m_errorPopupShown) {
-            // Tampilkan popup error hanya jika belum pernah ditampilkan
-            QMessageBox::warning(nullptr, "API Connection Error", popupMessage);
-            m_errorPopupShown = true;  // Set flag bahwa popup sudah ditampilkan
-        } else if (isSuccess && m_errorPopupShown) {
-            // Jika response sukses dan sebelumnya ada error, reset flag
+        if (isSuccessResponse) {
+            // Tutup popup error yang sedang tampil jika koneksi berhasil
+            if (m_errorPopupShown && m_currentErrorDialog) {
+                m_currentErrorDialog->close();
+                m_currentErrorDialog = nullptr;
+                qDebug() << "✅ Connection restored - error popup closed automatically";
+            }
+
             m_errorPopupShown = false;
-            qDebug() << "Connection restored - error popup flag reset";
+            m_lastErrorCategory.clear();
+            m_lastErrorTime = 0;
         }
+        else if (hasError) {
+            // Jika ada error autentikasi, prioritaskan dan hilangkan error lain
+            if (isAuthError) {
+                // Tutup dialog error sebelumnya jika ada
+                if (m_currentErrorDialog) {
+                    m_currentErrorDialog->close();
+                    m_currentErrorDialog = nullptr;
+                    qDebug() << "🔄 Closed previous error dialog for authentication priority";
+                }
 
-        // Log error ke console meskipun popup tidak ditampilkan
-        if (showPopup) {
-            qWarning() << "Ping error (popup suppressed):" << popupMessage;
+                // Reset status error popup untuk memaksa tampil error autentikasi
+                m_errorPopupShown = false;
+                m_lastErrorCategory = "auth";
+                m_lastErrorTime = QDateTime::currentMSecsSinceEpoch();
+
+                qDebug() << "🔑 Authentication error has priority - other errors suppressed";
+                reply->deleteLater();
+                return; // Keluar dari fungsi, jangan tampilkan error lain
+            }
+
+            // Proses error non-autentikasi hanya jika tidak ada error autentikasi
+            QString errorCategory = "unknown";
+            if (errorMessage.contains("Network error")) errorCategory = "network";
+            else if (errorMessage.contains("Server error")) errorCategory = "server";
+            else if (errorMessage.contains("Invalid response")) errorCategory = "format";
+
+            qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
+            bool shouldShowPopup = false;
+
+            // Cek apakah perlu menampilkan popup error
+            if (!m_errorPopupShown) shouldShowPopup = true;
+            else if (m_lastErrorCategory != errorCategory) shouldShowPopup = true;
+            else if ((currentTime - m_lastErrorTime) > 60000) shouldShowPopup = true; // 1 menit
+
+            // Daftar pesan yang tidak perlu ditampilkan (selain auth error)
+            static const QStringList suppressedErrors = {
+                "No active task implementation found",
+                "Your task is not in On Progress status"
+            };
+
+            bool isSuppressed = false;
+            for (const QString &pattern : suppressedErrors) {
+                if (errorMessage.contains(pattern, Qt::CaseInsensitive) ||
+                    reply->errorString().contains(pattern, Qt::CaseInsensitive)) {
+                    isSuppressed = true;
+                    qDebug() << "🔕 Suppressed error message:" << errorMessage;
+                    break;
+                }
+            }
+
+            if (shouldShowPopup && !isSuppressed) {
+                // Pastikan hanya satu dialog error yang muncul
+                QTimer::singleShot(0, [this, errorMessage]() {
+                    if (m_currentErrorDialog) {
+                        m_currentErrorDialog->close();
+                        m_currentErrorDialog = nullptr;
+                        qDebug() << "🔄 Closed previous error dialog before showing new one";
+                    }
+
+                    m_currentErrorDialog = new QMessageBox(QMessageBox::Warning,
+                                                           "API Connection Error",
+                                                           errorMessage,
+                                                           QMessageBox::Ok,
+                                                           nullptr);
+                    connect(m_currentErrorDialog, &QMessageBox::finished, [this]() {
+                        m_currentErrorDialog = nullptr;
+                    });
+                    m_currentErrorDialog->show();
+                });
+
+                m_errorPopupShown = true;
+                m_lastErrorCategory = errorCategory;
+                m_lastErrorTime = currentTime;
+                qDebug() << "❌ Error popup scheduled for:" << errorMessage;
+            }
         }
 
         if (refreshRequired) {
@@ -2847,6 +3017,7 @@ void Logger::sendPing(int taskId)
 }
 
 
+
 void Logger::startPingTimer()
 {
     sendPing(m_activeTaskId);
@@ -2855,11 +3026,11 @@ void Logger::startPingTimer()
 }
 
 
-void Logger::stopPingTimer()
-{
-    m_pingTimer.stop();
-    qDebug() << "Stopped ping timer";
-}
+// void Logger::stopPingTimer()
+// {
+//     m_pingTimer.stop();
+//     qDebug() << "Stopped ping timer";
+// }
 
 
 QString Logger::getUserPassword(const QString &username) {
@@ -3615,6 +3786,7 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
             loadWorkTimeData();
             startGlobalTimer();
             syncActiveTask();
+            checkForUpdates();
             fetchAndStoreTasks();
             m_usageReportTimer.start();
             m_isTrackingActive = true;
@@ -3961,6 +4133,8 @@ void Logger::logActiveWindow()
     m_currentWindowTitle = currentInfo.title;
     emit currentAppNameChanged();
     emit currentWindowTitleChanged();
+
+    emit currentAppIconPathChanged();
 }
 
 void Logger::syncActiveTask()
@@ -4235,6 +4409,82 @@ QString Logger::getProfileImagePath(const QString &username)
     qWarning() << "No user found with username:" << username;
     return "";
 }
+QString Logger::statusMessage() const
+{
+    return m_statusMessage;
+}
+
+// 2. Tambahkan implementasi fungsi utama
+void Logger::checkForUpdates()
+{
+    // Ganti dengan versi aplikasi Anda saat ini
+    const QString currentVersion = "1.0.2.3";
+
+    // Ganti dengan URL file version.json Anda di GitHub
+    QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");
+
+    qDebug() << "Mengecek update dari:" << url.toString();
+
+    QNetworkRequest request(url);
+    QNetworkReply *reply = m_networkManager->get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [=]() {
+        if (reply->error() != QNetworkReply::NoError) {
+            QString errorMsg = "Gagal mengecek update: " + reply->errorString();
+            emit showStatusMessage(errorMsg);
+            reply->deleteLater();
+            return;
+        }
+
+        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+        if (!doc.isObject()) {
+            qWarning() << "Format JSON update tidak valid.";
+            emit showStatusMessage("Format file update di server tidak valid.");
+            reply->deleteLater();
+            return;
+        }
+
+        QJsonObject obj = doc.object();
+        QString serverVersion = obj.value("version").toString();
+
+        // Logika perbandingan versi (sederhana)
+        if (serverVersion > currentVersion) {
+            qDebug() << "Update tersedia! Versi server:" << serverVersion;
+            QString notes = obj.value("releaseNotes").toString();
+
+            // Kirim sinyal ke QML bahwa update ditemukan
+            emit updateAvailable(serverVersion, notes);
+        } else {
+            qDebug() << "Aplikasi sudah versi terbaru.";
+            emit showStatusMessage("Aplikasi Anda sudah versi terbaru.");
+        }
+
+        reply->deleteLater();
+    });
+}
+
+void Logger::launchMaintenanceTool()
+{
+    // Dapatkan path dari direktori tempat aplikasi ini berjalan
+    QString appDir = QApplication::applicationDirPath();
+
+    // Buat path lengkap ke DeskmonTool.exe
+    QString maintenanceToolPath = QDir(appDir).filePath("DeskmonTool.exe");
+
+    qDebug() << "Mencari Maintenance Tool di:" << maintenanceToolPath;
+
+    if (!QFile::exists(maintenanceToolPath)) {
+        qWarning() << "DeskmonTool.exe tidak ditemukan!";
+        QMessageBox::critical(nullptr, "Error", "File update (DeskmonTool.exe) tidak ditemukan.");
+        return;
+    }
+
+    // Jalankan Maintenance Tool dan tutup aplikasi ini
+    qDebug() << "Menjalankan Maintenance Tool dan menutup aplikasi...";
+    QProcess::startDetached(maintenanceToolPath);
+    QApplication::quit();
+}
+
 
 Logger::WindowInfo Logger::getActiveWindowInfo()
 {
@@ -4293,11 +4543,11 @@ Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
 
         if (appProcess.waitForFinished(5000)) {
             info.appName = QString(appProcess.readAllStandardOutput()).trimmed();
-            qDebug() << "App name:" << info.appName;
+            // qDebug() << "App name:" << info.appName;
         } else {
             appProcess.kill();
-            qDebug() << "App name script timed out";
-            qDebug() << "Error:" << appProcess.readAllStandardError();
+            // qDebug() << "App name script timed out";
+            // qDebug() << "Error:" << appProcess.readAllStandardError();
         }
     }
 
@@ -4311,11 +4561,11 @@ Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
 
         if (titleProcess.waitForFinished(5000)) {
             info.title = QString(titleProcess.readAllStandardOutput()).trimmed();
-            qDebug() << "Window title:" << info.title;
+            // qDebug() << "Window title:" << info.title;
         } else {
             titleProcess.kill();
-            qDebug() << "Window title script timed out";
-            qDebug() << "Error:" << titleProcess.readAllStandardError();
+            // qDebug() << "Window title script timed out";
+            // qDebug() << "Error:" << titleProcess.readAllStandardError();
         }
     }
 

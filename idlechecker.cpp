@@ -1,5 +1,3 @@
-// idlechecker.cpp
-
 #include "idlechecker.h"
 #include "logger.h"
 #include <QDateTime>
@@ -31,27 +29,27 @@ IdleChecker::IdleChecker(Logger *logger, QObject *parent) : QObject(parent), m_l
     connect(&m_timer, &QTimer::timeout, this, &IdleChecker::checkIdleTime);
     if (m_logger) {
         connect(m_logger, &Logger::idleThresholdChanged, this, &IdleChecker::updateIdleThresholdFromDatabase);
-        connect(m_logger, &Logger::trackingActiveChanged, this, [this]() {
-            if (m_logger->isTrackingActive()) {
-                // Reset idle state when tracking is reactivated
-                m_isIdle = false;
-                m_lastIdleLogTime = 0;
-                m_lastActiveTime = 0;
-            } else {
-                // When tracking is stopped (e.g., due to pause), reset idle state
-                m_isIdle = false;
-                m_lastIdleLogTime = 0;
-                m_lastActiveTime = 0;
-            }
-        });
-        connect(m_logger, &Logger::taskPausedChanged, this, [this]() {
-            if (m_logger->isTaskPaused()) {
-                // When task is paused, reset idle state to prevent idle detection
-                m_isIdle = false;
-                m_lastIdleLogTime = 0;
-                m_lastActiveTime = 0;
-            }
-        });
+        // connect(m_logger, &Logger::trackingActiveChanged, this, [this]() {
+        //     if (m_logger->isTrackingActive()) {
+        //         // Reset idle state when tracking is reactivated
+        //         m_isIdle = false;
+        //         m_lastIdleLogTime = 0;
+        //         m_lastActiveTime = 0;
+        //     } else {
+        //         // When tracking is stopped (e.g., due to pause), reset idle state
+        //         m_isIdle = false;
+        //         m_lastIdleLogTime = 0;
+        //         m_lastActiveTime = 0;
+        //     }
+        // });
+        // connect(m_logger, &Logger::taskPausedChanged, this, [this]() {
+        //     if (m_logger->isTaskPaused()) {
+        //         // When task is paused, reset idle state to prevent idle detection
+        //         m_isIdle = false;
+        //         m_lastIdleLogTime = 0;
+        //         m_lastActiveTime = 0;
+        //     }
+        // });
         updateIdleThresholdFromDatabase();
     } else {
         qWarning() << "IdleChecker initialized with null logger, using default threshold:" << m_idleThreshold << "seconds";
@@ -102,6 +100,10 @@ bool IdleChecker::isIdle() const
 
 void IdleChecker::checkIdleTime()
 {
+
+    if (m_logger && m_logger->isTaskPaused() && !m_isIdle) {
+        return; // Keluar dari fungsi, jangan lakukan apa-apa.
+    }
     if (!m_logger || m_logger->currentUserId() == -1) {
         if (m_isIdle) {
             m_isIdle = false;
@@ -111,17 +113,7 @@ void IdleChecker::checkIdleTime()
         qDebug() << "Idle check skipped: user not logged in";
         return;
     }
-    // Skip checking if tracking is not active or task is paused
-    if (m_logger && (!m_logger->isTrackingActive() || m_logger->isTaskPaused())) {
-        // Ensure idle state is reset when paused or tracking is off
-        if (m_isIdle) {
-            m_isIdle = false;
-            m_lastIdleLogTime = 0;
-            m_lastActiveTime = 0;
-            qDebug() << "Idle checking stopped due to pause or tracking inactive";
-        }
-        return;
-    }
+
 
     qint64 currentTime = QDateTime::currentSecsSinceEpoch();
 
@@ -154,9 +146,9 @@ void IdleChecker::checkIdleTime()
             }
             // === PERUBAHAN SELESAI ===
 
-            if (m_logger) {
-                m_logger->stopPingTimer();
-            }
+            // if (m_logger) {
+            //     m_logger->stopPingTimer();
+            // }
         }
 
         // Log idle every 60 seconds while idle
@@ -176,9 +168,15 @@ void IdleChecker::checkIdleTime()
                 qDebug() << "Logged final idle period, ended at:" << QDateTime::fromSecsSinceEpoch(currentTime).toString();
             }
 
-            if (m_logger) {
-                m_logger->startPingTimer();
+
+            // Secara otomatis melanjutkan kembali task yang sebelumnya dijeda karena idle
+            if (m_logger->isTaskPaused()) {
+                qDebug() << "Returned from idle. Automatically resuming the active task.";
+                m_logger->toggleTaskPause();
             }
+            // if (m_logger){
+            //     m_logger->startPingTimer();
+            // }
 
             m_isIdle = false;
             m_lastIdleLogTime = 0;
