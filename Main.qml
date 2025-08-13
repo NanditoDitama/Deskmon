@@ -12,7 +12,7 @@ ApplicationWindow {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 900
-    property string appVersion: "1.0.2.4"
+    property string appVersion: "1.0.2.5"
 
 
 
@@ -211,6 +211,7 @@ ApplicationWindow {
             isLoggedIn = false
             isProfileVisible = false
             showRegisterPage = false
+            showIdleNotification = false
             console.log("mencoba untuk login ulang")
         }
     }
@@ -439,7 +440,7 @@ ApplicationWindow {
     }
 
     function extractDomain(urlString) {
-        if (!urlString || urlString.trim() === "") {
+        if (!urlString || urlString.trim() === "" || urlString.indexOf('.') === -1 || urlString.includes(' ')) {
             return "";
         }
         try {
@@ -1147,15 +1148,26 @@ ApplicationWindow {
         color: backgroundColor
         visible: isLoggedIn && !isProfileVisible
 
-        Component.onCompleted: {
-            console.log("Dashboard component completed. Setting date range to today.");
-            // Logika ini akan berjalan setiap kali dasbor ditampilkan setelah login
-            var today = new Date();
-            startSelectedDate = today;     // [cite: 150]
-            endSelectedDate = today;       // [cite: 150]
-            isDateSelected = true;         // [cite: 151]
-            applyDateRange();              // [cite: 151]
-        }
+        onVisibleChanged: {
+                if (visible) { // Pastikan kode hanya berjalan saat dashboard menjadi terlihat
+                    console.log("Dashboard is now visible. Resetting date range to today.");
+                    var today = new Date();
+                    startSelectedDate = today;
+                    endSelectedDate = today;
+                    isDateSelected = true;
+                    applyDateRange();
+                }
+            }
+
+            // Component.onCompleted bisa tetap ada untuk memastikan tanggal diatur pada pemuatan pertama kali
+            Component.onCompleted: {
+                console.log("Dashboard component completed. Setting date range to today.");
+                var today = new Date();
+                startSelectedDate = today;
+                endSelectedDate = today;
+                isDateSelected = true;
+                applyDateRange();
+            }
 
         ColumnLayout {
             anchors.fill: parent

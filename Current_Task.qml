@@ -424,7 +424,7 @@ Item {
 
                     MouseArea {
                         anchors.fill: parent
-                        enabled:  !(delegateRoot.isReview || delegateRoot.isNeedReview || delegateRoot.isNeedRevise)
+                        enabled:  !(delegateRoot.isReview || delegateRoot.isNeedReview)
                         onClicked: {
                             if (!delegateRoot.isActive && logger.activeTaskId !== -1) {
                                 confirmSwitchDialog.taskId = modelData.id

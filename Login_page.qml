@@ -8,7 +8,9 @@ import QtQuick.Dialogs
 import QtQuick.Effects
 
 Item {
+    id: loginPageRoot
     anchors.fill: parent
+    property bool isLoading: false
 
     // Background dengan gradient modern yang responsif terhadap tema
     Rectangle {
@@ -152,6 +154,7 @@ Item {
                     TextField {
                         id: usernameField
                         placeholderText: "Enter your username"
+                        enabled: !loginPageRoot.isLoading
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
                         font.pixelSize: 16
@@ -197,6 +200,7 @@ Item {
                         TextField {
                             id: passwordField
                             placeholderText: "Enter your password"
+                            enabled: !loginPageRoot.isLoading
                             echoMode: showPassword ? TextInput.Normal : TextInput.Password
                             Layout.fillWidth: true
                             Layout.preferredHeight: 50
@@ -295,6 +299,7 @@ Item {
                         var result = logger.authenticate(usernameField.text, passwordField.text)
                         if (result === "") {
                             console.log("Login successful")
+                            loginPageRoot.isLoading = false;
 
                             isLoggedIn = true
                             currentUsername = logger.currentUsername
@@ -352,6 +357,22 @@ Item {
             Item {
                 Layout.fillHeight: true
             }
+        }
+
+        Rectangle {
+            id: loadingOverlay
+            anchors.fill: parent
+            radius: parent.radius
+            color: Qt.rgba(0, 0, 0, 0.4)
+            visible: loginPageRoot.isLoading
+            z: 99 // Ensure it's on top of other elements inside the card
+
+            BusyIndicator {
+                anchors.centerIn: parent
+                running: loginPageRoot.isLoading
+            }
+
+            Behavior on visible { NumberAnimation { duration: 300 } }
         }
 
         function refreshProfileImage() {
@@ -445,125 +466,125 @@ Item {
         }
 
         // Pulse animation with glow effect
-                SequentialAnimation {
-                    id: pulseAnim
-                    loops: 2
-                    NumberAnimation {
-                        target: themeToggle
-                        property: "scale"
-                        from: 1.0
-                        to: 1.2
-                        duration: 150
-                        easing.type: Easing.OutQuad
-                    }
-                    NumberAnimation {
-                        target: themeToggle
-                        property: "scale"
-                        from: 1.2
-                        to: 1.0
-                        duration: 150
-                        easing.type: Easing.InQuad
-                    }
-                }
-
-                // 3D flip animation for the icon
-                SequentialAnimation {
-                    id: flipAnim
-                    NumberAnimation {
-                        target: themeIcon
-                        property: "rotation"
-                        from: 0
-                        to: 90
-                        duration: 200
-                        easing.type: Easing.InQuad
-                    }
-                    ScriptAction {
-                        script: {
-                            // Change opacity during flip for smooth transition
-                            themeIcon.opacity = 0.3
-                        }
-                    }
-                    PauseAnimation { duration: 50 }
-                    ScriptAction {
-                        script: {
-                            themeIcon.opacity = isDarkMode ? 0.9 : 0.8
-                        }
-                    }
-                    NumberAnimation {
-                        target: themeIcon
-                        property: "rotation"
-                        from: -90
-                        to: 0
-                        duration: 200
-                        easing.type: Easing.OutQuad
-                    }
-                }
-
-                // Bouncy scale animation on hover
-                Behavior on scale {
-                    enabled: !pulseAnim.running
-                    SpringAnimation {
-                        spring: 3
-                        damping: 0.5
-                        modulus: 1.0
-                    }
-                }
-
-                // Smooth glow animation
-                SequentialAnimation {
-                    id: glowAnim
-                    running: themeToggle.hovered
-                    loops: Animation.Infinite
-                    NumberAnimation {
-                        target: themeToggle.background
-                        property: "border.width"
-                        from: 1
-                        to: 3
-                        duration: 1000
-                        easing.type: Easing.InOutSine
-                    }
-                    NumberAnimation {
-                        target: themeToggle.background
-                        property: "border.width"
-                        from: 3
-                        to: 1
-                        duration: 1000
-                        easing.type: Easing.InOutSine
-                    }
-                }
-
-                // Enhanced tooltip
-                ToolTip {
-                    id: themeTooltip
-                    text: isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"
-                    visible: themeToggle.hovered
-                    delay: 800
-                    timeout: 3000
-
-                    background: Rectangle {
-                        color: isDarkMode ? "#2D2D2D" : "#F5F5F5"
-                        radius: 8
-                        border.color: isDarkMode ? "#404040" : "#E0E0E0"
-                        border.width: 1
-
-                        // Shadow effect
-                        Rectangle {
-                            anchors.fill: parent
-                            anchors.margins: -2
-                            color: "transparent"
-                            radius: 10
-                            border.color: Qt.rgba(0, 0, 0, 0.1)
-                            border.width: 1
-                            z: -1
-                        }
-                    }
-
-                    contentItem: Text {
-                        text: themeTooltip.text
-                        font.pixelSize: 12
-                        font.family: "Segoe UI"
-                        color: isDarkMode ? "#FFFFFF" : "#333333"
-                    }
-                }
+        SequentialAnimation {
+            id: pulseAnim
+            loops: 2
+            NumberAnimation {
+                target: themeToggle
+                property: "scale"
+                from: 1.0
+                to: 1.2
+                duration: 150
+                easing.type: Easing.OutQuad
+            }
+            NumberAnimation {
+                target: themeToggle
+                property: "scale"
+                from: 1.2
+                to: 1.0
+                duration: 150
+                easing.type: Easing.InQuad
             }
         }
+
+        // 3D flip animation for the icon
+        SequentialAnimation {
+            id: flipAnim
+            NumberAnimation {
+                target: themeIcon
+                property: "rotation"
+                from: 0
+                to: 90
+                duration: 200
+                easing.type: Easing.InQuad
+            }
+            ScriptAction {
+                script: {
+                    // Change opacity during flip for smooth transition
+                    themeIcon.opacity = 0.3
+                }
+            }
+            PauseAnimation { duration: 50 }
+            ScriptAction {
+                script: {
+                    themeIcon.opacity = isDarkMode ? 0.9 : 0.8
+                }
+            }
+            NumberAnimation {
+                target: themeIcon
+                property: "rotation"
+                from: -90
+                to: 0
+                duration: 200
+                easing.type: Easing.OutQuad
+            }
+        }
+
+        // Bouncy scale animation on hover
+        Behavior on scale {
+            enabled: !pulseAnim.running
+            SpringAnimation {
+                spring: 3
+                damping: 0.5
+                modulus: 1.0
+            }
+        }
+
+        // Smooth glow animation
+        SequentialAnimation {
+            id: glowAnim
+            running: themeToggle.hovered
+            loops: Animation.Infinite
+            NumberAnimation {
+                target: themeToggle.background
+                property: "border.width"
+                from: 1
+                to: 3
+                duration: 1000
+                easing.type: Easing.InOutSine
+            }
+            NumberAnimation {
+                target: themeToggle.background
+                property: "border.width"
+                from: 3
+                to: 1
+                duration: 1000
+                easing.type: Easing.InOutSine
+            }
+        }
+
+        // Enhanced tooltip
+        ToolTip {
+            id: themeTooltip
+            text: isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"
+            visible: themeToggle.hovered
+            delay: 800
+            timeout: 3000
+
+            background: Rectangle {
+                color: isDarkMode ? "#2D2D2D" : "#F5F5F5"
+                radius: 8
+                border.color: isDarkMode ? "#404040" : "#E0E0E0"
+                border.width: 1
+
+                // Shadow effect
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: -2
+                    color: "transparent"
+                    radius: 10
+                    border.color: Qt.rgba(0, 0, 0, 0.1)
+                    border.width: 1
+                    z: -1
+                }
+            }
+
+            contentItem: Text {
+                text: themeTooltip.text
+                font.pixelSize: 12
+                font.family: "Segoe UI"
+                color: isDarkMode ? "#FFFFFF" : "#333333"
+            }
+        }
+    }
+}

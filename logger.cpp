@@ -1051,6 +1051,7 @@ int Logger::calculateTodayProductiveSeconds() const
 
 
 // Updated productivityStats function
+// Updated productivityStats function
 QVariantMap Logger::productivityStats() const
 {
     if (!ensureDatabaseOpen() || !ensureProductivityDatabaseOpen()) {
@@ -1066,6 +1067,7 @@ QVariantMap Logger::productivityStats() const
     double productiveTime = 0;
     double nonProductiveTime = 0;
     double neutralTime = 0;
+    double idleTime = 0; // New variable for idle time
     double totalTime = 0;
 
     QString queryStr = "SELECT start_time, end_time, app_name, title, url FROM log "
@@ -1098,6 +1100,13 @@ QVariantMap Logger::productivityStats() const
         double duration = end - start;
         if (duration <= 0) continue;
 
+        // ** NEW: Specifically handle "Idle" time **
+        if (appName == "Idle") {
+            idleTime += duration;
+            totalTime += duration;
+            continue; // Skip to the next record
+        }
+
         // Use updated function that focuses on app vs domain
         int type = getAppProductivityType(appName, url);
 
@@ -1119,8 +1128,10 @@ QVariantMap Logger::productivityStats() const
     stats["productive"] = (productiveTime / total) * 100;
     stats["nonProductive"] = (nonProductiveTime / total) * 100;
     stats["neutral"] = (neutralTime / total) * 100;
+    stats["idle"] = (idleTime / total) * 100; // ** NEW: Add idle percentage to stats **
     return stats;
 }
+
 
 
 void Logger::sendProductiveTimeToAPI()
@@ -1230,10 +1241,11 @@ void Logger::checkTaskStatusBeforeStart()
             emit userEmailChanged();
             checkAndCreateNewDayRecord(); // Pastikan record hari ini ada
             loadWorkTimeData();           // Muat waktu kerja yang sudah tersimpan
+            updateProductivityCache();
         }
     }
 
-    updateProductivityCache();
+
     emit activeTaskChanged();
     emit taskPausedChanged();
     emit trackingActiveChanged();
@@ -1488,6 +1500,7 @@ void Logger::addProductivityApp(const QString &appName, const QString &windowTit
         m_nonProductiveAppsModel->setQuery(nonProductiveQuery, m_productivityDb);
         refreshProductivityModels();
         emit productivityAppsChanged();
+        updateProductivityCache();
     } else {
         qWarning() << "Gagal menambahkan aplikasi:" << query.lastError();
     }
@@ -3584,6 +3597,7 @@ QString Logger::authenticate(const QString &loginInput, const QString &password)
             m_pingTimer.start();
             sendPing(m_activeTaskId);
             m_isTokenErrorVisible = false;
+            updateProductivityCache();
             // Lanjutkan sisa proses
             setCurrentUserInfo(userId, username, userEmail);
             checkAndCreateNewDayRecord();
@@ -4097,6 +4111,15 @@ void Logger::logWindowChange(const Logger::WindowInfo &info, qint64 startTime, q
         urlToLog.clear();
     }
 
+    if (!urlToLog.isEmpty()) {
+        // Regex untuk memastikan tidak ada spasi dan ada setidaknya satu titik (tld)
+        QRegularExpression domainRegex("^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+        if (!domainRegex.match(urlToLog).hasMatch() || urlToLog.contains(' ')) {
+            qDebug() << "URL Ditolak (dianggap tidak valid):" << urlToLog;
+            urlToLog.clear(); // Kosongkan URL jika tidak valid
+        }
+    }
+
     QSqlQuery query(m_db);
     query.prepare("INSERT INTO log (id_user, start_time, end_time, app_name, title, url) "
                   "VALUES (:id_user, :start, :end, :app, :title, :url)");
@@ -4233,7 +4256,7 @@ QString Logger::statusMessage() const
 void Logger::checkForUpdates()
 {
     // Ganti dengan versi aplikasi Anda saat ini
-    const QString currentVersion = "1.0.2.4";
+    const QString currentVersion = "1.0.2.5";
 
     // Ganti dengan URL file version.json Anda di GitHub
     QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");
