@@ -334,7 +334,7 @@ Item {
                         // Active task selalu di atas
                         if (a.active && !b.active) return -1
                         if (b.active && !a.active) return 1
-                        return a.id - b.id
+                        return b.id - a.id
                     })
 
 

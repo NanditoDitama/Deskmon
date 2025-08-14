@@ -12,6 +12,11 @@ Item {
     anchors.fill: parent
     property bool isLoading: false
 
+    Component.onCompleted: {
+        usernameField.text = logger.savedUsername()
+        passwordField.text = logger.savedPassword()
+    }
+
     // Background dengan gradient modern yang responsif terhadap tema
     Rectangle {
         anchors.fill: parent
@@ -154,6 +159,7 @@ Item {
                     TextField {
                         id: usernameField
                         placeholderText: "Enter your username"
+                        text: logger.savedUsername
                         enabled: !loginPageRoot.isLoading
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50

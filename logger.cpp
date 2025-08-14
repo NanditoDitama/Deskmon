@@ -157,7 +157,7 @@ Logger::Logger(QObject *parent) : QObject(parent)
     // connect(&m_workTimer, &QTimer::timeout, this, &Logger::updateWorkTimeAndSave);
     // m_workTimer.start(1000); // 1 detik
     // m_workTimer.start();
-        // Update setiap detik
+    // Update setiap detik
 
     m_apiWorkTimeTimer.setInterval(60000); // 1 menit
     connect(&m_apiWorkTimeTimer, &QTimer::timeout, this, &Logger::fetchWorkTimeFromAPI);
@@ -201,6 +201,21 @@ int Logger::workTimeElapsedSeconds() const
     return m_workTimeElapsedSeconds;
 }
 
+QString Logger::savedUsername() const {
+    QSqlQuery query(m_db);
+    if (query.exec("SELECT email FROM users WHERE token IS NOT NULL AND token != '' LIMIT 1") && query.next()) {
+        return query.value(0).toString();
+    }
+    return "";
+}
+QString Logger::savedPassword() const {
+    QSqlQuery query(m_db);
+    if (query.exec("SELECT password FROM users WHERE token IS NOT NULL AND token != '' LIMIT 1") && query.next()) {
+        return query.value(0).toString();
+    }
+    return "";
+}
+
 
 void Logger::startGlobalTimer()
 {
@@ -235,23 +250,16 @@ bool Logger::ensureProductivityDatabaseOpen() const
 
 void Logger::showAuthTokenErrorMessage()
 {
-    // Cek agar pesan tidak muncul bertumpuk jika beberapa API call gagal bersamaan
     if (m_isTokenErrorVisible) {
         return;
     }
-    m_isTokenErrorVisible = true; // Set flag bahwa pesan sedang ditampilkan
+    m_isTokenErrorVisible = true;
 
-    QMessageBox msgBox;
-    msgBox.setIcon(QMessageBox::Warning);
-    msgBox.setWindowTitle("Sesi Berakhir");
-    msgBox.setText("Sesi Anda telah berakhir atau tidak valid.\nSilakan login ulang untuk melanjutkan.");
-    msgBox.setStandardButtons(QMessageBox::Ok);
-    msgBox.exec(); // Menampilkan pesan dan menunggu pengguna menekan OK
+    // emit sinyal ke QML
+    emit showAuthTokenErrorWindow("Sesi Anda telah berakhir atau tidak valid.\nSilakan login ulang untuk melanjutkan.");
 
-    // Setelah pengguna menekan OK, panggil logout
-    logout();
-    emit requestLoginPage();
-    m_isTokenErrorVisible = false;
+    // Setelah user menutup jendela di QML, QML bisa panggil slot logout()
+    // supaya keluar otomatis.
 }
 
 void Logger::refreshAll()
@@ -2657,159 +2665,35 @@ void Logger::sendPing(int taskId)
     QNetworkReply* reply = m_networkManager->post(request, QJsonDocument(payload).toJson());
     QTimer::singleShot(30000, reply, &QNetworkReply::abort);
 
-    connect(reply, &QNetworkReply::finished, [this, reply]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         QByteArray responseData = reply->readAll();
-        QString responseText = QString::fromUtf8(responseData);
-        QJsonParseError parseError;
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
+        QJsonObject jsonObj = jsonDoc.object();
 
-        bool hasError = false;
-        QString errorMessage;
-        bool refreshRequired = false;
-        bool isSuccessResponse = false;
-        bool isAuthError = false; // Flag untuk error autentikasi prioritas
+        bool isAuthError = false;
 
         if (reply->error() != QNetworkReply::NoError) {
-            hasError = true;
-            errorMessage = "Network error: " + reply->errorString();
-            qWarning() << "Network error in ping:" << reply->errorString();
-
-            // Cek apakah ini error autentikasi (prioritas utama)
+            // PRIORITAS UTAMA
             if (reply->errorString().contains("Host requires authentication", Qt::CaseInsensitive)) {
                 isAuthError = true;
                 showAuthTokenErrorMessage();
-            }
-        }
-        else if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
-            QJsonObject jsonObj = jsonDoc.object();
-
-            if (jsonObj.contains("refresh_required") && jsonObj["refresh_required"].toBool()) {
-                refreshRequired = true;
-                qDebug() << "Server requested application refresh";
-            }
-
-            if (jsonObj.contains("success") && jsonObj["success"].isBool()) {
-                bool success = jsonObj["success"].toBool();
-                if (!success) {
-                    hasError = true;
-                    errorMessage = jsonObj.value("message").toString().trimmed();
-                    if (errorMessage.isEmpty()) {
-                        errorMessage = "Server returned error (no message provided)";
-                    }
-                    qWarning() << "API error:" << errorMessage;
-
-                    // Cek apakah ini error autentikasi (prioritas utama)
-                    if (errorMessage.contains("Host requires authentication", Qt::CaseInsensitive)) {
-                        isAuthError = true;
-                        showAuthTokenErrorMessage();
-                    }
-                } else {
-                    isSuccessResponse = true;
-                    qDebug() << "Ping successful:" << responseText;
-                }
             } else {
-                hasError = true;
-                errorMessage = "Invalid response format: missing 'success' field";
-                qWarning() << "Invalid API response:" << responseText;
+                emit showPingErrorDialog("Koneksi gagal: " + reply->errorString());
             }
         } else {
-            hasError = true;
-            errorMessage = "Failed to parse server response";
-            qWarning() << "JSON parse error:" << parseError.errorString() << "Response:" << responseText;
-        }
-
-        if (isSuccessResponse) {
-            // Tutup popup error yang sedang tampil jika koneksi berhasil
-            if (m_errorPopupShown && m_currentErrorDialog) {
-                m_currentErrorDialog->close();
-                m_currentErrorDialog = nullptr;
-                qDebug() << "✅ Connection restored - error popup closed automatically";
-            }
-
-            m_errorPopupShown = false;
-            m_lastErrorCategory.clear();
-            m_lastErrorTime = 0;
-        }
-        else if (hasError) {
-            // Jika ada error autentikasi, prioritaskan dan hilangkan error lain
-            if (isAuthError) {
-                // Tutup dialog error sebelumnya jika ada
-                if (m_currentErrorDialog) {
-                    m_currentErrorDialog->close();
-                    m_currentErrorDialog = nullptr;
-                    qDebug() << "🔄 Closed previous error dialog for authentication priority";
+            bool success = jsonObj.value("success").toBool();
+            if (!success) {
+                QString errMsg = jsonObj.value("message").toString("Terjadi kesalahan.");
+                // PRIORITAS UTAMA
+                if (errMsg.contains("Host requires authentication", Qt::CaseInsensitive)) {
+                    isAuthError = true;
+                    showAuthTokenErrorMessage();
+                } else {
+                    emit showPingErrorDialog(errMsg);
                 }
-
-                // Reset status error popup untuk memaksa tampil error autentikasi
-                m_errorPopupShown = false;
-                m_lastErrorCategory = "auth";
-                m_lastErrorTime = QDateTime::currentMSecsSinceEpoch();
-
-                qDebug() << "🔑 Authentication error has priority - other errors suppressed";
-                reply->deleteLater();
-                return; // Keluar dari fungsi, jangan tampilkan error lain
+            } else {
+                emit hidePingErrorDialog(); // tutup dialog kalau sukses
             }
-
-            // Proses error non-autentikasi hanya jika tidak ada error autentikasi
-            QString errorCategory = "unknown";
-            if (errorMessage.contains("Network error")) errorCategory = "network";
-            else if (errorMessage.contains("Server error")) errorCategory = "server";
-            else if (errorMessage.contains("Invalid response")) errorCategory = "format";
-
-            qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
-            bool shouldShowPopup = false;
-
-            // Cek apakah perlu menampilkan popup error
-            if (!m_errorPopupShown) shouldShowPopup = true;
-            else if (m_lastErrorCategory != errorCategory) shouldShowPopup = true;
-            else if ((currentTime - m_lastErrorTime) > 60000) shouldShowPopup = true; // 1 menit
-
-            // Daftar pesan yang tidak perlu ditampilkan (selain auth error)
-            static const QStringList suppressedErrors = {
-                "No active task implementation found",
-                "Your task is not in On Progress status"
-            };
-
-            bool isSuppressed = false;
-            for (const QString &pattern : suppressedErrors) {
-                if (errorMessage.contains(pattern, Qt::CaseInsensitive) ||
-                    reply->errorString().contains(pattern, Qt::CaseInsensitive)) {
-                    isSuppressed = true;
-                    qDebug() << "🔕 Suppressed error message:" << errorMessage;
-                    break;
-                }
-            }
-
-            if (shouldShowPopup && !isSuppressed) {
-                // Pastikan hanya satu dialog error yang muncul
-                QTimer::singleShot(0, [this, errorMessage]() {
-                    if (m_currentErrorDialog) {
-                        m_currentErrorDialog->close();
-                        m_currentErrorDialog = nullptr;
-                        qDebug() << "🔄 Closed previous error dialog before showing new one";
-                    }
-
-                    m_currentErrorDialog = new QMessageBox(QMessageBox::Warning,
-                                                           "API Connection Error",
-                                                           errorMessage,
-                                                           QMessageBox::Ok,
-                                                           nullptr);
-                    connect(m_currentErrorDialog, &QMessageBox::finished, [this]() {
-                        m_currentErrorDialog = nullptr;
-                    });
-                    m_currentErrorDialog->show();
-                });
-
-                m_errorPopupShown = true;
-                m_lastErrorCategory = errorCategory;
-                m_lastErrorTime = currentTime;
-                qDebug() << "❌ Error popup scheduled for:" << errorMessage;
-            }
-        }
-
-        if (refreshRequired) {
-            qDebug() << "Performing application refresh as requested by server";
-            this->refreshAll();
         }
 
         reply->deleteLater();
@@ -3333,42 +3217,35 @@ void Logger::sendPausePlayDataToAPI(int taskId, const QString& startTime,
     QTimer::singleShot(30000, reply, &QNetworkReply::abort);
 
     // 8. Handle response
-    connect(reply, &QNetworkReply::finished, [this, reply]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         QByteArray responseData = reply->readAll();
-        QString responseText = QString::fromUtf8(responseData);
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
+        QJsonObject jsonObj = jsonDoc.object();
 
-        QJsonParseError parseError;
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
-
-        bool showPopup = false;
-        QString popupMessage;
-
-        if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
-            QJsonObject jsonObj = jsonDoc.object();
-            if (jsonObj.contains("success") && jsonObj["success"].isBool()) {
-                bool success = jsonObj["success"].toBool();
-                if (!success) {
-                    showPopup = true;
-                    popupMessage = "API returned error:\n\n" + responseText;
-                } else {
-                    qDebug() << "Success response from server:" << responseText;
-                }
-            } else {
-                showPopup = true;
-                popupMessage = "Invalid response format (no 'success' field):\n\n" + responseText;
-            }
-        } else {
-            showPopup = true;
-            popupMessage = "Failed to parse JSON response:\n\n" + responseText;
-        }
+        bool isAuthError = false;
 
         if (reply->error() != QNetworkReply::NoError) {
-            showPopup = true;
-            popupMessage = "Network error:\n" + reply->errorString();
-        }
-
-        if (showPopup) {
-            QMessageBox::warning(nullptr, "API Response", popupMessage);
+            // PRIORITAS UTAMA
+            if (reply->errorString().contains("Host requires authentication", Qt::CaseInsensitive)) {
+                isAuthError = true;
+                showAuthTokenErrorMessage();
+            } else {
+                emit showPingErrorDialog("Koneksi gagal: " + reply->errorString());
+            }
+        } else {
+            bool success = jsonObj.value("success").toBool();
+            if (!success) {
+                QString errMsg = jsonObj.value("message").toString("Terjadi kesalahan.");
+                // PRIORITAS UTAMA
+                if (errMsg.contains("Host requires authentication", Qt::CaseInsensitive)) {
+                    isAuthError = true;
+                    showAuthTokenErrorMessage();
+                } else {
+                    emit showPingErrorDialog(errMsg);
+                }
+            } else {
+                emit hidePingErrorDialog(); // tutup dialog kalau sukses
+            }
         }
 
         reply->deleteLater();
@@ -3561,66 +3438,66 @@ QString Logger::authenticate(const QString &loginInput, const QString &password)
 
     // Periksa apakah API login berhasil
     if (jsonObj["success"].toBool()) {
-            // Jika API login berhasil
-            qDebug() << "API login successful. Storing user data...";
+        // Jika API login berhasil
+        qDebug() << "API login successful. Storing user data...";
 
-            // 5. Parse data user dari response
-            QJsonObject userData = jsonObj["user"].toObject();
-            int userId = userData["id"].toInt();
-            QString username = userData["name"].toString();
-            QString userEmail = userData["email"].toString();
-            QString role = userData["role"].toObject()["rolename"].toString();
-            QString department = userData["department"].toObject()["rolename"].toString();
-            QString token = jsonObj["token"].toString();
-            // 6. Siapkan dan eksekusi query untuk menyimpan data ke database
-            QSqlQuery query(m_db);
-            query.prepare(
-                "INSERT OR REPLACE INTO users "
-                "(id, username, password, email, department, role, token) "
-                "VALUES (:id, :username, :password, :email, :department, :role, :token)"
-                );
-            query.bindValue(":id", userId);
-            query.bindValue(":username", username);
-            query.bindValue(":password", hashPassword(password)); // Hash password
-            query.bindValue(":email", userEmail);
-            query.bindValue(":role", role);
-            query.bindValue(":department", department);
-            query.bindValue(":token", token);
+        // 5. Parse data user dari response
+        QJsonObject userData = jsonObj["user"].toObject();
+        int userId = userData["id"].toInt();
+        QString username = userData["name"].toString();
+        QString userEmail = userData["email"].toString();
+        QString role = userData["role"].toObject()["rolename"].toString();
+        QString department = userData["department"].toObject()["rolename"].toString();
+        QString token = jsonObj["token"].toString();
+        // 6. Siapkan dan eksekusi query untuk menyimpan data ke database
+        QSqlQuery query(m_db);
+        query.prepare(
+            "INSERT OR REPLACE INTO users "
+            "(id, username, password, email, department, role, token) "
+            "VALUES (:id, :username, :password, :email, :department, :role, :token)"
+            );
+        query.bindValue(":id", userId);
+        query.bindValue(":username", username);
+        query.bindValue(":password", password);
+        query.bindValue(":email", userEmail);
+        query.bindValue(":role", role);
+        query.bindValue(":department", department);
+        query.bindValue(":token", token);
 
-            if (!query.exec()) {
-                qWarning() << "Gagal menyimpan user ke database lokal:" << query.lastError();
-            } else {
-                qDebug() << "Data user tersimpan di database lokal. ID:" << userId;
-            }
-
-
-            m_pingTimer.start();
-            sendPing(m_activeTaskId);
-            m_isTokenErrorVisible = false;
-            updateProductivityCache();
-            // Lanjutkan sisa proses
-            setCurrentUserInfo(userId, username, userEmail);
-            checkAndCreateNewDayRecord();
-            loadWorkTimeData();
-            startGlobalTimer();
-            syncActiveTask();
-            checkForUpdates();
-            fetchAndStoreTasks();
-            m_usageReportTimer.start();
-            m_isTrackingActive = true;
-            m_isTaskPaused = false;
-            m_pauseStartTime = 0;
-
-
-            reply->deleteLater();
-            return "";
+        if (!query.exec()) {
+            qWarning() << "Gagal menyimpan user ke database lokal:" << query.lastError();
         } else {
-            // Jika API login gagal, ambil pesan error dari server
-            QString serverMessage = jsonObj["message"].toString();
-            reply->deleteLater();
-            // Kembalikan pesan error dari server
-            return serverMessage.isEmpty() ? "Username atau password salah." : serverMessage;
+            qDebug() << "Data user tersimpan di database lokal. ID:" << userId;
         }
+
+
+        m_pingTimer.start();
+        sendPing(m_activeTaskId);
+        m_isTokenErrorVisible = false;
+        updateProductivityCache();
+        // Lanjutkan sisa proses
+        setCurrentUserInfo(userId, username, userEmail);
+        checkAndCreateNewDayRecord();
+        loadWorkTimeData();
+        startGlobalTimer();
+        syncActiveTask();
+        checkForUpdates();
+        fetchAndStoreTasks();
+        m_usageReportTimer.start();
+        m_isTrackingActive = true;
+        m_isTaskPaused = false;
+        m_pauseStartTime = 0;
+
+
+        reply->deleteLater();
+        return "";
+    } else {
+        // Jika API login gagal, ambil pesan error dari server
+        QString serverMessage = jsonObj["message"].toString();
+        reply->deleteLater();
+        // Kembalikan pesan error dari server
+        return serverMessage.isEmpty() ? "Username atau password salah." : serverMessage;
+    }
 
 
 
@@ -4111,15 +3988,6 @@ void Logger::logWindowChange(const Logger::WindowInfo &info, qint64 startTime, q
         urlToLog.clear();
     }
 
-    if (!urlToLog.isEmpty()) {
-        // Regex untuk memastikan tidak ada spasi dan ada setidaknya satu titik (tld)
-        QRegularExpression domainRegex("^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
-        if (!domainRegex.match(urlToLog).hasMatch() || urlToLog.contains(' ')) {
-            qDebug() << "URL Ditolak (dianggap tidak valid):" << urlToLog;
-            urlToLog.clear(); // Kosongkan URL jika tidak valid
-        }
-    }
-
     QSqlQuery query(m_db);
     query.prepare("INSERT INTO log (id_user, start_time, end_time, app_name, title, url) "
                   "VALUES (:id_user, :start, :end, :app, :title, :url)");
@@ -4256,7 +4124,7 @@ QString Logger::statusMessage() const
 void Logger::checkForUpdates()
 {
     // Ganti dengan versi aplikasi Anda saat ini
-    const QString currentVersion = "1.0.2.5";
+    const QString currentVersion = "1.0.2.6";
 
     // Ganti dengan URL file version.json Anda di GitHub
     QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");
