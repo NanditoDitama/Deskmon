@@ -8,6 +8,8 @@
 #include <QIcon>
 #include <QQmlContext>
 #include <QDebug>
+#include <QSharedMemory>
+#include <QMessageBox>
 #include "logger.h"
 #include "idlechecker.h"
 
@@ -19,6 +21,11 @@ int main(int argc, char *argv[])
 
     // Initialize components
 
+    QSharedMemory sharedMemory("DeskmonAppInstance");
+    if (!sharedMemory.create(1)) {
+        QMessageBox::warning(nullptr, "Warning", "Application is already running!");
+        return 1;
+    }
 
     Logger logger;
     logger.checkAndCreateNewDayRecord();
@@ -102,6 +109,9 @@ int main(int argc, char *argv[])
         if (qmlWindow) {
             // Pastikan jendela tidak minimized
 
+            if (qmlWindow->visibility() == QWindow::Hidden) {
+                qmlWindow->show();
+            }
             qmlWindow->showMaximized();
             qmlWindow->raise();
             qmlWindow->requestActivate(); // Perbaikan: Ganti setActiveWindow
@@ -219,8 +229,16 @@ int main(int argc, char *argv[])
     dayChangeTimer->start(60000); // cek setiap 1 menit
 
     // Load QML UI if started with --show argument
+    // Load QML UI if started with --show argument
     if (app.arguments().contains("--show")) {
-        showQmlWindow();
+        // Jika window sudah ada, aktifkan yang sudah ada
+        if (qmlWindow) {
+            qmlWindow->show();
+            qmlWindow->raise();
+            qmlWindow->requestActivate();
+        } else {
+            showQmlWindow();
+        }
     }
 
     return app.exec();

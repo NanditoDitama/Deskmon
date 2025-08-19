@@ -12,7 +12,7 @@ ApplicationWindow {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 900
-    property string appVersion: "1.0.2.6"
+    property string appVersion: "1.0.2.7"
 
 
 
@@ -1354,11 +1354,18 @@ ApplicationWindow {
 
     Connections {
         target: logger
-        onShowAuthTokenErrorWindow: {
+        function onShowAuthTokenErrorWindow(message) {
+            // Tutup idleNotificationWindow jika sedang terbuka
+            showIdleNotification = false
+            if (idleNotificationWindow.visible) {
+                idleNotificationWindow.close()
+            }
+            // Tampilkan dialog error sesi berakhir
             authErrorText.text = message
             authErrorWindow.visible = true
         }
     }
+
 
 
     //Login Page

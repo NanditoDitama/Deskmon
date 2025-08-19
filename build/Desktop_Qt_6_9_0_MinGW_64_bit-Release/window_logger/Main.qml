@@ -12,7 +12,7 @@ ApplicationWindow {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 900
-    property string appVersion: "1.0.2.6"
+    property string appVersion: "1.0.2.7"
 
 
 
@@ -1293,38 +1293,6 @@ ApplicationWindow {
                             closeAnimation.start()
                         }
                     }
-
-                    Button {
-                        id: cancelButton
-                        text: "Batal"
-                        width: 80
-                        height: 36
-
-                        background: Rectangle {
-                            color: cancelButton.pressed ? palette.mid :
-                                   cancelButton.hovered ? palette.alternateBase : palette.button
-                            radius: 6
-                            border.color: palette.mid
-                            border.width: 1
-
-                            Behavior on color {
-                                ColorAnimation { duration: 150 }
-                            }
-                        }
-
-                        contentItem: Text {
-                            text: cancelButton.text
-                            color: palette.buttonText
-                            font.pixelSize: 13
-                            font.weight: Font.Medium
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-
-                        onClicked: {
-                            authErrorWindow.visible = false
-                        }
-                    }
                 }
             }
         }
@@ -1386,11 +1354,18 @@ ApplicationWindow {
 
     Connections {
         target: logger
-        onShowAuthTokenErrorWindow: {
+        function onShowAuthTokenErrorWindow(message) {
+            // Tutup idleNotificationWindow jika sedang terbuka
+            showIdleNotification = false
+            if (idleNotificationWindow.visible) {
+                idleNotificationWindow.close()
+            }
+            // Tampilkan dialog error sesi berakhir
             authErrorText.text = message
             authErrorWindow.visible = true
         }
     }
+
 
 
     //Login Page

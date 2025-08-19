@@ -687,12 +687,12 @@ void Logger::initializeProductivityDatabase()
 
     if (!query.exec("CREATE TABLE IF NOT EXISTS completed_tasks ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "project_name TEXT NOT NULL, "
-                    "task TEXT NOT NULL, "
-                    "max_time INTEGER NOT NULL, "
-                    "time_usage INTEGER NOT NULL, "
-                    "completed_time INTEGER NOT NULL, "
-                    "user_id INTEGER NOT NULL)")) {
+                    "project_name TEXT, "
+                    "task TEXT, "
+                    "max_time INTEGER, "
+                    "time_usage INTEGER, "
+                    "completed_time INTEGER, "
+                    "user_id INTEGER)")) {
         qWarning() << "Failed to create completed_tasks table:" << query.lastError().text();
     }
     if (!query.exec("CREATE TABLE IF NOT EXISTS idle_settings ("
@@ -4124,7 +4124,7 @@ QString Logger::statusMessage() const
 void Logger::checkForUpdates()
 {
     // Ganti dengan versi aplikasi Anda saat ini
-    const QString currentVersion = "1.0.2.6";
+    const QString currentVersion = "1.0.2.7";
 
     // Ganti dengan URL file version.json Anda di GitHub
     QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");
