@@ -157,7 +157,7 @@ Logger::Logger(QObject *parent) : QObject(parent)
     // connect(&m_workTimer, &QTimer::timeout, this, &Logger::updateWorkTimeAndSave);
     // m_workTimer.start(1000); // 1 detik
     // m_workTimer.start();
-        // Update setiap detik
+    // Update setiap detik
 
     m_apiWorkTimeTimer.setInterval(60000); // 1 menit
     connect(&m_apiWorkTimeTimer, &QTimer::timeout, this, &Logger::fetchWorkTimeFromAPI);
@@ -201,6 +201,21 @@ int Logger::workTimeElapsedSeconds() const
     return m_workTimeElapsedSeconds;
 }
 
+QString Logger::savedUsername() const {
+    QSqlQuery query(m_db);
+    if (query.exec("SELECT email FROM users WHERE token IS NOT NULL AND token != '' LIMIT 1") && query.next()) {
+        return query.value(0).toString();
+    }
+    return "";
+}
+QString Logger::savedPassword() const {
+    QSqlQuery query(m_db);
+    if (query.exec("SELECT password FROM users WHERE token IS NOT NULL AND token != '' LIMIT 1") && query.next()) {
+        return query.value(0).toString();
+    }
+    return "";
+}
+
 
 void Logger::startGlobalTimer()
 {
@@ -235,23 +250,16 @@ bool Logger::ensureProductivityDatabaseOpen() const
 
 void Logger::showAuthTokenErrorMessage()
 {
-    // Cek agar pesan tidak muncul bertumpuk jika beberapa API call gagal bersamaan
     if (m_isTokenErrorVisible) {
         return;
     }
-    m_isTokenErrorVisible = true; // Set flag bahwa pesan sedang ditampilkan
+    m_isTokenErrorVisible = true;
 
-    QMessageBox msgBox;
-    msgBox.setIcon(QMessageBox::Warning);
-    msgBox.setWindowTitle("Sesi Berakhir");
-    msgBox.setText("Sesi Anda telah berakhir atau tidak valid.\nSilakan login ulang untuk melanjutkan.");
-    msgBox.setStandardButtons(QMessageBox::Ok);
-    msgBox.exec(); // Menampilkan pesan dan menunggu pengguna menekan OK
+    // emit sinyal ke QML
+    emit showAuthTokenErrorWindow("Sesi Anda telah berakhir atau tidak valid.\nSilakan login ulang untuk melanjutkan.");
 
-    // Setelah pengguna menekan OK, panggil logout
-    logout();
-    emit requestLoginPage();
-    m_isTokenErrorVisible = false;
+    // Setelah user menutup jendela di QML, QML bisa panggil slot logout()
+    // supaya keluar otomatis.
 }
 
 void Logger::refreshAll()
@@ -430,7 +438,7 @@ void Logger::submitEarlyLeaveReason(const QString &reason)
 
     // 2. Siapkan payload JSON
     QJsonObject payload;
-    payload["user_id"] = m_currentUserId;
+    payload["email"] = m_currentUserEmail;
     payload["alasan"] = reason;
 
     // 3. Siapkan network request
@@ -679,12 +687,12 @@ void Logger::initializeProductivityDatabase()
 
     if (!query.exec("CREATE TABLE IF NOT EXISTS completed_tasks ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "project_name TEXT NOT NULL, "
-                    "task TEXT NOT NULL, "
-                    "max_time INTEGER NOT NULL, "
-                    "time_usage INTEGER NOT NULL, "
-                    "completed_time INTEGER NOT NULL, "
-                    "user_id INTEGER NOT NULL)")) {
+                    "project_name TEXT, "
+                    "task TEXT, "
+                    "max_time INTEGER, "
+                    "time_usage INTEGER, "
+                    "completed_time INTEGER, "
+                    "user_id INTEGER)")) {
         qWarning() << "Failed to create completed_tasks table:" << query.lastError().text();
     }
     if (!query.exec("CREATE TABLE IF NOT EXISTS idle_settings ("
@@ -882,15 +890,28 @@ void Logger::sendWorkTimeToAPI()
     });
 }
 
-
-// Updated getAppProductivityType function
-int Logger::getAppProductivityType(const QString &appName, const QString &url) const
+void Logger::updateProductivityCache()
 {
+    m_cachedAppTypes.clear();
+    m_cachedDomainTypes.clear();
+
     if (!ensureProductivityDatabaseOpen() || m_currentUserId == -1) {
-        return 0;
+        qWarning() << "Cannot update productivity cache: DB not open or no user";
+        return;
     }
 
-    // Helper function untuk normalisasi string
+    QSqlQuery query(m_productivityDb);
+    query.prepare(R"(
+        SELECT aplikasi, url, jenis, for_user
+        FROM aplikasi
+        WHERE jenis IN (1, 2)
+    )");
+
+    if (!query.exec()) {
+        qWarning() << "Failed to load productivity apps cache:" << query.lastError().text();
+        return;
+    }
+
     auto normalizeString = [](const QString &str) {
         return str.toLower()
         .remove(' ')
@@ -898,31 +919,10 @@ int Logger::getAppProductivityType(const QString &appName, const QString &url) c
             .remove('_')
             .remove('.');
     };
-
-    // Helper function untuk cek user permission
-    auto checkUserPermission = [this](const QString &forUsers) -> bool {
-        if (forUsers == "0") {
-            return true; // Global untuk semua user
-        }
-
-        QString currentUserStr = QString::number(m_currentUserId);
-        QStringList userList = forUsers.split(',', Qt::SkipEmptyParts);
-
-        for (const QString &userId : userList) {
-            if (userId.trimmed() == currentUserStr) {
-                return true;
-            }
-        }
-
-        return false;
-    };
     auto extractDomain = [](const QString &url) -> QString {
         if (url.isEmpty()) return "";
-
         QUrl qurl(url);
         QString domain = qurl.host();
-
-        // Jika QUrl gagal parse, coba ekstrak manual
         if (domain.isEmpty()) {
             QRegularExpression domainRegex(R"((?:https?://)?(?:www\.)?([^/]+))");
             QRegularExpressionMatch match = domainRegex.match(url);
@@ -930,101 +930,79 @@ int Logger::getAppProductivityType(const QString &appName, const QString &url) c
                 domain = match.captured(1);
             }
         }
-
-        // Hapus www. prefix
         if (domain.startsWith("www.")) {
             domain = domain.mid(4);
         }
-
         return domain.toLower();
     };
 
-    // Cek apakah ini aplikasi browser atau non-browser
-    bool isBrowserApp = !url.isEmpty();
+    while (query.next()) {
+        QString appName = query.value(0).toString();
+        QString url = query.value(1).toString();
+        int jenis = query.value(2).toInt();
 
-    if (isBrowserApp) {
-        // BROWSER APPLICATION: Gunakan domain matching
-        QString domain = extractDomain(url);
-        if (domain.isEmpty()) {
-            return 0; // Tidak bisa ekstrak domain
-        }
-
-        QSqlQuery query(m_productivityDb);
-        query.prepare(R"(
-            SELECT url, jenis, for_user
-            FROM aplikasi
-            WHERE url IS NOT NULL
-            AND url != ''
-        )");
-        query.bindValue(":userPattern", "%," + QString::number(m_currentUserId) + ",%");
-
-        if (query.exec()) {
-            while (query.next()) {
-                QString dbUrl = query.value(0).toString();
-                int jenis = query.value(1).toInt();
-                QString forUsers = query.value(2).toString();
-
-                // Check user permission
-                if (!checkUserPermission(forUsers)) {
-                    continue;
-                }
-
-                QString dbDomain = extractDomain(dbUrl);
-                if (dbDomain.isEmpty()) continue;
-
-                // Exact domain match
-                if (domain == dbDomain) {
-                    return jenis;
-                }
-
-                // Check if domain contains subdomain match
-                if (domain.endsWith("." + dbDomain) || dbDomain.endsWith("." + domain)) {
-                    return jenis;
-                }
+        if (!url.isEmpty()) {
+            QString domain = extractDomain(url);
+            if (!domain.isEmpty()) {
+                m_cachedDomainTypes[domain] = jenis;
             }
-        }
-    } else {
-        // NON-BROWSER APPLICATION: Gunakan app name matching
-        QString normApp = normalizeString(appName);
-
-        QSqlQuery query(m_productivityDb);
-        query.prepare(R"(
-            SELECT aplikasi, jenis, for_user
-            FROM aplikasi
-            WHERE (url IS NULL OR url = '')
-            AND aplikasi IS NOT NULL
-            AND aplikasi != ''
-        )");
-        query.bindValue(":userPattern", "%," + QString::number(m_currentUserId) + ",%");
-
-        if (query.exec()) {
-            while (query.next()) {
-                QString dbApp = query.value(0).toString();
-                int jenis = query.value(1).toInt();
-                QString forUsers = query.value(2).toString();
-
-                // Check user permission
-                if (!checkUserPermission(forUsers)) {
-                    continue;
-                }
-
-                QString normDbApp = normalizeString(dbApp);
-
-                // Exact match
-                if (normApp == normDbApp) {
-                    return jenis;
-                }
-
-                // Contains match (kedua arah)
-                if (normApp.contains(normDbApp) || normDbApp.contains(normApp)) {
-                    return jenis;
-                }
-            }
+        } else if (!appName.isEmpty()) {
+            m_cachedAppTypes[normalizeString(appName)] = jenis;
         }
     }
 
-    return 0; // Default neutral
+    qDebug() << "Productivity cache updated:"
+             << m_cachedAppTypes.size() << "apps,"
+             << m_cachedDomainTypes.size() << "domains.";
 }
+int Logger::getAppProductivityType(const QString &appName, const QString &url) const
+{
+    if (m_currentUserId == -1) {
+        return 0;
+    }
+
+    auto normalizeString = [](const QString &str) {
+        return str.toLower()
+        .remove(' ')
+            .remove('-')
+            .remove('_')
+            .remove('.');
+    };
+    auto extractDomain = [](const QString &url) -> QString {
+        if (url.isEmpty()) return "";
+        QUrl qurl(url);
+        QString domain = qurl.host();
+        if (domain.isEmpty()) {
+            QRegularExpression domainRegex(R"((?:https?://)?(?:www\.)?([^/]+))");
+            QRegularExpressionMatch match = domainRegex.match(url);
+            if (match.hasMatch()) {
+                domain = match.captured(1);
+            }
+        }
+        if (domain.startsWith("www.")) {
+            domain = domain.mid(4);
+        }
+        return domain.toLower();
+    };
+
+    // Browser app
+    if (!url.isEmpty()) {
+        QString domain = extractDomain(url);
+        if (m_cachedDomainTypes.contains(domain)) {
+            return m_cachedDomainTypes.value(domain);
+        }
+    }
+    // Non-browser app
+    else {
+        QString normApp = normalizeString(appName);
+        if (m_cachedAppTypes.contains(normApp)) {
+            return m_cachedAppTypes.value(normApp);
+        }
+    }
+
+    return 0; // Neutral jika tidak ditemukan
+}
+
 
 // Updated calculateTodayProductiveSeconds function
 int Logger::calculateTodayProductiveSeconds() const
@@ -1036,234 +1014,51 @@ int Logger::calculateTodayProductiveSeconds() const
     QString today = QDate::currentDate().toString("yyyy-MM-dd");
     int totalProductiveSeconds = 0;
 
-    // Helper function untuk cek user permission
-    auto checkUserPermission = [this](const QString &forUsers) -> bool {
-        if (forUsers == "0") {
-            return true; // Global untuk semua user
-        }
-
-        QString currentUserStr = QString::number(m_currentUserId);
-        QStringList userList = forUsers.split(',', Qt::SkipEmptyParts);
-
-        for (const QString &userId : userList) {
-            if (userId.trimmed() == currentUserStr) {
-                return true;
-            }
-        }
-
-        return false;
-    };
-    auto extractDomain = [](const QString &url) -> QString {
-        if (url.isEmpty()) return QString();
-
-        QUrl qurl(url);
-        QString host = qurl.host();
-
-        if (host.isEmpty()) {
-            QRegularExpression domainRegex(R"((?:https?://)?(?:www\.)?([^/]+))");
-            QRegularExpressionMatch match = domainRegex.match(url);
-            if (match.hasMatch()) {
-                host = match.captured(1);
-            }
-        }
-
-        if (host.startsWith("www.")) {
-            host = host.mid(4);
-        }
-
-        return host.toLower();
-    };
-
-    // Helper function untuk normalisasi string
-    auto normalizeString = [](const QString &str) {
-        return str.toLower()
-        .remove(' ')
-            .remove('-')
-            .remove('_')
-            .remove('.');
-    };
-
-    // 1. Load productivity rules from database
-    QHash<QString, int> productiveApps;     // Non-browser apps
-    QHash<QString, int> productiveDomains;  // Browser domains
-
-    if (ensureProductivityDatabaseOpen()) {
-        QSqlQuery query(m_productivityDb);
-        query.prepare(R"(
-            SELECT aplikasi, url, jenis, for_user
-            FROM aplikasi
-            WHERE jenis IN (1, 2)
-        )");
-        query.bindValue(":userPattern", "%," + QString::number(m_currentUserId) + ",%");
-
-        if (query.exec()) {
-            while (query.next()) {
-                QString appName = query.value(0).toString();
-                QString url = query.value(1).toString();
-                int type = query.value(2).toInt();
-                QString forUsers = query.value(3).toString();
-
-                // Check user permission
-                if (!checkUserPermission(forUsers)) {
-                    continue;
-                }
-
-                if (!url.isEmpty()) {
-                    // Browser app rule - store by domain
-                    QString domain = extractDomain(url);
-                    if (!domain.isEmpty()) {
-                        productiveDomains[domain] = type;
-                    }
-                } else if (!appName.isEmpty()) {
-                    // Non-browser app rule
-                    productiveApps[appName] = type;
-                }
-            }
-        }
+    // Pastikan database produktivitas terbuka
+    if (!ensureProductivityDatabaseOpen()) {
+        qWarning() << "Productivity database not open";
+        return 0;
     }
 
-    // 2. Process today's activity logs
-    QSqlQuery logQuery(m_db);
-    logQuery.prepare(R"(
-        SELECT start_time, end_time, app_name, title, url
+    // Query langsung menghitung total detik produktif dengan join
+    QSqlQuery query(m_db);
+    query.prepare(R"(
+        SELECT IFNULL(SUM(end_time - start_time), 0) AS productive_seconds
         FROM log
-        WHERE id_user = :user_id
-        AND date(start_time, 'unixepoch', 'localtime') = :today
-        ORDER BY start_time ASC
+        JOIN aplikasi
+        ON (
+            (log.url IS NOT NULL AND log.url != '' AND aplikasi.url IS NOT NULL AND aplikasi.url != ''
+             AND LOWER(log.url) LIKE '%' || LOWER(aplikasi.url) || '%')
+            OR
+            (log.app_name IS NOT NULL AND log.app_name != '' AND aplikasi.aplikasi IS NOT NULL AND aplikasi.aplikasi != ''
+             AND LOWER(log.app_name) LIKE '%' || LOWER(aplikasi.aplikasi) || '%')
+        )
+        WHERE log.id_user = :user_id
+          AND date(log.start_time, 'unixepoch', 'localtime') = :today
+          AND aplikasi.jenis = 1
     )");
-    logQuery.bindValue(":user_id", m_currentUserId);
-    logQuery.bindValue(":today", today);
 
-    if (logQuery.exec()) {
-        QHash<QString, int> appProductivityTime;
-        QHash<QString, int> domainProductivityTime;
-        QHash<QString, int> matchStats;
+    query.bindValue(":user_id", m_currentUserId);
+    query.bindValue(":today", today);
 
-        while (logQuery.next()) {
-            qint64 start = logQuery.value(0).toLongLong();
-            qint64 end = logQuery.value(1).toLongLong();
-            QString appName = logQuery.value(2).toString();
-            QString title = logQuery.value(3).toString();
-            QString url = logQuery.value(4).toString();
-
-            int duration = end - start;
-            if (duration <= 0) continue;
-
-            int productivityType = 0;
-            QString matchMethod = "none";
-            QString matchedItem = "";
-
-            bool isBrowserApp = !url.isEmpty();
-
-            if (isBrowserApp) {
-                // Browser application - check domain
-                QString domain = extractDomain(url);
-                if (!domain.isEmpty()) {
-                    // Direct domain match
-                    if (productiveDomains.contains(domain)) {
-                        productivityType = productiveDomains[domain];
-                        matchMethod = "domain_exact";
-                        matchedItem = domain;
-                    } else {
-                        // Check for subdomain matches
-                        for (auto it = productiveDomains.begin(); it != productiveDomains.end(); ++it) {
-                            const QString &ruleDomain = it.key();
-                            if (domain.endsWith("." + ruleDomain) || ruleDomain.endsWith("." + domain)) {
-                                productivityType = it.value();
-                                matchMethod = "domain_subdomain";
-                                matchedItem = ruleDomain;
-                                break;
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Non-browser application - check app name
-                QString normApp = normalizeString(appName);
-
-                // Direct app match
-                for (auto it = productiveApps.begin(); it != productiveApps.end(); ++it) {
-                    const QString &ruleApp = it.key();
-                    QString normRuleApp = normalizeString(ruleApp);
-
-                    if (normApp == normRuleApp) {
-                        productivityType = it.value();
-                        matchMethod = "app_exact";
-                        matchedItem = ruleApp;
-                        break;
-                    } else if (normApp.contains(normRuleApp) || normRuleApp.contains(normApp)) {
-                        productivityType = it.value();
-                        matchMethod = "app_contains";
-                        matchedItem = ruleApp;
-                        break;
-                    }
-                }
-            }
-
-            bool isProductive = (productivityType == 1);
-
-            if (isProductive) {
-                totalProductiveSeconds += duration;
-
-                if (isBrowserApp) {
-                    QString domain = extractDomain(url);
-                    if (!domain.isEmpty()) {
-                        domainProductivityTime[domain] += duration;
-                    }
-                } else {
-                    appProductivityTime[appName] += duration;
-                }
-
-                matchStats[matchMethod] += duration;
-            }
-        }
-
-        // 3. Debug output
-        qDebug() << "==== Updated Productivity Breakdown ====";
-        qDebug() << "Total Productive Time:" << formatDuration(totalProductiveSeconds);
-
-        qDebug() << "\nMatching Method Statistics:";
-        for (auto it = matchStats.begin(); it != matchStats.end(); ++it) {
-            if (totalProductiveSeconds > 0) {
-                double percentage = (double)it.value() / totalProductiveSeconds * 100;
-                qDebug() << QString("%1: %2 (%3%)")
-                                .arg(it.key(), -20)
-                                .arg(formatDuration(it.value()))
-                                .arg(percentage, 0, 'f', 1);
-            }
-        }
-
-        qDebug() << "\nTop Productive Domains (Browser Apps):";
-        QList<QPair<int, QString>> sortedDomains;
-        for (auto it = domainProductivityTime.begin(); it != domainProductivityTime.end(); ++it) {
-            if (it.value() > 0) {
-                sortedDomains.append(qMakePair(it.value(), it.key()));
-            }
-        }
-        std::sort(sortedDomains.begin(), sortedDomains.end(), std::greater<QPair<int, QString>>());
-        for (const auto &pair : sortedDomains.mid(0, 10)) {
-            qDebug() << QString("%1: %2").arg(pair.second, -30).arg(formatDuration(pair.first));
-        }
-
-        qDebug() << "\nTop Productive Apps (Non-Browser):";
-        QList<QPair<int, QString>> sortedApps;
-        for (auto it = appProductivityTime.begin(); it != appProductivityTime.end(); ++it) {
-            if (it.value() > 0) {
-                sortedApps.append(qMakePair(it.value(), it.key()));
-            }
-        }
-        std::sort(sortedApps.begin(), sortedApps.end(), std::greater<QPair<int, QString>>());
-        for (const auto &pair : sortedApps.mid(0, 10)) {
-            qDebug() << QString("%1: %2").arg(pair.second, -30).arg(formatDuration(pair.first));
-        }
-
-    } else {
-        qWarning() << "Failed to fetch today's logs:" << logQuery.lastError().text();
+    if (!query.exec()) {
+        qWarning() << "Failed to calculate productive seconds:" << query.lastError().text();
+        return 0;
     }
+
+    if (query.next()) {
+        totalProductiveSeconds = query.value(0).toInt();
+    }
+
+    // Debug output seperti versi lama
+    qDebug() << "==== Productivity Calculation (Optimized) ====";
+    qDebug() << "Total Productive Time:" << formatDuration(totalProductiveSeconds);
 
     return totalProductiveSeconds;
 }
 
+
+// Updated productivityStats function
 // Updated productivityStats function
 QVariantMap Logger::productivityStats() const
 {
@@ -1280,6 +1075,7 @@ QVariantMap Logger::productivityStats() const
     double productiveTime = 0;
     double nonProductiveTime = 0;
     double neutralTime = 0;
+    double idleTime = 0; // New variable for idle time
     double totalTime = 0;
 
     QString queryStr = "SELECT start_time, end_time, app_name, title, url FROM log "
@@ -1312,6 +1108,13 @@ QVariantMap Logger::productivityStats() const
         double duration = end - start;
         if (duration <= 0) continue;
 
+        // ** NEW: Specifically handle "Idle" time **
+        if (appName == "Idle") {
+            idleTime += duration;
+            totalTime += duration;
+            continue; // Skip to the next record
+        }
+
         // Use updated function that focuses on app vs domain
         int type = getAppProductivityType(appName, url);
 
@@ -1333,8 +1136,10 @@ QVariantMap Logger::productivityStats() const
     stats["productive"] = (productiveTime / total) * 100;
     stats["nonProductive"] = (nonProductiveTime / total) * 100;
     stats["neutral"] = (neutralTime / total) * 100;
+    stats["idle"] = (idleTime / total) * 100; // ** NEW: Add idle percentage to stats **
     return stats;
 }
+
 
 
 void Logger::sendProductiveTimeToAPI()
@@ -1444,6 +1249,7 @@ void Logger::checkTaskStatusBeforeStart()
             emit userEmailChanged();
             checkAndCreateNewDayRecord(); // Pastikan record hari ini ada
             loadWorkTimeData();           // Muat waktu kerja yang sudah tersimpan
+            updateProductivityCache();
         }
     }
 
@@ -1702,6 +1508,7 @@ void Logger::addProductivityApp(const QString &appName, const QString &windowTit
         m_nonProductiveAppsModel->setQuery(nonProductiveQuery, m_productivityDb);
         refreshProductivityModels();
         emit productivityAppsChanged();
+        updateProductivityCache();
     } else {
         qWarning() << "Gagal menambahkan aplikasi:" << query.lastError();
     }
@@ -2040,6 +1847,7 @@ void Logger::handleProductivityAppsResponse(QNetworkReply *reply)
         qWarning() << "Failed to sync productivity apps with database";
         m_productivityDb.rollback();
     }
+    updateProductivityCache();
 }
 
 void Logger::refreshProductivityModels()
@@ -2857,159 +2665,35 @@ void Logger::sendPing(int taskId)
     QNetworkReply* reply = m_networkManager->post(request, QJsonDocument(payload).toJson());
     QTimer::singleShot(30000, reply, &QNetworkReply::abort);
 
-    connect(reply, &QNetworkReply::finished, [this, reply]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         QByteArray responseData = reply->readAll();
-        QString responseText = QString::fromUtf8(responseData);
-        QJsonParseError parseError;
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
+        QJsonObject jsonObj = jsonDoc.object();
 
-        bool hasError = false;
-        QString errorMessage;
-        bool refreshRequired = false;
-        bool isSuccessResponse = false;
-        bool isAuthError = false; // Flag untuk error autentikasi prioritas
+        bool isAuthError = false;
 
         if (reply->error() != QNetworkReply::NoError) {
-            hasError = true;
-            errorMessage = "Network error: " + reply->errorString();
-            qWarning() << "Network error in ping:" << reply->errorString();
-
-            // Cek apakah ini error autentikasi (prioritas utama)
+            // PRIORITAS UTAMA
             if (reply->errorString().contains("Host requires authentication", Qt::CaseInsensitive)) {
                 isAuthError = true;
                 showAuthTokenErrorMessage();
-            }
-        }
-        else if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
-            QJsonObject jsonObj = jsonDoc.object();
-
-            if (jsonObj.contains("refresh_required") && jsonObj["refresh_required"].toBool()) {
-                refreshRequired = true;
-                qDebug() << "Server requested application refresh";
-            }
-
-            if (jsonObj.contains("success") && jsonObj["success"].isBool()) {
-                bool success = jsonObj["success"].toBool();
-                if (!success) {
-                    hasError = true;
-                    errorMessage = jsonObj.value("message").toString().trimmed();
-                    if (errorMessage.isEmpty()) {
-                        errorMessage = "Server returned error (no message provided)";
-                    }
-                    qWarning() << "API error:" << errorMessage;
-
-                    // Cek apakah ini error autentikasi (prioritas utama)
-                    if (errorMessage.contains("Host requires authentication", Qt::CaseInsensitive)) {
-                        isAuthError = true;
-                        showAuthTokenErrorMessage();
-                    }
-                } else {
-                    isSuccessResponse = true;
-                    qDebug() << "Ping successful:" << responseText;
-                }
             } else {
-                hasError = true;
-                errorMessage = "Invalid response format: missing 'success' field";
-                qWarning() << "Invalid API response:" << responseText;
+                emit showPingErrorDialog("Koneksi gagal: " + reply->errorString());
             }
         } else {
-            hasError = true;
-            errorMessage = "Failed to parse server response";
-            qWarning() << "JSON parse error:" << parseError.errorString() << "Response:" << responseText;
-        }
-
-        if (isSuccessResponse) {
-            // Tutup popup error yang sedang tampil jika koneksi berhasil
-            if (m_errorPopupShown && m_currentErrorDialog) {
-                m_currentErrorDialog->close();
-                m_currentErrorDialog = nullptr;
-                qDebug() << "✅ Connection restored - error popup closed automatically";
-            }
-
-            m_errorPopupShown = false;
-            m_lastErrorCategory.clear();
-            m_lastErrorTime = 0;
-        }
-        else if (hasError) {
-            // Jika ada error autentikasi, prioritaskan dan hilangkan error lain
-            if (isAuthError) {
-                // Tutup dialog error sebelumnya jika ada
-                if (m_currentErrorDialog) {
-                    m_currentErrorDialog->close();
-                    m_currentErrorDialog = nullptr;
-                    qDebug() << "🔄 Closed previous error dialog for authentication priority";
+            bool success = jsonObj.value("success").toBool();
+            if (!success) {
+                QString errMsg = jsonObj.value("message").toString("Terjadi kesalahan.");
+                // PRIORITAS UTAMA
+                if (errMsg.contains("Host requires authentication", Qt::CaseInsensitive)) {
+                    isAuthError = true;
+                    showAuthTokenErrorMessage();
+                } else {
+                    emit showPingErrorDialog(errMsg);
                 }
-
-                // Reset status error popup untuk memaksa tampil error autentikasi
-                m_errorPopupShown = false;
-                m_lastErrorCategory = "auth";
-                m_lastErrorTime = QDateTime::currentMSecsSinceEpoch();
-
-                qDebug() << "🔑 Authentication error has priority - other errors suppressed";
-                reply->deleteLater();
-                return; // Keluar dari fungsi, jangan tampilkan error lain
+            } else {
+                emit hidePingErrorDialog(); // tutup dialog kalau sukses
             }
-
-            // Proses error non-autentikasi hanya jika tidak ada error autentikasi
-            QString errorCategory = "unknown";
-            if (errorMessage.contains("Network error")) errorCategory = "network";
-            else if (errorMessage.contains("Server error")) errorCategory = "server";
-            else if (errorMessage.contains("Invalid response")) errorCategory = "format";
-
-            qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
-            bool shouldShowPopup = false;
-
-            // Cek apakah perlu menampilkan popup error
-            if (!m_errorPopupShown) shouldShowPopup = true;
-            else if (m_lastErrorCategory != errorCategory) shouldShowPopup = true;
-            else if ((currentTime - m_lastErrorTime) > 60000) shouldShowPopup = true; // 1 menit
-
-            // Daftar pesan yang tidak perlu ditampilkan (selain auth error)
-            static const QStringList suppressedErrors = {
-                "No active task implementation found",
-                "Your task is not in On Progress status"
-            };
-
-            bool isSuppressed = false;
-            for (const QString &pattern : suppressedErrors) {
-                if (errorMessage.contains(pattern, Qt::CaseInsensitive) ||
-                    reply->errorString().contains(pattern, Qt::CaseInsensitive)) {
-                    isSuppressed = true;
-                    qDebug() << "🔕 Suppressed error message:" << errorMessage;
-                    break;
-                }
-            }
-
-            if (shouldShowPopup && !isSuppressed) {
-                // Pastikan hanya satu dialog error yang muncul
-                QTimer::singleShot(0, [this, errorMessage]() {
-                    if (m_currentErrorDialog) {
-                        m_currentErrorDialog->close();
-                        m_currentErrorDialog = nullptr;
-                        qDebug() << "🔄 Closed previous error dialog before showing new one";
-                    }
-
-                    m_currentErrorDialog = new QMessageBox(QMessageBox::Warning,
-                                                           "API Connection Error",
-                                                           errorMessage,
-                                                           QMessageBox::Ok,
-                                                           nullptr);
-                    connect(m_currentErrorDialog, &QMessageBox::finished, [this]() {
-                        m_currentErrorDialog = nullptr;
-                    });
-                    m_currentErrorDialog->show();
-                });
-
-                m_errorPopupShown = true;
-                m_lastErrorCategory = errorCategory;
-                m_lastErrorTime = currentTime;
-                qDebug() << "❌ Error popup scheduled for:" << errorMessage;
-            }
-        }
-
-        if (refreshRequired) {
-            qDebug() << "Performing application refresh as requested by server";
-            this->refreshAll();
         }
 
         reply->deleteLater();
@@ -3533,42 +3217,35 @@ void Logger::sendPausePlayDataToAPI(int taskId, const QString& startTime,
     QTimer::singleShot(30000, reply, &QNetworkReply::abort);
 
     // 8. Handle response
-    connect(reply, &QNetworkReply::finished, [this, reply]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         QByteArray responseData = reply->readAll();
-        QString responseText = QString::fromUtf8(responseData);
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
+        QJsonObject jsonObj = jsonDoc.object();
 
-        QJsonParseError parseError;
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData, &parseError);
-
-        bool showPopup = false;
-        QString popupMessage;
-
-        if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
-            QJsonObject jsonObj = jsonDoc.object();
-            if (jsonObj.contains("success") && jsonObj["success"].isBool()) {
-                bool success = jsonObj["success"].toBool();
-                if (!success) {
-                    showPopup = true;
-                    popupMessage = "API returned error:\n\n" + responseText;
-                } else {
-                    qDebug() << "Success response from server:" << responseText;
-                }
-            } else {
-                showPopup = true;
-                popupMessage = "Invalid response format (no 'success' field):\n\n" + responseText;
-            }
-        } else {
-            showPopup = true;
-            popupMessage = "Failed to parse JSON response:\n\n" + responseText;
-        }
+        bool isAuthError = false;
 
         if (reply->error() != QNetworkReply::NoError) {
-            showPopup = true;
-            popupMessage = "Network error:\n" + reply->errorString();
-        }
-
-        if (showPopup) {
-            QMessageBox::warning(nullptr, "API Response", popupMessage);
+            // PRIORITAS UTAMA
+            if (reply->errorString().contains("Host requires authentication", Qt::CaseInsensitive)) {
+                isAuthError = true;
+                showAuthTokenErrorMessage();
+            } else {
+                emit showPingErrorDialog("Koneksi gagal: " + reply->errorString());
+            }
+        } else {
+            bool success = jsonObj.value("success").toBool();
+            if (!success) {
+                QString errMsg = jsonObj.value("message").toString("Terjadi kesalahan.");
+                // PRIORITAS UTAMA
+                if (errMsg.contains("Host requires authentication", Qt::CaseInsensitive)) {
+                    isAuthError = true;
+                    showAuthTokenErrorMessage();
+                } else {
+                    emit showPingErrorDialog(errMsg);
+                }
+            } else {
+                emit hidePingErrorDialog(); // tutup dialog kalau sukses
+            }
         }
 
         reply->deleteLater();
@@ -3693,11 +3370,11 @@ void Logger::showLogs()
     emit logContentChanged();
 }
 
-bool Logger::authenticate(const QString &loginInput, const QString &password)
+QString Logger::authenticate(const QString &loginInput, const QString &password)
 {
     if (!ensureDatabaseOpen()) {
         qWarning() << "Cannot authenticate: Database is not open";
-        return false;
+        return "Database is not open";
     }
 
     // Deteksi apakah input adalah email atau username
@@ -3732,76 +3409,97 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
     // 2. Kirim request dan tunggu response
     QNetworkReply *reply = m_networkManager->post(request, data);
     QEventLoop loop;
+    QTimer::singleShot(10000, &loop, &QEventLoop::quit);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
 
-    // 3. Handle response dari API
-    if (reply->error() == QNetworkReply::NoError) {
-        QByteArray response = reply->readAll();
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(response);
-        QJsonObject jsonObj = jsonResponse.object();
-
-        qDebug() << "API Response:" << jsonResponse.toJson(QJsonDocument::Compact);
-
-        if (jsonObj["success"].toBool()) {
-            // Jika API login berhasil
-            qDebug() << "API login successful. Storing user data...";
-
-            // 5. Parse data user dari response
-            QJsonObject userData = jsonObj["user"].toObject();
-            int userId = userData["id"].toInt();
-            QString username = userData["name"].toString();
-            QString userEmail = userData["email"].toString();
-            QString role = userData["role"].toObject()["rolename"].toString();
-            QString department = userData["department"].toObject()["rolename"].toString();
-            QString token = jsonObj["token"].toString();
-            // 6. Siapkan dan eksekusi query untuk menyimpan data ke database
-            QSqlQuery query(m_db);
-            query.prepare(
-                "INSERT OR REPLACE INTO users "
-                "(id, username, password, email, department, role, token) "
-                "VALUES (:id, :username, :password, :email, :department, :role, :token)"
-                );
-            query.bindValue(":id", userId);
-            query.bindValue(":username", username);
-            query.bindValue(":password", hashPassword(password)); // Hash password
-            query.bindValue(":email", userEmail);
-            query.bindValue(":role", role);
-            query.bindValue(":department", department);
-            query.bindValue(":token", token);
-
-            if (!query.exec()) {
-                qWarning() << "Gagal menyimpan user ke database lokal:" << query.lastError();
-            } else {
-                qDebug() << "Data user tersimpan di database lokal. ID:" << userId;
-            }
-
-
-            m_pingTimer.start();
-            sendPing(m_activeTaskId);
-            m_isTokenErrorVisible = false;
-            // Lanjutkan sisa proses
-            setCurrentUserInfo(userId, username, userEmail);
-            checkAndCreateNewDayRecord();
-            loadWorkTimeData();
-            startGlobalTimer();
-            syncActiveTask();
-            checkForUpdates();
-            fetchAndStoreTasks();
-            m_usageReportTimer.start();
-            m_isTrackingActive = true;
-            m_isTaskPaused = false;
-            m_pauseStartTime = 0;
-
-
-            reply->deleteLater();
-            return true;
-        } else {
-            qWarning() << "API Login failed:" << jsonObj["message"].toString();
-        }
-    } else {
-        qWarning() << "Network error during API login:" << reply->errorString();
+    // Cek apakah request timeout
+    if (!reply->isFinished()) {
+        reply->abort();
+        reply->deleteLater();
+        return "Koneksi ke server gagal atau timeout.\n Periksa koneksi internet Anda.";
     }
+
+    // 3. Handle response dari API
+    QByteArray response = reply->readAll();
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(response);
+    QJsonObject jsonObj = jsonResponse.object();
+
+    qDebug() << "API Response:" << jsonResponse.toJson(QJsonDocument::Compact);
+
+    // Periksa apakah ada error jaringan yang sebenarnya
+    if (reply->error() != QNetworkReply::NoError &&
+        reply->error() != QNetworkReply::AuthenticationRequiredError &&
+        reply->error() != QNetworkReply::ProtocolInvalidOperationError) {
+        qWarning() << "Network error during API login:" << reply->errorString();
+        reply->deleteLater();
+        return "Koneksi ke server gagal. Periksa koneksi \n internet, username, dan pasword Anda.";
+    }
+
+    // Periksa apakah API login berhasil
+    if (jsonObj["success"].toBool()) {
+        // Jika API login berhasil
+        qDebug() << "API login successful. Storing user data...";
+
+        // 5. Parse data user dari response
+        QJsonObject userData = jsonObj["user"].toObject();
+        int userId = userData["id"].toInt();
+        QString username = userData["name"].toString();
+        QString userEmail = userData["email"].toString();
+        QString role = userData["role"].toObject()["rolename"].toString();
+        QString department = userData["department"].toObject()["rolename"].toString();
+        QString token = jsonObj["token"].toString();
+        // 6. Siapkan dan eksekusi query untuk menyimpan data ke database
+        QSqlQuery query(m_db);
+        query.prepare(
+            "INSERT OR REPLACE INTO users "
+            "(id, username, password, email, department, role, token) "
+            "VALUES (:id, :username, :password, :email, :department, :role, :token)"
+            );
+        query.bindValue(":id", userId);
+        query.bindValue(":username", username);
+        query.bindValue(":password", password);
+        query.bindValue(":email", userEmail);
+        query.bindValue(":role", role);
+        query.bindValue(":department", department);
+        query.bindValue(":token", token);
+
+        if (!query.exec()) {
+            qWarning() << "Gagal menyimpan user ke database lokal:" << query.lastError();
+        } else {
+            qDebug() << "Data user tersimpan di database lokal. ID:" << userId;
+        }
+
+
+        m_pingTimer.start();
+        sendPing(m_activeTaskId);
+        m_isTokenErrorVisible = false;
+        updateProductivityCache();
+        // Lanjutkan sisa proses
+        setCurrentUserInfo(userId, username, userEmail);
+        checkAndCreateNewDayRecord();
+        loadWorkTimeData();
+        startGlobalTimer();
+        syncActiveTask();
+        checkForUpdates();
+        fetchAndStoreTasks();
+        m_usageReportTimer.start();
+        m_isTrackingActive = true;
+        m_isTaskPaused = false;
+        m_pauseStartTime = 0;
+
+
+        reply->deleteLater();
+        return "";
+    } else {
+        // Jika API login gagal, ambil pesan error dari server
+        QString serverMessage = jsonObj["message"].toString();
+        reply->deleteLater();
+        // Kembalikan pesan error dari server
+        return serverMessage.isEmpty() ? "Username atau password salah." : serverMessage;
+    }
+
+
 
     // // Jika kode sampai di sini, artinya API login gagal. Lakukan fallback ke login lokal.
     // qDebug() << "Attempting local login fallback...";
@@ -3834,7 +3532,7 @@ bool Logger::authenticate(const QString &loginInput, const QString &password)
 
     qDebug() << "Login failed completely (API and Local).";
     reply->deleteLater();
-    return false;
+    return "Terjadi kesalahan yang tidak diketahui.";
 }
 
 // Helper function untuk set current user info dan emit signals
@@ -4283,6 +3981,12 @@ void Logger::logWindowChange(const Logger::WindowInfo &info, qint64 startTime, q
         qWarning() << "Cannot log window change: No user logged in";
         return;
     }
+    QString urlToLog = info.url;
+
+    if (!urlToLog.isEmpty() && (urlToLog.contains(' ') || !urlToLog.contains('.'))) {
+        qDebug() << "URL Ditolak (dianggap query pencarian):" << urlToLog;
+        urlToLog.clear();
+    }
 
     QSqlQuery query(m_db);
     query.prepare("INSERT INTO log (id_user, start_time, end_time, app_name, title, url) "
@@ -4292,7 +3996,9 @@ void Logger::logWindowChange(const Logger::WindowInfo &info, qint64 startTime, q
     query.bindValue(":end", endTime);
     query.bindValue(":app", info.appName);
     query.bindValue(":title", info.title);
-    query.bindValue(":url", info.url.isEmpty() ? QVariant() : info.url);
+
+    // Gunakan variabel 'urlToLog' yang sudah divalidasi.
+    query.bindValue(":url", urlToLog.isEmpty() ? QVariant() : urlToLog);
 
     if (!query.exec()) {
         qWarning() << "Failed to log window change:" << query.lastError().text();
@@ -4418,7 +4124,7 @@ QString Logger::statusMessage() const
 void Logger::checkForUpdates()
 {
     // Ganti dengan versi aplikasi Anda saat ini
-    const QString currentVersion = "1.0.2.3";
+    const QString currentVersion = "1.0.2.7";
 
     // Ganti dengan URL file version.json Anda di GitHub
     QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");

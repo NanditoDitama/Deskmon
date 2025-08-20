@@ -331,11 +331,23 @@ Item {
 
                     var sorted = logger.taskList.slice() // Copy array
                     sorted.sort(function(a, b) {
-                        // Active task selalu di atas
-                        if (a.active && !b.active) return -1
-                        if (b.active && !a.active) return 1
-                        return a.id - b.id
+                        // Urutan prioritas berdasarkan status
+                        function getPriority(task) {
+                            if (task.active) return 0;                 // On Progress
+                            if (task.status === "Pending") return 1;   // Pending
+                            if (task.status === "Need Revise") return 2;
+                            if (task.status === "Need Review") return 3; // Need Review/Revise
+                            return 3; // status lain
+                        }
+
+                        var pa = getPriority(a)
+                        var pb = getPriority(b)
+                        if (pa !== pb) return pa - pb
+
+                        // Kalau sama prioritas → urutkan berdasarkan id (descending)
+                        return b.id - a.id
                     })
+
 
 
                     return sorted.map(function(task) {
@@ -424,7 +436,7 @@ Item {
 
                     MouseArea {
                         anchors.fill: parent
-                        enabled:  !(delegateRoot.isReview || delegateRoot.isNeedReview || delegateRoot.isNeedRevise)
+                        enabled:  !(delegateRoot.isReview || delegateRoot.isNeedReview)
                         onClicked: {
                             if (!delegateRoot.isActive && logger.activeTaskId !== -1) {
                                 confirmSwitchDialog.taskId = modelData.id

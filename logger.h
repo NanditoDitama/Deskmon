@@ -106,7 +106,7 @@ public:
     QAbstractItemModel* productiveAppsModel() const { return m_productiveAppsModel; }
     QAbstractItemModel* nonProductiveAppsModel() const { return m_nonProductiveAppsModel; }
 
-    Q_INVOKABLE bool authenticate(const QString &email, const QString &password);
+    Q_INVOKABLE QString authenticate(const QString &loginInput, const QString &password);
     QString authToken() const { return m_authToken; }
     QString userEmail() const { return m_userEmail; }
 
@@ -152,7 +152,8 @@ public:
     Q_INVOKABLE void launchMaintenanceTool();
     QString statusMessage() const;
     Q_INVOKABLE void checkForUpdates();
-
+    Q_INVOKABLE QString savedUsername() const;
+    Q_INVOKABLE QString savedPassword() const;
 
 
 
@@ -226,6 +227,10 @@ signals:
     void requestLoginPage();
     void currentAppIconPathChanged();
 
+    void showPingErrorDialog(const QString &message);
+    void hidePingErrorDialog();
+    void showAuthTokenErrorWindow(const QString &message);
+
 
 
 private:
@@ -285,6 +290,10 @@ private:
     QString m_statusMessage;
     bool m_isReauthenticating = false;
 
+    QHash<QString, int> m_cachedAppTypes;    // Non-browser apps (nama aplikasi)
+    QHash<QString, int> m_cachedDomainTypes;
+    \
+        void updateProductivityCache();
 
 #ifdef Q_OS_WIN
     WindowInfo getActiveWindowInfoWindows();

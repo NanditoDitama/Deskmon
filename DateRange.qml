@@ -107,18 +107,20 @@ Dialog {
                                     endSelectedDate = new Date(date)
                                     break
                                 case 2: // This Week
-                                    var daysSinceMonday = (date.getDay() + 6) % 7
-                                    startSelectedDate = new Date(date)
-                                    startSelectedDate.setDate(date.getDate() - daysSinceMonday)
-                                    endSelectedDate = new Date(date)
-                                    break
+                                    var daysSinceSunday = date.getDay();
+                                    startSelectedDate = new Date(date);
+                                    startSelectedDate.setDate(date.getDate() - daysSinceSunday);
+                                    endSelectedDate = new Date(date);
+                                    break;
                                 case 3: // Last Week
-                                    var daysSinceMonday = (date.getDay() + 6) % 7
-                                    startSelectedDate = new Date(date)
-                                    startSelectedDate.setDate(date.getDate() - daysSinceMonday - 7)
-                                    endSelectedDate = new Date(startSelectedDate)
-                                    endSelectedDate.setDate(startSelectedDate.getDate() + 6)
-                                    break
+                                    var daysSinceSunday = date.getDay();
+                                        var thisWeekSunday = new Date(date);
+                                        thisWeekSunday.setDate(date.getDate() - daysSinceSunday);
+                                        startSelectedDate = new Date(thisWeekSunday);
+                                        startSelectedDate.setDate(thisWeekSunday.getDate() - 7);
+                                        endSelectedDate = new Date(startSelectedDate);
+                                        endSelectedDate.setDate(startSelectedDate.getDate() + 6);
+                                        break;
                                 case 4: // This Month
                                     startSelectedDate = new Date(date.getFullYear(), date.getMonth(), 1)
                                     endSelectedDate = new Date(date)
@@ -368,6 +370,7 @@ Dialog {
                             }
                             applyDateRange()
                             dateRangeDialog.accept()
+                            dateRangeDialog.close()
                         }
                     }
                 }

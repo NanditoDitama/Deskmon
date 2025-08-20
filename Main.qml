@@ -12,7 +12,7 @@ ApplicationWindow {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 900
-    property string appVersion: "1.0.2.3"
+    property string appVersion: "1.0.2.7"
 
 
 
@@ -211,6 +211,7 @@ ApplicationWindow {
             isLoggedIn = false
             isProfileVisible = false
             showRegisterPage = false
+            showIdleNotification = false
             console.log("mencoba untuk login ulang")
         }
     }
@@ -439,7 +440,7 @@ ApplicationWindow {
     }
 
     function extractDomain(urlString) {
-        if (!urlString || urlString.trim() === "") {
+       if (!urlString || urlString.trim() === "") {
             return "";
         }
         try {
@@ -459,7 +460,7 @@ ApplicationWindow {
         } catch (e) {
             // Jika parsing gagal (misalnya, string bukanlah URL yang valid),
             // coba ambil bagian pertama sebelum garis miring sebagai fallback.
-            console.log("Gagal mem-parsing URL, mencoba fallback:", urlString);
+
             let domain = urlString.split('/')[0];
             if (domain.startsWith("www.")) {
                 return domain.substring(4);
@@ -1100,6 +1101,273 @@ ApplicationWindow {
     }
 
 
+    Window {
+        id: authErrorWindow
+        width: 380
+        height: 240
+        visible: false
+        color: "transparent"
+        title: "Sesi Berakhir"
+        modality: Qt.ApplicationModal
+        flags: Qt.Dialog | Qt.FramelessWindowHint
+
+        // Center pada parent window
+        Component.onCompleted: {
+            x = (Screen.width - width) / 2
+            y = (Screen.height - height) / 2
+        }
+
+        // Main container dengan shadow effect
+        Rectangle {
+            id: container
+            anchors.fill: parent
+            color: palette.window
+            radius: 12
+            border.color: palette.mid
+            border.width: 1
+
+            // Drop shadow effect
+            layer.enabled: true
+        }
+
+        Column {
+            anchors.fill: parent
+            spacing: 0
+
+            // Modern header dengan gradient
+            Rectangle {
+                width: parent.width
+                height: 80
+                radius: 12
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: palette.highlight }
+                    GradientStop { position: 1.0; color: Qt.darker(palette.highlight, 1.2) }
+                }
+
+                // Square bottom corners
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 12
+                    color: Qt.darker(palette.highlight, 1.2)
+                }
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 8
+
+                    // Session expired icon
+                    Rectangle {
+                        width: 36
+                        height: 36
+                        color: "white"
+                        radius: 18
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "🔒"
+                            font.pixelSize: 18
+                        }
+                    }
+
+                    Text {
+                        text: "Sesi Berakhir"
+                        color: palette.highlightedText
+                        font.pixelSize: 16
+                        font.weight: Font.Bold
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                }
+            }
+
+            // Content area
+            Rectangle {
+                width: parent.width
+                height: parent.height - 80 - 60
+                color: "transparent"
+
+                ScrollView {
+                    anchors.fill: parent
+                    anchors.margins: 24
+                    anchors.topMargin: 20
+                    anchors.bottomMargin: 16
+
+                    Text {
+                        id: authErrorText
+                        text: ""
+                        wrapMode: Text.WordWrap
+                        width: parent.width
+                        font.pixelSize: 14
+                        color: palette.windowText
+                        lineHeight: 1.4
+                        horizontalAlignment: Text.AlignHCenter
+
+                        // Fade in animation
+                        opacity: 0
+                        NumberAnimation on opacity {
+                            running: authErrorWindow.visible
+                            from: 0
+                            to: 1
+                            duration: 300
+                            easing.type: Easing.OutQuart
+                        }
+                    }
+                }
+            }
+
+            // Modern footer
+            Rectangle {
+                width: parent.width
+                height: 60
+                color: palette.window
+                radius: 12
+
+                // Square top corners
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 12
+                    color: palette.window
+                }
+
+                // Subtle top border
+                Rectangle {
+                    width: parent.width - 32
+                    height: 1
+                    color: palette.mid
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: 8
+                }
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 12
+
+                    Button {
+                        id: okButton
+                        text: "Keluar"
+                        width: 100
+                        height: 36
+
+                        background: Rectangle {
+                            color: okButton.pressed ? Qt.darker(palette.highlight, 1.3) :
+                                   okButton.hovered ? Qt.darker(palette.highlight, 1.1) : palette.highlight
+                            radius: 6
+                            border.color: Qt.darker(palette.highlight, 1.2)
+                            border.width: 1
+
+                            Behavior on color {
+                                ColorAnimation { duration: 150 }
+                            }
+
+                            // Subtle inner glow when hovered
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: 1
+                                radius: 5
+                                color: "transparent"
+                                border.color: okButton.hovered ? "white" : "transparent"
+                                opacity: 0.3
+
+                                Behavior on border.color {
+                                    ColorAnimation { duration: 150 }
+                                }
+                            }
+                        }
+
+                        contentItem: Text {
+                            text: okButton.text
+                            color: palette.highlightedText
+                            font.pixelSize: 13
+                            font.weight: Font.Medium
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        onClicked: {
+                            // Smooth close animation
+                            closeAnimation.start()
+                        }
+                    }
+                }
+            }
+        }
+
+        // Smooth opening animation
+        onVisibleChanged: {
+            if (visible) {
+                openAnimation.start()
+            }
+        }
+
+        // Opening animation
+        NumberAnimation {
+            id: openAnimation
+            target: container
+            property: "scale"
+            from: 0.8
+            to: 1.0
+            duration: 200
+            easing.type: Easing.OutBack
+        }
+
+        // Closing animation
+        SequentialAnimation {
+            id: closeAnimation
+
+            NumberAnimation {
+                target: container
+                property: "scale"
+                from: 1.0
+                to: 0.9
+                duration: 150
+                easing.type: Easing.InQuart
+            }
+
+            NumberAnimation {
+                target: authErrorWindow
+                property: "opacity"
+                from: 1.0
+                to: 0.0
+                duration: 100
+            }
+
+            ScriptAction {
+                script: {
+                    authErrorWindow.visible = false
+                    authErrorWindow.opacity = 1.0
+                    container.scale = 1.0
+
+                    // Reset ke login page
+                    isLoggedIn = false
+                    isProfileVisible = false
+                    showRegisterPage = false
+                    logger.logout()
+                }
+            }
+        }
+    }
+
+    Connections {
+        target: logger
+        function onShowAuthTokenErrorWindow(message) {
+            // Tutup idleNotificationWindow jika sedang terbuka
+            showIdleNotification = false
+            if (idleNotificationWindow.visible) {
+                idleNotificationWindow.close()
+            }
+            // Tampilkan dialog error sesi berakhir
+            authErrorText.text = message
+            authErrorWindow.visible = true
+        }
+    }
+
+
+
     //Login Page
     Rectangle {
         anchors.fill: parent
@@ -1139,6 +1407,198 @@ ApplicationWindow {
     }
 
 
+    Dialog {
+        id: pingErrorDialog
+        modal: true
+        visible: false
+
+        // Positioning di tengah layar
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(320, parent.width - 40)
+        height: implicitHeight
+
+        // Compact modern design
+        padding: 0
+        margins: 0
+        topPadding: 0
+        bottomPadding: 0
+        leftPadding: 0
+        rightPadding: 0
+
+        onAccepted: visible = false
+
+        background: Rectangle {
+            color: palette.window
+            radius: 8
+            border.color: palette.mid
+            border.width: 1
+
+            // Subtle shadow
+            layer.enabled: true
+        }
+
+        contentItem: Column {
+            spacing: 0
+
+            // Compact header
+            Rectangle {
+                width: parent.width
+                height: 48
+                color: palette.highlight
+                radius: 8
+
+                // Square bottom corners
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 8
+                    color: palette.highlight
+                }
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 8
+
+                    // Modern error icon
+                    Text {
+                        text: "⚠"
+                        font.pixelSize: 16
+                        color: palette.highlightedText
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: "Ada Kesalahan Koneksi"
+                        color: palette.highlightedText
+                        font.pixelSize: 14
+                        font.weight: Font.DemiBold
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+            }
+
+            // Content area - compact
+            Rectangle {
+                width: parent.width
+                height: Math.max(60, errorText.implicitHeight + 32)
+                color: "transparent"
+
+                ScrollView {
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    anchors.topMargin: 12
+                    anchors.bottomMargin: 12
+
+                    Text {
+                        id: errorText
+                        text: pingErrorText.text
+                        wrapMode: Text.Wrap
+                        width: parent.width
+                        font.pixelSize: 13
+                        color: palette.windowText
+                        lineHeight: 1.3
+                    }
+                }
+            }
+
+            // Compact footer
+            Rectangle {
+                width: parent.width
+                height: 44
+                color: palette.window
+
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    color: palette.mid
+                    anchors.top: parent.top
+                }
+
+                Button {
+                    anchors.centerIn: parent
+                    width: 80
+                    height: 28
+                    text: "OK"
+
+                    background: Rectangle {
+                        color: parent.pressed ? Qt.darker(palette.button, 1.2) :
+                               parent.hovered ? Qt.lighter(palette.button, 1.1) : palette.button
+                        radius: 4
+                        border.color: palette.mid
+                        border.width: parent.activeFocus ? 2 : 1
+
+                        Behavior on color {
+                            ColorAnimation { duration: 100 }
+                        }
+                    }
+
+                    contentItem: Text {
+                        text: parent.text
+                        color: palette.buttonText
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    onClicked: pingErrorDialog.accept()
+                }
+            }
+        }
+
+        // Smooth animations
+        enter: Transition {
+            NumberAnimation {
+                property: "scale"
+                from: 0.9
+                to: 1.0
+                duration: 150
+                easing.type: Easing.OutQuart
+            }
+            NumberAnimation {
+                property: "opacity"
+                from: 0.0
+                to: 1.0
+                duration: 150
+            }
+        }
+
+        exit: Transition {
+            NumberAnimation {
+                property: "scale"
+                from: 1.0
+                to: 0.9
+                duration: 100
+            }
+            NumberAnimation {
+                property: "opacity"
+                from: 1.0
+                to: 0.0
+                duration: 100
+            }
+        }
+
+        // Hidden text element untuk data binding
+        Text {
+            id: pingErrorText
+            text: ""
+            visible: false
+        }
+    }
+
+    Connections {
+        target: logger
+        onShowPingErrorDialog: {
+            pingErrorText.text = message
+            pingErrorDialog.open()
+        }
+        onHidePingErrorDialog: {
+            pingErrorDialog.close()
+        }
+    }
+
+
 
 
     // Dashboard
@@ -1147,15 +1607,26 @@ ApplicationWindow {
         color: backgroundColor
         visible: isLoggedIn && !isProfileVisible
 
-        Component.onCompleted: {
-            console.log("Dashboard component completed. Setting date range to today.");
-            // Logika ini akan berjalan setiap kali dasbor ditampilkan setelah login
-            var today = new Date();
-            startSelectedDate = today;     // [cite: 150]
-            endSelectedDate = today;       // [cite: 150]
-            isDateSelected = true;         // [cite: 151]
-            applyDateRange();              // [cite: 151]
-        }
+        onVisibleChanged: {
+                if (visible) { // Pastikan kode hanya berjalan saat dashboard menjadi terlihat
+                    console.log("Dashboard is now visible. Resetting date range to today.");
+                    var today = new Date();
+                    startSelectedDate = today;
+                    endSelectedDate = today;
+                    isDateSelected = true;
+                    applyDateRange();
+                }
+            }
+
+            // Component.onCompleted bisa tetap ada untuk memastikan tanggal diatur pada pemuatan pertama kali
+            Component.onCompleted: {
+                console.log("Dashboard component completed. Setting date range to today.");
+                var today = new Date();
+                startSelectedDate = today;
+                endSelectedDate = today;
+                isDateSelected = true;
+                applyDateRange();
+            }
 
         ColumnLayout {
             anchors.fill: parent
@@ -1188,17 +1659,7 @@ ApplicationWindow {
                         color: "white"
                         opacity: 0.8
                     }
-                    Text {
-                        text: "Buka Deskmon Website↗"
-                        color: "green"
-                        font.underline: true
 
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: Qt.openUrlExternally("https://deskmon.pranala-dt.co.id/")
-                        }
-                    }
 
                     Item { Layout.fillWidth: true }
 
@@ -1371,7 +1832,37 @@ ApplicationWindow {
                             contentItem: Text { text: parent.text; font: parent.font; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
 
+                        Button {
+                            id: deskmonButton
+                            width: 40 // Set both width and height to make it a square
+                            height: 40
 
+                            // Set the button's background and text color
+                            background: Rectangle {
+                                radius: 8
+                                color: parent.hovered ? Qt.rgba(1, 1, 1, 0.2) : "transparent"
+                                border.color: Qt.rgba(1, 1, 1, 0.3)
+                                border.width: 1
+                            }
+
+                            contentItem: Item {
+                                anchors.fill: parent
+
+                                Image {
+                                    id: externalLinkIcon
+                                    source: "qrc:/icons/website.svg"
+                                    sourceSize.width: 20
+                                    sourceSize.height: 20
+                                    anchors.centerIn: parent // Center the icon inside the button
+                                }
+                            }
+
+                            // Set cursor and handle click event
+                            onClicked: Qt.openUrlExternally("https://deskmon.pranala-dt.co.id/")
+                            ToolTip.text: "Deskmon Website"
+                            ToolTip.visible: hovered
+                            ToolTip.delay: 500
+                        }
 
                     }
                 }
@@ -2123,6 +2614,8 @@ ApplicationWindow {
                         open();
                     }
                 }
+
+
 
 
 

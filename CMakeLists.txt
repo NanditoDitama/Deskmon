@@ -173,6 +173,7 @@ qt_add_resources(Deskmon "resources"
         icons/review.svg
         icons/close.svg
         icons/danger.svg
+        icons/website.svg
 )
 
 # Link library yang diperlukan

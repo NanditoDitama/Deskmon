@@ -603,6 +603,7 @@ Item {
                             property real productiveAngle: 0
                             property real nonProductiveAngle: 0
                             property real neutralAngle: 0
+                            property real idleAngle: 0
                             property real animationProgress: 0
                             property real glowIntensity: 0
                             property real rotationOffset: 0
@@ -683,7 +684,7 @@ Item {
                                 var currentStartAngle = startAngle
 
                                 // PERBAIKAN: Hitung total angle untuk memastikan tidak melebihi batas
-                                var totalAngle = productiveAngle + nonProductiveAngle + neutralAngle
+                                var totalAngle = productiveAngle + nonProductiveAngle  + idleAngle + neutralAngle
                                 var availableAngle = 2 * Math.PI - 0.02 // Sisakan gap total
 
                                 // Scale down semua angle jika total melebihi batas
@@ -704,6 +705,13 @@ Item {
                                     var scaledNonProductiveAngle = nonProductiveAngle * scaleFactor
                                     drawRingSegment(currentStartAngle, scaledNonProductiveAngle, nonProductiveColor)
                                     currentStartAngle += scaledNonProductiveAngle + segmentGap
+                                }
+
+                                if (idleAngle > 0) {
+                                    var scaledIdleAngle = idleAngle * scaleFactor;
+                                    // Use a nice yellow color
+                                    drawRingSegment(currentStartAngle, scaledIdleAngle, "#f1c40f");
+                                    currentStartAngle += scaledIdleAngle + segmentGap;
                                 }
 
                                 // Neutral segment - starts after non-productive
@@ -759,6 +767,7 @@ Item {
                         var productive = logger.productivityStats.productive || 0
                         var nonProductive = logger.productivityStats.nonProductive || 0
                         var neutral = logger.productivityStats.neutral || 0
+                        var idle = logger.productivityStats.idle || 0
 
                         // Normalize if total exceeds 100%
                         var total = productive + nonProductive + neutral
@@ -766,13 +775,15 @@ Item {
                             productive = (productive / total) * 100
                             nonProductive = (nonProductive / total) * 100
                             neutral = (neutral / total) * 100
+                            idle = (idle / total) * 100
                         }
 
                         // Stop any ongoing animation and reset angles
                         chartAnimator.stop()
                         productivityCanvas.productiveAngle = 0
                         productivityCanvas.nonProductiveAngle = 0
-                        productivityCanvas.neutralAngle = 0
+                        productivityCanvas.neutralAngle =
+                                productivityCanvas.idleAngle = 0
                         productivityCanvas.animationProgress = 0
                         productivityCanvas.glowIntensity = 0
 
@@ -780,6 +791,7 @@ Item {
                         chartAnimator.productiveTarget = productive
                         chartAnimator.nonProductiveTarget = nonProductive
                         chartAnimator.neutralTarget = neutral
+                        chartAnimator.idleTarget = idle
 
                         // Start enhanced animation
                         chartAnimator.start()
@@ -791,10 +803,12 @@ Item {
                     productivePercent.value = 0
                     nonProductivePercent.value = 0
                     neutralPercent.value = 0
+                    idlePercent.value = 0
 
                     productivityCanvas.productiveAngle = 0
                     productivityCanvas.nonProductiveAngle = 0
                     productivityCanvas.neutralAngle = 0
+                    productivityCanvas.idleAngle = 0
                     productivityCanvas.animationProgress = 0
                     productivityCanvas.glowIntensity = 0
                     productivityCanvas.rotationOffset = 0
@@ -808,6 +822,7 @@ Item {
                     property real productiveTarget: 0
                     property real nonProductiveTarget: 0
                     property real neutralTarget: 0
+                    property real idleTarget: 0
 
                     // Main progress animation
                     NumberAnimation {
@@ -896,8 +911,29 @@ Item {
                                 easing.type: Easing.OutCubic
                             }
                         }
+                        PauseAnimation { duration: 100 }
 
-                        PauseAnimation { duration: 150 }
+                        // ** NEW: Idle Animation Phase **
+                        ParallelAnimation {
+                            NumberAnimation {
+                                target: productivityCanvas
+                                property: "idleAngle"
+                                from: 0
+                                to: (chartAnimator.idleTarget / 100) * 2 * Math.PI
+                                duration: 600
+                                easing.type: Easing.OutBack
+                            }
+                            NumberAnimation {
+                                target: idlePercent
+                                property: "value"
+                                from: 0
+                                to: chartAnimator.idleTarget
+                                duration: 600
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+
+                        PauseAnimation { duration: 100 }
 
                         // Phase 3: Neutral segment grows after non-productive is complete
                         ParallelAnimation {
@@ -1013,6 +1049,39 @@ Item {
                         }
                     }
 
+
+                    // ** NEW: Idle Legend Item **
+                    RowLayout {
+                        visible: idlePercent.value > 0 // Only show if there's idle time
+                        spacing: 10
+                        Rectangle {
+                            implicitWidth: 16
+                            implicitHeight: 16
+                            radius: 4
+                            color: "#f1c40f" // Yellow color
+                            border {
+                                width: 1
+                                color: Qt.darker("#f1c40f", 1.2)
+                            }
+                        }
+                        Label {
+                            text: "Idle"
+                            font {
+                                pixelSize: 13
+                                weight: Font.Medium
+                            }
+                            color: textColor
+                            Layout.fillWidth: true
+                        }
+                        Label {
+                            text: Math.round(idlePercent.value) + "%"
+                            font {
+                                pixelSize: 13
+                                weight: Font.DemiBold
+                            }
+                            color: "#f1c40f" // Yellow color
+                        }
+                    }
                     // Neutral
                     RowLayout {
                         spacing: 10
@@ -1171,6 +1240,11 @@ Item {
                     duration: 1000
                     easing.type: Easing.OutCubic
                 }
+            }
+            Label {
+                id: idlePercent
+                visible: false
+                property real value: 0
             }
 
             Label {
