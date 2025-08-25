@@ -12,7 +12,7 @@ ApplicationWindow {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 900
-    property string appVersion: "1.0.2.7"
+    property string appVersion: "1.0.2.8"
 
 
 
@@ -1101,7 +1101,7 @@ ApplicationWindow {
     }
 
 
-    Window {
+    ApplicationWindow {
         id: authErrorWindow
         width: 380
         height: 240
