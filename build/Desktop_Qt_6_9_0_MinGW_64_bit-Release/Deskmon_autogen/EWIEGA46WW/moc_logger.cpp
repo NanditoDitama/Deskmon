@@ -185,7 +185,9 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         "authToken",
         "userEmail",
         "currentUserEmail",
-        "workTimeElapsedSeconds"
+        "workTimeElapsedSeconds",
+        "logModel",
+        "QSqlQueryModel*"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -488,6 +490,8 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         QtMocHelpers::PropertyData<QString>(145, QMetaType::QString, QMC::DefaultPropertyFlags, 17),
         // property 'workTimeElapsedSeconds'
         QtMocHelpers::PropertyData<int>(146, QMetaType::Int, QMC::DefaultPropertyFlags, 24),
+        // property 'logModel'
+        QtMocHelpers::PropertyData<QSqlQueryModel*>(147, 0x80000000 | 148, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -742,6 +746,8 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         case 12:
         case 11:
             *reinterpret_cast<int*>(_a[0]) = qRegisterMetaType< QAbstractItemModel* >(); break;
+        case 18:
+            *reinterpret_cast<int*>(_a[0]) = qRegisterMetaType< QSqlQueryModel* >(); break;
         }
     }
     if (_c == QMetaObject::ReadProperty) {
@@ -765,6 +771,7 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         case 15: *reinterpret_cast<QString*>(_v) = _t->currentUsername(); break;
         case 16: *reinterpret_cast<QString*>(_v) = _t->currentUserEmail(); break;
         case 17: *reinterpret_cast<int*>(_v) = _t->workTimeElapsedSeconds(); break;
+        case 18: *reinterpret_cast<QSqlQueryModel**>(_v) = _t->logModel(); break;
         default: break;
         }
     }
@@ -802,7 +809,7 @@ int Logger::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty
             || _c == QMetaObject::RegisterPropertyMetaType) {
         qt_static_metacall(this, _c, _id, _a);
-        _id -= 18;
+        _id -= 19;
     }
     return _id;
 }

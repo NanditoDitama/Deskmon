@@ -823,6 +823,19 @@
                         "stored": true,
                         "type": "int",
                         "user": false
+                    },
+                    {
+                        "constant": true,
+                        "designable": true,
+                        "final": false,
+                        "index": 18,
+                        "name": "logModel",
+                        "read": "logModel",
+                        "required": false,
+                        "scriptable": true,
+                        "stored": true,
+                        "type": "QSqlQueryModel*",
+                        "user": false
                     }
                 ],
                 "qualifiedClassName": "Logger",

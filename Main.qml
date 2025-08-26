@@ -11,7 +11,7 @@ ApplicationWindow {
     title: qsTr("Deskmon - v" + appVersion)
     visibility: Window.Maximized
     minimumWidth: 900
-    minimumHeight: 900
+    minimumHeight: 700
     property string appVersion: "1.0.2.8"
 
 
@@ -2207,10 +2207,9 @@ ApplicationWindow {
 
                     Frame {
                         Layout.fillWidth: true
-                        Layout.minimumWidth: 500
-                        Layout.maximumWidth: 800
+                        // Layout.minimumWidth: 100
+                        // Layout.maximumWidth: 800
                         Layout.fillHeight: true
-
                         padding: 16
                         background: Rectangle {
                             color: cardColor
@@ -2238,8 +2237,6 @@ ApplicationWindow {
                         Activity_Monitor{
                             anchors.fill: parent
                         }
-
-
                     }
 
                 }

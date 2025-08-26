@@ -178,6 +178,8 @@ Logger::Logger(QObject *parent) : QObject(parent)
 
     m_lastShownPingError.clear();
 
+    m_logModel = new QSqlQueryModel(this);
+
 
 }
 Logger::~Logger()
@@ -194,6 +196,11 @@ Logger::~Logger()
     delete m_productiveAppsModel;
     delete m_nonProductiveAppsModel;
 }
+
+QSqlQueryModel* Logger::logModel() const {
+    return m_logModel;
+}
+
 
 // Implementasi getter untuk properti baru
 int Logger::workTimeElapsedSeconds() const
@@ -4018,11 +4025,59 @@ void Logger::setLogFilter(const QString &startDate, const QString &endDate)
     qDebug() << "Setting log filter - Start Date:" << startDate << "End Date:" << endDate;
     m_startDateFilter = startDate;
     m_endDateFilter = endDate;
-    emit logContentChanged();
+
+    // Pastikan model dan koneksi database valid sebelum melanjutkan.
+    // Asumsi m_logModel sudah diinisialisasi di constructor.
+    if (!m_logModel || !ensureDatabaseOpen()) {
+        qWarning() << "Log model or database is not available for filtering.";
+        return;
+    }
+
+    // 1. Bangun string query dasar dengan filter untuk user yang sedang login.
+    QString queryStr = "SELECT start_time, end_time, app_name, title, url FROM log "
+                       "WHERE id_user = :id_user ";
+
+    // 2. Tambahkan kondisi filter tanggal secara dinamis.
+    if (!m_startDateFilter.isEmpty()) {
+        queryStr += "AND date(start_time, 'unixepoch', 'localtime') >= :startDate ";
+    }
+    if (!m_endDateFilter.isEmpty()) {
+        queryStr += "AND date(start_time, 'unixepoch', 'localtime') <= :endDate ";
+    }
+
+    // 3. Tambahkan pengurutan agar log terbaru muncul di atas.
+    queryStr += "ORDER BY start_time DESC";
+
+    // 4. Siapkan QSqlQuery untuk binding parameter yang aman.
+    QSqlQuery query(m_db);
+    query.prepare(queryStr);
+    query.bindValue(":id_user", m_currentUserId);
+
+    if (!m_startDateFilter.isEmpty()) {
+        query.bindValue(":startDate", m_startDateFilter);
+    }
+    if (!m_endDateFilter.isEmpty()) {
+        query.bindValue(":endDate", m_endDateFilter);
+    }
+
+    // 5. Terapkan query yang sudah difilter ke model.
+    // Model akan secara otomatis memberi tahu view di QML untuk me-refresh datanya.
+    m_logModel->setQuery(query);
+
+    // Cek jika ada error saat menjalankan query pada model.
+    if(m_logModel->lastError().isValid()) {
+        qWarning() << "Failed to update log model query:" << m_logModel->lastError();
+    }
+
+    // 6. Emit sinyal lain yang diperlukan untuk memperbarui bagian lain dari UI,
+    //    seperti statistik dan jumlah total log.
     emit logCountChanged();
     emit productivityStatsChanged();
-}
 
+    // Sinyal ini mungkin tidak lagi diperlukan jika UI sudah sepenuhnya
+    // menggunakan model, tetapi tetap disertakan untuk kompatibilitas.
+    emit logContentChanged();
+}
 bool Logger::updateProfileImage(const QString &username, const QString &imagePath)
 {
     if (!ensureDatabaseOpen()) {
@@ -4248,44 +4303,39 @@ Logger::WindowInfo Logger::getActiveWindowInfoWindows() {
 Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
     WindowInfo info;
 
-    // Get app name
-    {
-        QProcess appProcess;
-        appProcess.start("osascript", {
-                                          "-e",
-                                          "tell application \"System Events\" to get name of first application process whose frontmost is true"
-                                      });
+    // Use the AppKit framework directly - this is extremely fast!
+    NSRunningApplication *frontmostApp = [[NSWorkspace sharedWorkspace] frontmostApplication];
 
-        if (appProcess.waitForFinished(5000)) {
-            info.appName = QString(appProcess.readAllStandardOutput()).trimmed();
-            // qDebug() << "App name:" << info.appName;
-        } else {
-            appProcess.kill();
-            // qDebug() << "App name script timed out";
-            // qDebug() << "Error:" << appProcess.readAllStandardError();
-        }
-    }
+    if (frontmostApp) {
+        // Get the application name
+        info.appName = QString::fromNSString([frontmostApp localizedName]);
 
-    // Get window title
-    {
-        QProcess titleProcess;
-        titleProcess.start("osascript", {
-                                            "-e",
-                                            "tell application \"System Events\" to get name of first window of (first application process whose frontmost is true)"
-                                        });
+        // Use Accessibility APIs to get the window title
+        pid_t pid = [frontmostApp processIdentifier];
+        AXUIElementRef appElem = AXUIElementCreateApplication(pid);
 
-        if (titleProcess.waitForFinished(5000)) {
-            info.title = QString(titleProcess.readAllStandardOutput()).trimmed();
-            // qDebug() << "Window title:" << info.title;
-        } else {
-            titleProcess.kill();
-            // qDebug() << "Window title script timed out";
-            // qDebug() << "Error:" << titleProcess.readAllStandardError();
+        if (appElem) {
+            AXUIElementRef window = NULL;
+            if (AXUIElementCopyAttributeValue(appElem, kAXFocusedWindowAttribute, (CFTypeRef*)&window) == kAXErrorSuccess) {
+                if (window) {
+                    CFStringRef title = NULL;
+                    if (AXUIElementCopyAttributeValue(window, kAXTitleAttribute, (CFTypeRef*)&title) == kAXErrorSuccess) {
+                        if (title) {
+                            info.title = QString::fromCFString(title);
+                            CFRelease(title);
+                        }
+                    }
+                    CFRelease(window);
+                }
+            }
+            CFRelease(appElem);
         }
     }
 
     if (info.appName.isEmpty()) info.appName = "Unknown";
     if (info.title.isEmpty()) info.title = "No active window";
+
+    // (You can also add native code here to get the browser URL)
 
     return info;
 }

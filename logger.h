@@ -47,6 +47,8 @@ class Logger : public QObject
     // Properti baru untuk "Time at Work"
     Q_PROPERTY(int workTimeElapsedSeconds READ workTimeElapsedSeconds NOTIFY workTimeElapsedSecondsChanged)
 
+    Q_PROPERTY(QSqlQueryModel* logModel READ logModel CONSTANT)
+    QSqlQueryModel* logModel() const;
 
 
 public:
@@ -295,6 +297,7 @@ private:
     \
         void updateProductivityCache();
 
+    QSqlQueryModel* m_logModel;
 #ifdef Q_OS_WIN
     WindowInfo getActiveWindowInfoWindows();
     QString getBrowserUrlWindows(HWND hwnd);
