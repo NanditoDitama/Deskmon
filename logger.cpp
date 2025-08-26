@@ -4159,11 +4159,16 @@ void Logger::checkForUpdates()
 
         // Logika perbandingan versi (sederhana)
         if (serverVersion > currentVersion) {
-            qDebug() << "Update tersedia! Versi server:" << serverVersion;
             QString notes = obj.value("releaseNotes").toString();
 
-            // Kirim sinyal ke QML bahwa update ditemukan
+        #ifdef Q_OS_MAC
+            // Di macOS: JANGAN munculkan pop-up updateAvailable
+            qDebug() << "Update tersedia (macOS, suppressed):" << serverVersion;
+            emit showStatusMessage(QStringLiteral("Update %1 tersedia.").arg(serverVersion));
+        #else
+            // Platform lain tetap munculkan pop-up
             emit updateAvailable(serverVersion, notes);
+        #endif
         } else {
             qDebug() << "Aplikasi sudah versi terbaru.";
             emit showStatusMessage("Aplikasi Anda sudah versi terbaru.");
