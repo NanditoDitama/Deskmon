@@ -1164,6 +1164,7 @@ void Logger::sendProductiveTimeToAPI()
 
     QTimer::singleShot(10000, reply, &QNetworkReply::abort); // Timeout 10 detik
 
+    refreshAll();
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         if (reply->error() == QNetworkReply::NoError) {
             qDebug() << "Productive time sent successfully. Response:" << reply->readAll();
@@ -2084,6 +2085,8 @@ void Logger::sendDailyUsageReport()
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         handleDailyUsageReportResponse(reply);
     });
+
+
 }
 
 void Logger::handleDailyUsageReportResponse(QNetworkReply *reply)
@@ -3963,6 +3966,7 @@ void Logger::logIdle(qint64 startTime, qint64 endTime)
         emit logCountChanged();
         emit logContentChanged();
         emit productivityStatsChanged();
+        refreshAll();
     }
 }
 
@@ -4124,7 +4128,7 @@ QString Logger::statusMessage() const
 void Logger::checkForUpdates()
 {
     // Ganti dengan versi aplikasi Anda saat ini
-    const QString currentVersion = "1.0.2.7";
+    const QString currentVersion = "1.0.2.8";
 
     // Ganti dengan URL file version.json Anda di GitHub
     QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");
@@ -4155,11 +4159,16 @@ void Logger::checkForUpdates()
 
         // Logika perbandingan versi (sederhana)
         if (serverVersion > currentVersion) {
-            qDebug() << "Update tersedia! Versi server:" << serverVersion;
             QString notes = obj.value("releaseNotes").toString();
 
-            // Kirim sinyal ke QML bahwa update ditemukan
+        #ifdef Q_OS_MAC
+            // Di macOS: JANGAN munculkan pop-up updateAvailable
+            qDebug() << "Update tersedia (macOS, suppressed):" << serverVersion;
+            emit showStatusMessage(QStringLiteral("Update %1 tersedia.").arg(serverVersion));
+        #else
+            // Platform lain tetap munculkan pop-up
             emit updateAvailable(serverVersion, notes);
+        #endif
         } else {
             qDebug() << "Aplikasi sudah versi terbaru.";
             emit showStatusMessage("Aplikasi Anda sudah versi terbaru.");
