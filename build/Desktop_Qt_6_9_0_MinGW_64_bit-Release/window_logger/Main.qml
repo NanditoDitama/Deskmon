@@ -5,6 +5,7 @@ import QtQuick.Controls.Material
 import QtQuick.Dialogs
 import QtQuick.Effects
 import QtQuick.Window
+import QtQuick 2.15
 
 ApplicationWindow {
     id: window
@@ -12,8 +13,7 @@ ApplicationWindow {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 700
-    property string appVersion: "1.0.2.8"
-
+    property string appVersion: "1.0.2.9"
 
 
     Rectangle {
@@ -1003,80 +1003,206 @@ ApplicationWindow {
 
     ApplicationWindow {
         id: idleNotificationWindow
-        width: 300
-        height: 220
-        x: (Screen.width - width) / 2
-        y: (Screen.height - height) / 2
-        flags: Qt.Dialog | Qt.WindowStaysOnTopHint
-        modality: Qt.ApplicationModal
+        width: 380
+        height: 280
         title: "Idle Detected"
+        modality: Qt.ApplicationModal
+        flags: Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+        color: "transparent"
 
-        // Handle window closing
-        onVisibleChanged: {
-            if (!visible) {
-                showIdleNotification = false
-            }
-        }
+        // Pusatkan window
+        x: (Screen.width  - width)  / 2
+        y: (Screen.height - height) / 2
 
-        // Simple binding approach
+        // Tampilkan/hidden via flag eksternal
         visible: showIdleNotification
+        onVisibleChanged: if (!visible) showIdleNotification = false
 
-        background: Rectangle {
-            color: cardColor
-            border.color: dividerColor
-            border.width: 1
-        }
-
-        ColumnLayout {
+        // === KARTU + BAYANGAN ====================================================
+        Item {
             anchors.fill: parent
-            anchors.margins: 16
-            spacing: 12
 
-            // SVG Image - Option 2: Using Rectangle container
+            // bayangan lembut
             Rectangle {
-                width: 24
-                height: 24
-                Layout.alignment: Qt.AlignHCenter
-                Layout.topMargin: 4
-                color: "transparent"
+                anchors.fill: parent
+                anchors.margins: -6
+                radius: 18
+                color: "#22000000"
+                z: -1
+            }
 
-                Image {
+            // kartu utama
+            Rectangle {
+                id: card
+                anchors.fill: parent
+                radius: 12
+                color: cardColor
+                border.color: dividerColor
+                border.width: 1
+                opacity: showIdleNotification ? 1 : 0
+                scale:   showIdleNotification ? 1 : 0.98
+                Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                Behavior on scale   { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+
+                // overlay gradien halus
+                Rectangle {
                     anchors.fill: parent
-                    source: "qrc:/icons/danger.svg" // Ganti dengan path file SVG Anda
-                    fillMode: Image.PreserveAspectFit
+                    radius: card.radius
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: "#10ffffff" }
+                        GradientStop { position: 1.0; color: "transparent" }
+                    }
                 }
-            }
 
-            Label {
-                text: "Idle Detected"
-                font { bold: true; pixelSize: 16 }
-                color: nonProductiveColor
-                Layout.alignment: Qt.AlignHCenter
-            }
+                // === KONTEN =======================================================
+                ColumnLayout {
+                    id: rootLayout
+                    anchors.fill: parent
+                    anchors.margins: 24
+                    spacing: 16
 
-            Label {
-                text: idleNotificationText
-                font.pixelSize: 14
-                wrapMode: Text.Wrap
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-            }
+                    // HEADER: ikon + judul
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 12
 
-            Button {
-                text: "OK"
-                Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: 100
-                Material.background: secondaryColor
-                Material.foreground: "white"
-                onClicked: {
-                    showIdleNotification = false
-                    idleNotificationWindow.close()
-                    if (logger.isTaskPaused) {
-                        logger.toggleTaskPause() // Ini akan melanjutkan task yang dijeda
+                        // ikon bulat berdenyut
+                        Rectangle {
+                            id: iconCircle
+                            width: 48; height: 48; radius: 24
+                            color: nonProductiveColor
+                            opacity: 0.14
+                            Layout.alignment: Qt.AlignVCenter
+
+                            // animasi denyut
+                            SequentialAnimation on opacity {
+                                running: idleNotificationWindow.visible
+                                loops: Animation.Infinite
+                                NumberAnimation { from: 0.14; to: 0.32; duration: 900; easing.type: Easing.InOutQuad }
+                                NumberAnimation { from: 0.32; to: 0.14; duration: 900; easing.type: Easing.InOutQuad }
+                            }
+
+                            Image {
+                                anchors.centerIn: parent
+                                width: 22; height: 22
+                                source: "qrc:/icons/danger.svg"
+                                fillMode: Image.PreserveAspectFit
+                                smooth: true
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+
+                            Label {
+                                text: "Activity Paused"
+                                font.pixelSize: 18
+                                font.bold: true
+                                color: nonProductiveColor
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+
+                    // PESAN DINAMIS
+                    Frame {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        padding: 10
+
+                        Label {
+                            id: messageLabel
+                            anchors.fill: parent
+                            anchors.margins: 2
+                            text: idleNotificationText + " ,Sesi kamu terdeteksi idle. Pastikan task berlanjut sesuai kebutuhan."
+                            wrapMode: Text.Wrap
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.pixelSize: 14
+                            color: textColor
+                        }
+                    }
+
+                    // TOMBOL AKSI
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 12
+                        Layout.topMargin: 8
+
+                        // Resume Activity Button
+                        Button {
+                            id: btnResume
+                            text: "Resume Activity"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 40
+
+                            background: Rectangle {
+                                color: btnResume.hovered ? Qt.darker(secondaryColor, 1.1) : secondaryColor
+                                radius: 6
+                            }
+
+                            contentItem: Text {
+                                text: btnResume.text
+                                font {
+                                    pixelSize: 14
+                                    bold: true
+                                }
+                                color: "white"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+
+                            onClicked: {
+                                showIdleNotification = false
+                                idleNotificationWindow.close()
+                                if (logger && logger.isTaskPaused)
+                                    logger.toggleTaskPause()
+                            }
+                        }
+                    }
+                }
+
+                // TOMBOL CLOSE (X)
+                ToolButton {
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.margins: 8
+                    width: 32; height: 32
+                    text: "×"
+
+                    focusPolicy: Qt.NoFocus
+                    contentItem: Text {
+                        text: control.text
+                        font.pixelSize: 18
+                        font.bold: true
+                        color: "#ffffff"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    onClicked: {
+                        showIdleNotification = false
+                        idleNotificationWindow.close()
                     }
                 }
             }
         }
+
+        // === SHORTCUTS ============================================================
+        Shortcut {
+            sequences: [ StandardKey.Close, "Escape" ]
+            onActivated: {
+                showIdleNotification = false
+                idleNotificationWindow.close()
+            }
+        }
+        Shortcut {
+            sequences: [ StandardKey.Accept, "Return", "Enter" ]
+            onActivated: btnResume.clicked()
+        }
+
+        // Fokus awal ke aksi utama
+        Component.onCompleted: btnResume.forceActiveFocus()
     }
 
     // Tambahkan connection untuk menangani notifikasi idle
@@ -1109,8 +1235,7 @@ ApplicationWindow {
         color: "transparent"
         title: "Sesi Berakhir"
         modality: Qt.ApplicationModal
-        flags: Qt.Dialog | Qt.FramelessWindowHint
-
+        flags: Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
         // Center pada parent window
         Component.onCompleted: {
             x = (Screen.width - width) / 2
@@ -2696,69 +2821,254 @@ ApplicationWindow {
 
                 Dialog {
                     id: confirmSwitchDialog
-                    title: "Confirm Task Switch"
+                    title: ""
                     modal: true
                     anchors.centerIn: parent
-                    width: 400
-                    height: 280
+                    width: 420
+                    height: 320
                     padding: 0
 
                     property int taskId: -1
 
-                    background: Rectangle {
-                        color: cardColor
-                        radius: 12
-                        border.color: dividerColor
+                    // Remove default background
+                    background: Item {}
+
+                    // Custom background with shadow effect
+                    Rectangle {
+                        id: shadowRect
+                        anchors.fill: parent
+                        anchors.margins: -8
+                        color: "transparent"
+
+                        // Drop shadow effect
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            color: "#20000000"
+                            radius: 16
+                            opacity: 0.3
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: 4
+                            color: "#10000000"
+                            radius: 14
+                            opacity: 0.2
+                        }
                     }
 
                     contentItem: Rectangle {
                         color: cardColor
-                        radius: 12
-                        anchors.fill: parent
+                        radius: 16
+                        border.width: 1
+                        border.color: Qt.rgba(255, 255, 255, 0.1)
+
+                        // Gradient overlay for depth
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 16
+                            gradient: Gradient {
+                                GradientStop { position: 0.0; color: Qt.rgba(255, 255, 255, 0.05) }
+                                GradientStop { position: 1.0; color: "transparent" }
+                            }
+                        }
 
                         ColumnLayout {
                             anchors.fill: parent
-                            anchors.margins: 24
-                            spacing: 16
+                            anchors.margins: 32
+                            spacing: 24
 
-                            Label {
-                                text: "Are you sure you want to switch to another project?"
-                                font { pixelSize: 16; family: "Segoe UI" }
-                                color: textColor
-                                wrapMode: Text.Wrap
-                                Layout.fillWidth: true
+                            // Icon section
+                            Item {
+                                Layout.alignment: Qt.AlignHCenter
+                                Layout.preferredWidth: 64
+                                Layout.preferredHeight: 64
+
+                                Rectangle {
+                                    anchors.centerIn: parent
+                                    width: 64
+                                    height: 64
+                                    radius: 32
+                                    color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.1)
+                                    border.width: 2
+                                    border.color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.3)
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "⚠"
+                                        font.pixelSize: 28
+                                        color: accentColor
+                                    }
+                                }
                             }
 
+                            // Title and message section
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 12
+
+                                Label {
+                                    text: "Switch Project?"
+                                    font {
+                                        pixelSize: 20
+                                        family: "Segoe UI"
+                                        weight: Font.Medium
+                                    }
+                                    color: textColor
+                                    Layout.alignment: Qt.AlignHCenter
+                                }
+
+                                Label {
+                                    text: "You're about to switch to another project. Your current progress will be saved automatically."
+                                    font {
+                                        pixelSize: 14
+                                        family: "Segoe UI"
+                                    }
+                                    color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.7)
+                                    wrapMode: Text.Wrap
+                                    Layout.fillWidth: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                    lineHeight: 1.4
+                                }
+                            }
+
+
+
+                            // Button section
                             RowLayout {
-                                Layout.alignment: Qt.AlignRight
+                                Layout.fillWidth: true
                                 spacing: 16
 
                                 Button {
+                                    id: cancelButton
                                     text: "Cancel"
-                                    Layout.preferredWidth: 120
-                                    Layout.preferredHeight: 40
-                                    Material.background: "transparent"
-                                    Material.foreground: accentColor
-                                    font.pixelSize: 14
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 48
+
+                                    background: Rectangle {
+                                        radius: 8
+                                        color: cancelButton.pressed ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.1) :
+                                               cancelButton.hovered ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.05) : "transparent"
+                                        border.width: 1
+                                        border.color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.2)
+
+                                        Behavior on color {
+                                            ColorAnimation { duration: 150 }
+                                        }
+                                    }
+
+                                    contentItem: Text {
+                                        text: cancelButton.text
+                                        font {
+                                            pixelSize: 14
+                                            family: "Segoe UI"
+                                            weight: Font.Medium
+                                        }
+                                        color: textColor
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+
                                     onClicked: confirmSwitchDialog.reject()
                                 }
 
                                 Button {
-                                    text: "OK"
-                                    Layout.preferredWidth: 120
-                                    Layout.preferredHeight: 40
-                                    Material.background: secondaryColor
-                                    Material.foreground: "white"
-                                    font.pixelSize: 14
+                                    id: confirmButton
+                                    text: "Switch Project"
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 48
+
+                                    background: Rectangle {
+                                        radius: 8
+                                        color: confirmButton.pressed ? Qt.darker(accentColor, 1.2) :
+                                               confirmButton.hovered ? Qt.lighter(accentColor, 1.1) : accentColor
+
+                                        Behavior on color {
+                                            ColorAnimation { duration: 150 }
+                                        }
+
+                                        // Subtle glow effect
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            anchors.margins: -2
+                                            radius: 10
+                                            color: "transparent"
+                                            border.width: 1
+                                            border.color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.3)
+                                            opacity: confirmButton.hovered ? 1 : 0
+
+                                            Behavior on opacity {
+                                                NumberAnimation { duration: 150 }
+                                            }
+                                        }
+                                    }
+
+                                    contentItem: Text {
+                                        text: confirmButton.text
+                                        font {
+                                            pixelSize: 14
+                                            family: "Segoe UI"
+                                            weight: Font.Medium
+                                        }
+                                        color: "white"
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+
                                     onClicked: {
                                         logger.setActiveTask(confirmSwitchDialog.taskId)
                                         confirmSwitchDialog.accept()
                                         isPop_up_waktuhabis_open = false
                                         isPop_up_waktuhabis_kurangdari_open = false
-                                        console.log ("ok 1", isPop_up_waktuhabis_open )
-                                        console.log ("ok 2", isPop_up_waktuhabis_kurangdari_open )
+                                        console.log("ok 1", isPop_up_waktuhabis_open)
+                                        console.log("ok 2", isPop_up_waktuhabis_kurangdari_open)
                                     }
                                 }
+                            }
+                            Item {
+                                Layout.fillHeight: true
+                            }
+                        }
+                    }
+
+                    // Entry animation
+                    enter: Transition {
+                        ParallelAnimation {
+                            NumberAnimation {
+                                property: "opacity"
+                                from: 0
+                                to: 1
+                                duration: 250
+                                easing.type: Easing.OutCubic
+                            }
+                            NumberAnimation {
+                                property: "scale"
+                                from: 0.8
+                                to: 1.0
+                                duration: 300
+                                easing.type: Easing.OutBack
+                                easing.overshoot: 1.2
+                            }
+                        }
+                    }
+
+                    // Exit animation
+                    exit: Transition {
+                        ParallelAnimation {
+                            NumberAnimation {
+                                property: "opacity"
+                                from: 1
+                                to: 0
+                                duration: 200
+                                easing.type: Easing.InCubic
+                            }
+                            NumberAnimation {
+                                property: "scale"
+                                from: 1.0
+                                to: 0.9
+                                duration: 200
+                                easing.type: Easing.InCubic
                             }
                         }
                     }

@@ -1096,7 +1096,7 @@ ApplicationWindow {
                             spacing: 2
 
                             Label {
-                                text: "Activity Paused"
+                                text: "Idle Detected"
                                 font.pixelSize: 18
                                 font.bold: true
                                 color: nonProductiveColor

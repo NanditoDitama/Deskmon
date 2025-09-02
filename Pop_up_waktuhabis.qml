@@ -9,7 +9,7 @@ ApplicationWindow {
     title: qsTr("Peringatan")
     visible: false
     modality: Qt.ApplicationModal
-    flags: Qt.Dialog | Qt.WindowStaysOnTopHint
+    flags: Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
 
     // Sistem theme aware
     readonly property bool isDarkMode: Qt.application.styleHints.colorScheme === Qt.Dark

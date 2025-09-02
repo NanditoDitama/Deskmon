@@ -4062,7 +4062,6 @@ void Logger::setLogFilter(const QString &startDate, const QString &endDate)
 
     // 5. Terapkan query yang sudah difilter ke model.
     // Model akan secara otomatis memberi tahu view di QML untuk me-refresh datanya.
-    m_logModel->setQuery(query);
 
     // Cek jika ada error saat menjalankan query pada model.
     if(m_logModel->lastError().isValid()) {
@@ -4179,11 +4178,14 @@ QString Logger::statusMessage() const
     return m_statusMessage;
 }
 
+
+
+
 // 2. Tambahkan implementasi fungsi utama
 void Logger::checkForUpdates()
 {
     // Ganti dengan versi aplikasi Anda saat ini
-    const QString currentVersion = "1.0.2.8";
+    const QString currentVersion = "1.0.2.9";
 
     // Ganti dengan URL file version.json Anda di GitHub
     QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");
