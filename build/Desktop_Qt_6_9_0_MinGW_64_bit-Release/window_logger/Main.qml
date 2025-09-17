@@ -16,6 +16,8 @@ ApplicationWindow {
     property string appVersion: "1.0.2.9"
 
 
+
+
     Rectangle {
         id: notification
         width: 400
@@ -1096,7 +1098,7 @@ ApplicationWindow {
                             spacing: 2
 
                             Label {
-                                text: "Activity Paused"
+                                text: "Idle Detected"
                                 font.pixelSize: 18
                                 font.bold: true
                                 color: nonProductiveColor
@@ -1115,7 +1117,7 @@ ApplicationWindow {
                             id: messageLabel
                             anchors.fill: parent
                             anchors.margins: 2
-                            text: idleNotificationText + " ,Sesi kamu terdeteksi idle. Pastikan task berlanjut sesuai kebutuhan."
+                            text: idleNotificationText + "Kamu terdeteksi idle. Pastikan task berlanjut sesuai kebutuhan."
                             wrapMode: Text.Wrap
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
@@ -1374,7 +1376,7 @@ ApplicationWindow {
 
                     Button {
                         id: okButton
-                        text: "Keluar"
+                        text: "Kembali Login Deskmon"
                         width: 100
                         height: 36
 

@@ -2206,6 +2206,10 @@ void Logger::fetchAndStoreTasks()
     });
 }
 
+// logger.cpp
+
+// logger.cpp
+
 void Logger::handleTaskFetchReply(QNetworkReply *reply)
 {
     // 5. Periksa kode status HTTP dari respons
@@ -2226,7 +2230,7 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
     // 8. Tangani kasus autentikasi gagal (token tidak valid atau kedaluwarsa)
     if (statusCode == 401) {
         qWarning() << "Unauthorized access. Token may be invalid or expired.";
-        showAuthTokenErrorMessage(); // <-- UBAH KE BARIS INI
+        showAuthTokenErrorMessage();
         reply->deleteLater();
         return;
     }
@@ -2250,10 +2254,13 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
 
     // 11. Ambil array tugas dari respons
     QJsonArray tasksArray = jsonObj["data"].toArray();
-    if (tasksArray.isEmpty()) {
-        qDebug() << "No tasks found in response";
-        reply->deleteLater();
-        return;
+
+    QSet<int> serverTaskIds;
+    for (const QJsonValue &taskValue : tasksArray) {
+        QJsonObject taskObj = taskValue.toObject();
+        if (taskObj.contains("id")) {
+            serverTaskIds.insert(taskObj["id"].toInt());
+        }
     }
 
     // 12. Mulai transaksi database untuk memastikan integritas data
@@ -2262,26 +2269,57 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
 
     // 13. Ambil tugas yang sudah ada di database lokal untuk perbandingan
     QMap<int, QPair<int, int>> existingTasks; // taskId -> (max_time, time_usage)
-    query.exec("SELECT id, max_time, time_usage FROM task");
-    while (query.next()) {
-        int taskId = query.value(0).toInt();
-        int maxTime = query.value(1).toInt();
-        int timeUsage = query.value(2).toInt();
-        existingTasks.insert(taskId, QPair<int, int>(maxTime, timeUsage));
+    query.prepare("SELECT id, max_time, time_usage FROM task WHERE user_id = :user_id");
+    query.bindValue(":user_id", m_currentUserId);
+    if(query.exec()) {
+        while (query.next()) {
+            int taskId = query.value(0).toInt();
+            int maxTime = query.value(1).toInt();
+            int timeUsage = query.value(2).toInt();
+            existingTasks.insert(taskId, QPair<int, int>(maxTime, timeUsage));
+        }
     }
 
-    // 14. Proses setiap tugas dari respons server
+    QList<int> taskIdsToDelete;
+    for (int localTaskId : existingTasks.keys()) {
+        if (!serverTaskIds.contains(localTaskId)) {
+            taskIdsToDelete.append(localTaskId);
+        }
+    }
+
+    if (!taskIdsToDelete.isEmpty()) {
+        qDebug() << "Tasks to be deleted from local DB (not on server):" << taskIdsToDelete;
+        QSqlQuery deleteQuery(m_productivityDb);
+        for (int taskIdToDelete : taskIdsToDelete) {
+            if (taskIdToDelete == m_activeTaskId) {
+                qDebug() << "Active task" << m_activeTaskId << "is being deleted. Resetting active task state.";
+                m_activeTaskId = -1;
+                m_isTaskPaused = false;
+                m_taskTimeOffset = 0;
+                m_taskStartTime = 0;
+                emit activeTaskChanged();
+                emit taskPausedChanged();
+            }
+
+            deleteQuery.prepare("DELETE FROM task WHERE id = :id AND user_id = :user_id");
+            deleteQuery.bindValue(":id", taskIdToDelete);
+            deleteQuery.bindValue(":user_id", m_currentUserId);
+            if (!deleteQuery.exec()) {
+                qWarning() << "Failed to delete stale task ID" << taskIdToDelete << ":" << deleteQuery.lastError().text();
+            }
+        }
+    }
+
+    // 14. Proses setiap tugas dari respons server (logika insert/update)
     for (const QJsonValue &taskValue : tasksArray) {
         QJsonObject taskObj = taskValue.toObject();
 
-        // Lewati tugas yang sudah selesai
         QString status = taskObj["status"].toString();
         if (status == "completed") {
             qDebug() << "Skipping completed task ID" << taskObj["id"].toInt();
             continue;
         }
 
-        // Validasi bahwa semua field wajib ada
         if (!taskObj.contains("id") || !taskObj.contains("title") ||
             !taskObj.contains("description") || !taskObj.contains("user_id")) {
             qWarning() << "Skipping task with missing required fields";
@@ -2293,60 +2331,35 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
         QString taskDesc = taskObj["description"].toString();
         int userId = taskObj["user_id"].toInt();
 
-        // Lewati tugas yang bukan milik pengguna saat ini
         if (userId != m_currentUserId) {
             qDebug() << "Skipping task ID" << taskId << "for user ID" << userId << "(not current user)";
             continue;
         }
 
-        // Ambil data duration dan total_duration dari server
         QJsonValue durationValue = taskObj["duration"];
         QJsonValue totalDurationValue = taskObj["total_duration"];
 
-        // Konversi duration dari server (dalam jam) ke detik untuk max_time
         int serverMaxTime = 0;
         if (!durationValue.isNull()) {
-            if (durationValue.isString()) {
-                serverMaxTime = static_cast<int>(durationValue.toString().toDouble() * 3600); // jam -> detik
-            } else {
-                serverMaxTime = durationValue.toInt() * 3600; // jam -> detik
-            }
+            serverMaxTime = qRound(durationValue.toVariant().toDouble() * 3600); // jam -> detik
         }
 
-        // Konversi total_duration dari server (dalam jam) ke detik untuk time_usage
         int serverTimeUsage = 0;
         if (!totalDurationValue.isNull()) {
-            if (totalDurationValue.isString()) {
-                serverTimeUsage = static_cast<int>(totalDurationValue.toString().toDouble() * 3600); // jam -> detik
-            } else {
-                serverTimeUsage = totalDurationValue.toInt() * 3600; // jam -> detik
-            }
+            serverTimeUsage = qRound(totalDurationValue.toVariant().toDouble() * 3600); // jam -> detik
         }
 
         bool taskExists = existingTasks.contains(taskId);
 
         if (taskExists) {
-            // 15. Untuk tugas yang sudah ada, update berdasarkan data server
             QPair<int, int> currentValues = existingTasks[taskId];
             int currentMaxTime = currentValues.first;
             int currentTimeUsage = currentValues.second;
 
-            // Tentukan max_time yang akan digunakan
-            int finalMaxTime = currentMaxTime;
-            if (serverMaxTime > 0) {
-                // Jika server memberikan duration, gunakan yang lebih besar
-                finalMaxTime = qMax(serverMaxTime, currentMaxTime);
-            } else if (currentMaxTime == 0) {
-                // Jika tidak ada di server dan lokal juga 0, set default 8 jam
-                finalMaxTime = 8 * 3600;
-            }
-
-            // Tentukan time_usage yang akan digunakan
-            int finalTimeUsage = currentTimeUsage;
-            if (serverTimeUsage > 0) {
-                // Jika server memberikan total_duration, gunakan nilai server
-                finalTimeUsage = serverTimeUsage;
-            }
+            // <-- DIUBAH: Logika untuk `max_time` dan `time_usage` -->
+            // Selalu prioritaskan nilai dari server jika ada. Jika tidak, pertahankan nilai lokal.
+            int finalMaxTime = !durationValue.isNull() ? serverMaxTime : currentMaxTime;
+            int finalTimeUsage = !totalDurationValue.isNull() ? serverTimeUsage : currentTimeUsage;
 
             query.prepare("UPDATE task SET project_name = :projectName, task = :taskDesc, "
                           "max_time = :maxTime, time_usage = :timeUsage WHERE id = :id");
@@ -2356,13 +2369,11 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
             query.bindValue(":maxTime", finalMaxTime);
             query.bindValue(":timeUsage", finalTimeUsage);
 
-            qDebug() << "Updating task ID" << taskId
-                     << "- max_time:" << finalMaxTime << "(current:" << currentMaxTime << ", server:" << serverMaxTime << ")"
-                     << "- time_usage:" << finalTimeUsage << "(current:" << currentTimeUsage << ", server:" << serverTimeUsage << ")";
         } else {
-            // 16. Untuk tugas baru, masukkan dengan nilai dari server atau default
-            int finalMaxTime = (serverMaxTime > 0) ? serverMaxTime : 8 * 3600; // default 8 jam
-            int finalTimeUsage = (serverTimeUsage > 0) ? serverTimeUsage : 0;
+            // <-- DIUBAH: Logika untuk task baru -->
+            // Gunakan nilai dari server, atau 0 jika server tidak menyediakannya. TIDAK ADA DEFAULT.
+            int finalMaxTime = serverMaxTime;
+            int finalTimeUsage = serverTimeUsage;
 
             query.prepare("INSERT INTO task (id, project_name, task, max_time, time_usage, active, status, paused, user_id) "
                           "VALUES (:id, :projectName, :taskDesc, :maxTime, :timeUsage, 0, 'Pending', 0, :userId)");
@@ -2372,32 +2383,22 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
             query.bindValue(":maxTime", finalMaxTime);
             query.bindValue(":timeUsage", finalTimeUsage);
             query.bindValue(":userId", userId);
-
-            qDebug() << "Inserting new task ID" << taskId
-                     << "with max_time:" << finalMaxTime
-                     << "and time_usage:" << finalTimeUsage;
         }
 
-        // 17. Eksekusi query dan tangani kesalahan
         if (!query.exec()) {
             qWarning() << "Failed to save task ID" << taskId << ":" << query.lastError().text();
             continue;
         }
-
-        qDebug() << "Task" << (taskExists ? "updated" : "inserted") << ": ID =" << taskId
-                 << ", Project =" << projectName << ", User ID =" << userId;
     }
 
-    // 18. Commit transaksi atau rollback jika gagal
     if (!m_productivityDb.commit()) {
         qWarning() << "Failed to commit transaction:" << m_productivityDb.lastError().text();
         m_productivityDb.rollback();
     } else {
-        qDebug() << "Successfully processed" << tasksArray.size() << "tasks";
-        emit taskListChanged(); // Beri tahu UI bahwa daftar tugas telah diperbarui
+        qDebug() << "Successfully processed tasks from server";
+        emit taskListChanged();
     }
 
-    // 19. Hapus objek reply untuk mencegah kebocoran memori
     reply->deleteLater();
 }
 
@@ -3387,12 +3388,10 @@ QString Logger::authenticate(const QString &loginInput, const QString &password)
         return "Database is not open";
     }
 
-    // Deteksi apakah input adalah email atau username
     bool isEmail = loginInput.contains("@");
     QString loginType = isEmail ? "email" : "username";
     qDebug() << "Attempting login with" << loginType << ":" << loginInput;
 
-    // 1. Buat HTTP request ke API
     QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/login"));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
@@ -3400,7 +3399,6 @@ QString Logger::authenticate(const QString &loginInput, const QString &password)
     if (isEmail) {
         jsonPayload["email"] = loginInput;
     } else {
-        // Logika untuk mencari email dari username (jika ada)
         QSqlQuery emailQuery(m_db);
         emailQuery.prepare("SELECT email FROM users WHERE username = :username");
         emailQuery.bindValue(":username", loginInput);
@@ -3416,42 +3414,36 @@ QString Logger::authenticate(const QString &loginInput, const QString &password)
 
     qDebug() << "Sending login request with payload:" << doc.toJson(QJsonDocument::Compact);
 
-    // 2. Kirim request dan tunggu response
     QNetworkReply *reply = m_networkManager->post(request, data);
     QEventLoop loop;
     QTimer::singleShot(10000, &loop, &QEventLoop::quit);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
 
-    // Cek apakah request timeout
     if (!reply->isFinished()) {
         reply->abort();
         reply->deleteLater();
         return "Koneksi ke server gagal atau timeout.\n Periksa koneksi internet Anda.";
     }
 
-    // 3. Handle response dari API
     QByteArray response = reply->readAll();
     QJsonDocument jsonResponse = QJsonDocument::fromJson(response);
-    QJsonObject jsonObj = jsonResponse.object();
 
-    qDebug() << "API Response:" << jsonResponse.toJson(QJsonDocument::Compact);
-
-    // Periksa apakah ada error jaringan yang sebenarnya
-    if (reply->error() != QNetworkReply::NoError &&
-        reply->error() != QNetworkReply::AuthenticationRequiredError &&
-        reply->error() != QNetworkReply::ProtocolInvalidOperationError) {
-        qWarning() << "Network error during API login:" << reply->errorString();
+    // Pastikan JSON valid sebelum diproses
+    if (jsonResponse.isNull() || !jsonResponse.isObject()) {
+        // Jika JSON tidak valid, kemungkinan besar ada masalah jaringan
+        qWarning() << "Invalid JSON response. Network error:" << reply->errorString();
         reply->deleteLater();
         return "Koneksi ke server gagal. Periksa koneksi \n internet, username, dan pasword Anda.";
     }
 
-    // Periksa apakah API login berhasil
-    if (jsonObj["success"].toBool()) {
+    QJsonObject jsonObj = jsonResponse.object();
+    qDebug() << "API Response:" << jsonResponse.toJson(QJsonDocument::Compact);
+
+    if (jsonObj.contains("success") && jsonObj["success"].toBool()) {
         // Jika API login berhasil
         qDebug() << "API login successful. Storing user data...";
 
-        // 5. Parse data user dari response
         QJsonObject userData = jsonObj["user"].toObject();
         int userId = userData["id"].toInt();
         QString username = userData["name"].toString();
@@ -3459,7 +3451,7 @@ QString Logger::authenticate(const QString &loginInput, const QString &password)
         QString role = userData["role"].toObject()["rolename"].toString();
         QString department = userData["department"].toObject()["rolename"].toString();
         QString token = jsonObj["token"].toString();
-        // 6. Siapkan dan eksekusi query untuk menyimpan data ke database
+
         QSqlQuery query(m_db);
         query.prepare(
             "INSERT OR REPLACE INTO users "
@@ -3480,12 +3472,10 @@ QString Logger::authenticate(const QString &loginInput, const QString &password)
             qDebug() << "Data user tersimpan di database lokal. ID:" << userId;
         }
 
-
         m_pingTimer.start();
         sendPing(m_activeTaskId);
         m_isTokenErrorVisible = false;
         updateProductivityCache();
-        // Lanjutkan sisa proses
         setCurrentUserInfo(userId, username, userEmail);
         checkAndCreateNewDayRecord();
         loadWorkTimeData();
@@ -3498,14 +3488,20 @@ QString Logger::authenticate(const QString &loginInput, const QString &password)
         m_isTaskPaused = false;
         m_pauseStartTime = 0;
 
-
         reply->deleteLater();
         return "";
     } else {
-        // Jika API login gagal, ambil pesan error dari server
+        // Jika API login gagal (success: false)
         QString serverMessage = jsonObj["message"].toString();
+
+        if (serverMessage == "Login not allowed from this IP address") {
+            QString ipAddress = jsonObj["your_ip"].toString();
+            if (!ipAddress.isEmpty()) {
+                serverMessage.append(". " + ipAddress);
+            }
+        }
+
         reply->deleteLater();
-        // Kembalikan pesan error dari server
         return serverMessage.isEmpty() ? "Username atau password salah." : serverMessage;
     }
 

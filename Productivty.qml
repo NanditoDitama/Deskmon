@@ -294,7 +294,7 @@ Item {
             // Header untuk Domain
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 8
+                spacing: 20
 
                 Label {
                     text: "Website Usage"
