@@ -146,6 +146,8 @@ qt_add_qml_module(Deskmon
     QML_FILES DateRange.qml
     QML_FILES
     QML_FILES EarlyLeaveDialog.qml
+    SOURCES
+    SOURCES
 )
 
 # Menambahkan resource file jika diperlukan
