@@ -13,7 +13,7 @@ ApplicationWindow {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 700
-    property string appVersion: "1.0.2.9"
+    property string appVersion: "1.0.3.0"
 
 
 

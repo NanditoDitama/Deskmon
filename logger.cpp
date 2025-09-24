@@ -4181,7 +4181,7 @@ QString Logger::statusMessage() const
 void Logger::checkForUpdates()
 {
     // Ganti dengan versi aplikasi Anda saat ini
-    const QString currentVersion = "1.0.2.9";
+    const QString currentVersion = "1.0.3.0";
 
     // Ganti dengan URL file version.json Anda di GitHub
     QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");
