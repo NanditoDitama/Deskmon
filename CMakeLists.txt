@@ -5,6 +5,21 @@ project(Deskmon VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Force modern macOS deployment target to avoid AGL
+if(APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment version" FORCE)
+    # Make AGL framework optional since Qt might reference it but it doesn't exist on modern macOS
+    # This must come AFTER Qt links, so we add it to the end
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-U,_aglChoosePixelFormat -Wl,-U,_aglCreateContext -Wl,-U,_aglDestroyContext -Wl,-U,_aglDestroyPixelFormat -Wl,-U,_aglSetCurrentContext -Wl,-U,_aglSetDrawable -Wl,-U,_aglUpdateContext")
+endif()
+
+# Find Threads package (required by Qt)
+set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+set(CMAKE_HAVE_THREADS_LIBRARY 1)
+set(CMAKE_USE_WIN32_THREADS_INIT 0)
+set(CMAKE_USE_PTHREADS_INIT 1)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+
 # Mencari komponen Qt6 yang diperlukan
 find_package(Qt6 REQUIRED COMPONENTS
     Quick
@@ -30,11 +45,15 @@ set(SOURCES
     main.cpp
     logger.cpp
     idlechecker.cpp
+    networkmanager.cpp
+    httpclient.cpp
 )
 
 set(HEADERS
     logger.h
     idlechecker.h
+    networkmanager.h
+    httpclient.h
 )
 
 set(QML_FILES
@@ -129,25 +148,20 @@ qt_add_executable(Deskmon
 qt_add_qml_module(Deskmon
     URI window_logger
     VERSION 1.0
-    QML_FILES ${QML_FILES}
-    SOURCES
-    QML_FILES Pop_up_waktuhabis.qml
-    QML_FILES Login_page.qml
-    QML_FILES Profil_page.qml
-    QML_FILES Productivty.qml
-    QML_FILES SaveTombolCropImage.qml
-    RESOURCES
-    QML_FILES Current_Task.qml
-    QML_FILES Activity_Monitor.qml
-    QML_FILES
-    QML_FILES Monitored_Applications.qml
-    QML_FILES AddAplicatioRequest.qml
-    QML_FILES RequstAppPending.qml
-    QML_FILES DateRange.qml
-    QML_FILES
-    QML_FILES EarlyLeaveDialog.qml
-    SOURCES
-    SOURCES
+    QML_FILES 
+        ${QML_FILES}
+        Pop_up_waktuhabis.qml
+        Login_page.qml
+        Profil_page.qml
+        Productivty.qml
+        SaveTombolCropImage.qml
+        Current_Task.qml
+        Activity_Monitor.qml
+        Monitored_Applications.qml
+        AddAplicatioRequest.qml
+        RequstAppPending.qml
+        DateRange.qml
+        EarlyLeaveDialog.qml
 )
 
 # Menambahkan resource file jika diperlukan
@@ -195,9 +209,40 @@ target_link_libraries(Deskmon
 if(WIN32)
     target_link_libraries(Deskmon PRIVATE user32 psapi)
 elseif(APPLE)
+    # Add our stub frameworks directory to the search path (for AGL stub)
+    link_directories(${CMAKE_SOURCE_DIR}/frameworks)
+    
     # Framework khusus macOS
     find_library(COCOA_LIBRARY Cocoa)
-    target_link_libraries(Deskmon PRIVATE ${COCOA_LIBRARY})
+    find_library(APPKIT_LIBRARY AppKit)
+    find_library(FOUNDATION_LIBRARY Foundation)
+    find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+    find_library(APPLICATIONSERVICES_LIBRARY ApplicationServices)
+    find_library(IOKIT_LIBRARY IOKit)
+    find_library(CORESERVICES_LIBRARY CoreServices)
+    find_library(OPENGL_LIBRARY OpenGL)
+    
+    target_link_libraries(Deskmon PRIVATE 
+        ${COCOA_LIBRARY}
+        ${APPKIT_LIBRARY}
+        ${FOUNDATION_LIBRARY}
+        ${COREFOUNDATION_LIBRARY}
+        ${APPLICATIONSERVICES_LIBRARY}
+        ${IOKIT_LIBRARY}
+        ${CORESERVICES_LIBRARY}
+        ${OPENGL_LIBRARY}
+    )
+    
+    # Add link options to handle missing AGL symbols
+    target_link_options(Deskmon PRIVATE
+        "LINKER:-U,_aglChoosePixelFormat"
+        "LINKER:-U,_aglCreateContext"
+        "LINKER:-U,_aglDestroyContext"
+        "LINKER:-U,_aglDestroyPixelFormat"
+        "LINKER:-U,_aglSetCurrentContext"
+        "LINKER:-U,_aglSetDrawable"
+        "LINKER:-U,_aglUpdateContext"
+    )
 
     # Konfigurasi icon untuk macOS
     set_target_properties(Deskmon PROPERTIES

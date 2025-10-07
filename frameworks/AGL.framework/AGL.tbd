@@ -1,0 +1,8 @@
+--- !tapi-tbd-v3
+archs: [ arm64, x86_64 ]
+platform: macosx
+install-name: /System/Library/Frameworks/AGL.framework/Versions/A/AGL
+exports:
+  - archs: [ arm64, x86_64 ]
+    symbols: [ _aglChoosePixelFormat, _aglCreateContext, _aglDestroyContext, _aglDestroyPixelFormat, _aglSetCurrentContext, _aglSetDrawable, _aglUpdateContext ]
+...
