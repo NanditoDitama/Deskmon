@@ -28,6 +28,12 @@ set(src_and_dest_list
     "C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/window_logger/DateRange.qml"
     "C:/Users/prnl2/OneDrive/Documents/window_logger/EarlyLeaveDialog.qml"
     "C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/window_logger/EarlyLeaveDialog.qml"
+    "C:/Users/prnl2/OneDrive/Documents/window_logger/TaskDetailsDialog.qml"
+    "C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/window_logger/TaskDetailsDialog.qml"
+    "C:/Users/prnl2/OneDrive/Documents/window_logger/FailureDialog.qml"
+    "C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/window_logger/FailureDialog.qml"
+    "C:/Users/prnl2/OneDrive/Documents/window_logger/NeedReviewDialog.qml"
+    "C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/window_logger/NeedReviewDialog.qml"
 
 )
 set(timestamp_file "C:/Users/prnl2/OneDrive/Documents/window_logger/build/Desktop_Qt_6_9_0_MinGW_64_bit-Release/.qt/Deskmon_qml.txt")

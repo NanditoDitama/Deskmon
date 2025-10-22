@@ -85,6 +85,17 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         "showPingErrorDialog",
         "hidePingErrorDialog",
         "showAuthTokenErrorWindow",
+        "requestTaskDetails",
+        "action",
+        "nextTaskId",
+        "taskDetailsSubmissionSuccess",
+        "taskDetailsSubmissionFailed",
+        "error",
+        "type",
+        "readyToProceedWithQuit",
+        "taskDetailsSubmissionFailedWithRetry",
+        "errorMessage",
+        "details",
         "logActiveWindow",
         "logIdle",
         "startTime",
@@ -167,6 +178,9 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         "checkForUpdates",
         "savedUsername",
         "savedPassword",
+        "submitTaskDetails",
+        "taskDetailsDialogClosed",
+        "notify",
         "currentAppName",
         "currentWindowTitle",
         "logCount",
@@ -285,213 +299,250 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         QtMocHelpers::SignalData<void(const QString &)>(45, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::QString, 17 },
         }}),
+        // Signal 'requestTaskDetails'
+        QtMocHelpers::SignalData<void(int, const QString &, int)>(46, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Int, 27 }, { QMetaType::QString, 47 }, { QMetaType::Int, 48 },
+        }}),
+        // Signal 'taskDetailsSubmissionSuccess'
+        QtMocHelpers::SignalData<void()>(49, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'taskDetailsSubmissionFailed'
+        QtMocHelpers::SignalData<void(const QString &)>(50, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 51 },
+        }}),
+        // Signal 'showNotification'
+        QtMocHelpers::SignalData<void(const QString &, const QString &)>(32, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 52 }, { QMetaType::QString, 17 },
+        }}),
+        // Signal 'readyToProceedWithQuit'
+        QtMocHelpers::SignalData<void()>(53, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'taskDetailsSubmissionFailedWithRetry'
+        QtMocHelpers::SignalData<void(const QString &, int, const QString &, const QString &, int)>(54, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 55 }, { QMetaType::Int, 27 }, { QMetaType::QString, 56 }, { QMetaType::QString, 47 },
+            { QMetaType::Int, 48 },
+        }}),
         // Slot 'logActiveWindow'
-        QtMocHelpers::SlotData<void()>(46, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(57, 2, QMC::AccessPublic, QMetaType::Void),
         // Slot 'logIdle'
-        QtMocHelpers::SlotData<void(qint64, qint64)>(47, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::LongLong, 48 }, { QMetaType::LongLong, 49 },
+        QtMocHelpers::SlotData<void(qint64, qint64)>(58, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::LongLong, 59 }, { QMetaType::LongLong, 60 },
         }}),
         // Slot 'refreshAll'
-        QtMocHelpers::SlotData<void()>(50, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(61, 2, QMC::AccessPublic, QMetaType::Void),
         // Slot 'refreshTasks'
-        QtMocHelpers::SlotData<void()>(51, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(62, 2, QMC::AccessPublic, QMetaType::Void),
         // Slot 'handleTaskStatusReply'
-        QtMocHelpers::SlotData<void(QNetworkReply *, int)>(52, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { 0x80000000 | 53, 54 }, { QMetaType::Int, 27 },
+        QtMocHelpers::SlotData<void(QNetworkReply *, int)>(63, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 64, 65 }, { QMetaType::Int, 27 },
         }}),
         // Slot 'getPendingApplicationRequests'
-        QtMocHelpers::SlotData<QVariantList()>(55, 2, QMC::AccessPublic, 0x80000000 | 56),
+        QtMocHelpers::SlotData<QVariantList()>(66, 2, QMC::AccessPublic, 0x80000000 | 67),
         // Slot 'handleProductivityAppsResponse'
-        QtMocHelpers::SlotData<void(QNetworkReply *)>(57, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { 0x80000000 | 53, 54 },
+        QtMocHelpers::SlotData<void(QNetworkReply *)>(68, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 64, 65 },
         }}),
         // Slot 'handleDailyUsageReportResponse'
-        QtMocHelpers::SlotData<void(QNetworkReply *)>(58, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { 0x80000000 | 53, 54 },
+        QtMocHelpers::SlotData<void(QNetworkReply *)>(69, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 64, 65 },
         }}),
         // Slot 'submitEarlyLeaveReason'
-        QtMocHelpers::SlotData<void(const QString &)>(59, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 60 },
+        QtMocHelpers::SlotData<void(const QString &)>(70, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 71 },
         }}),
         // Slot 'startPingTimer'
-        QtMocHelpers::SlotData<void()>(61, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(72, 2, QMC::AccessPublic, QMetaType::Void),
         // Slot 'handleTaskFetchReply'
-        QtMocHelpers::SlotData<void(QNetworkReply *)>(62, 2, QMC::AccessPrivate, QMetaType::Void, {{
-            { 0x80000000 | 53, 54 },
+        QtMocHelpers::SlotData<void(QNetworkReply *)>(73, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { 0x80000000 | 64, 65 },
         }}),
         // Slot 'fetchWorkTimeFromAPI'
-        QtMocHelpers::SlotData<void()>(63, 2, QMC::AccessPrivate, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(74, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'handleFetchWorkTimeResponse'
-        QtMocHelpers::SlotData<void(QNetworkReply *)>(64, 2, QMC::AccessPrivate, QMetaType::Void, {{
-            { 0x80000000 | 53, 54 },
+        QtMocHelpers::SlotData<void(QNetworkReply *)>(75, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { 0x80000000 | 64, 65 },
         }}),
         // Method 'debugShowRawData'
-        QtMocHelpers::MethodData<QString() const>(65, 2, QMC::AccessPublic, QMetaType::QString),
+        QtMocHelpers::MethodData<QString() const>(76, 2, QMC::AccessPublic, QMetaType::QString),
         // Method 'showLogs'
-        QtMocHelpers::MethodData<void()>(66, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(77, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'isUsernameTaken'
-        QtMocHelpers::MethodData<bool(const QString &)>(67, 2, QMC::AccessPublic, QMetaType::Bool, {{
+        QtMocHelpers::MethodData<bool(const QString &)>(78, 2, QMC::AccessPublic, QMetaType::Bool, {{
             { QMetaType::QString, 24 },
         }}),
         // Method 'updateUserProfile'
-        QtMocHelpers::MethodData<QString(const QString &, const QString &, const QString &)>(68, 2, QMC::AccessPublic, QMetaType::QString, {{
-            { QMetaType::QString, 69 }, { QMetaType::QString, 70 }, { QMetaType::QString, 71 },
+        QtMocHelpers::MethodData<QString(const QString &, const QString &, const QString &)>(79, 2, QMC::AccessPublic, QMetaType::QString, {{
+            { QMetaType::QString, 80 }, { QMetaType::QString, 81 }, { QMetaType::QString, 82 },
         }}),
         // Method 'cropProfileImage'
-        QtMocHelpers::MethodData<QString(const QString &, qreal, qreal, qreal, qreal, qreal, qreal)>(72, 2, QMC::AccessPublic, QMetaType::QString, {{
-            { QMetaType::QString, 73 }, { QMetaType::QReal, 74 }, { QMetaType::QReal, 75 }, { QMetaType::QReal, 76 },
-            { QMetaType::QReal, 77 }, { QMetaType::QReal, 78 }, { QMetaType::QReal, 79 },
+        QtMocHelpers::MethodData<QString(const QString &, qreal, qreal, qreal, qreal, qreal, qreal)>(83, 2, QMC::AccessPublic, QMetaType::QString, {{
+            { QMetaType::QString, 84 }, { QMetaType::QReal, 85 }, { QMetaType::QReal, 86 }, { QMetaType::QReal, 87 },
+            { QMetaType::QReal, 88 }, { QMetaType::QReal, 89 }, { QMetaType::QReal, 90 },
         }}),
         // Method 'clearLogFilter'
-        QtMocHelpers::MethodData<void()>(80, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(91, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'validateFilePath'
-        QtMocHelpers::MethodData<bool(const QString &)>(81, 2, QMC::AccessPublic, QMetaType::Bool, {{
-            { QMetaType::QString, 82 },
+        QtMocHelpers::MethodData<bool(const QString &)>(92, 2, QMC::AccessPublic, QMetaType::Bool, {{
+            { QMetaType::QString, 93 },
         }}),
         // Method 'setLogFilter'
-        QtMocHelpers::MethodData<void(const QString &, const QString &)>(83, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 84 }, { QMetaType::QString, 85 },
+        QtMocHelpers::MethodData<void(const QString &, const QString &)>(94, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 95 }, { QMetaType::QString, 96 },
         }}),
         // Method 'updateProfileImage'
-        QtMocHelpers::MethodData<bool(const QString &, const QString &)>(86, 2, QMC::AccessPublic, QMetaType::Bool, {{
-            { QMetaType::QString, 24 }, { QMetaType::QString, 73 },
+        QtMocHelpers::MethodData<bool(const QString &, const QString &)>(97, 2, QMC::AccessPublic, QMetaType::Bool, {{
+            { QMetaType::QString, 24 }, { QMetaType::QString, 84 },
         }}),
         // Method 'getProfileImagePath'
-        QtMocHelpers::MethodData<QString(const QString &)>(87, 2, QMC::AccessPublic, QMetaType::QString, {{
+        QtMocHelpers::MethodData<QString(const QString &)>(98, 2, QMC::AccessPublic, QMetaType::QString, {{
             { QMetaType::QString, 24 },
         }}),
         // Method 'setActiveTask'
-        QtMocHelpers::MethodData<void(int)>(88, 2, QMC::AccessPublic, QMetaType::Void, {{
+        QtMocHelpers::MethodData<void(int)>(99, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::Int, 27 },
         }}),
         // Method 'finishTask'
-        QtMocHelpers::MethodData<void(int)>(89, 2, QMC::AccessPublic, QMetaType::Void, {{
+        QtMocHelpers::MethodData<void(int)>(100, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::Int, 27 },
         }}),
         // Method 'toggleTaskPause'
-        QtMocHelpers::MethodData<void()>(90, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(101, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'formatDuration'
-        QtMocHelpers::MethodData<QString(int) const>(91, 2, QMC::AccessPublic, QMetaType::QString, {{
-            { QMetaType::Int, 92 },
+        QtMocHelpers::MethodData<QString(int) const>(102, 2, QMC::AccessPublic, QMetaType::QString, {{
+            { QMetaType::Int, 103 },
         }}),
         // Method 'startGlobalTimer'
-        QtMocHelpers::MethodData<void()>(93, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(104, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'getUserPassword'
-        QtMocHelpers::MethodData<QString(const QString &)>(94, 2, QMC::AccessPublic, QMetaType::QString, {{
+        QtMocHelpers::MethodData<QString(const QString &)>(105, 2, QMC::AccessPublic, QMetaType::QString, {{
             { QMetaType::QString, 24 },
         }}),
         // Method 'setIdleThreshold'
-        QtMocHelpers::MethodData<void(int)>(95, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::Int, 92 },
+        QtMocHelpers::MethodData<void(int)>(106, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Int, 103 },
         }}),
         // Method 'getAvailableApps'
-        QtMocHelpers::MethodData<QVariantList() const>(96, 2, QMC::AccessPublic, 0x80000000 | 56),
+        QtMocHelpers::MethodData<QVariantList() const>(107, 2, QMC::AccessPublic, 0x80000000 | 67),
         // Method 'addProductivityApp'
-        QtMocHelpers::MethodData<void(const QString &, const QString &, const QString &, int)>(97, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 98 }, { QMetaType::QString, 99 }, { QMetaType::QString, 100 }, { QMetaType::Int, 101 },
+        QtMocHelpers::MethodData<void(const QString &, const QString &, const QString &, int)>(108, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 109 }, { QMetaType::QString, 110 }, { QMetaType::QString, 111 }, { QMetaType::Int, 112 },
         }}),
         // Method 'getProductivityApps'
-        QtMocHelpers::MethodData<QVariantList() const>(102, 2, QMC::AccessPublic, 0x80000000 | 56),
+        QtMocHelpers::MethodData<QVariantList() const>(113, 2, QMC::AccessPublic, 0x80000000 | 67),
         // Method 'authenticate'
-        QtMocHelpers::MethodData<QString(const QString &, const QString &)>(103, 2, QMC::AccessPublic, QMetaType::QString, {{
-            { QMetaType::QString, 104 }, { QMetaType::QString, 105 },
+        QtMocHelpers::MethodData<QString(const QString &, const QString &)>(114, 2, QMC::AccessPublic, QMetaType::QString, {{
+            { QMetaType::QString, 115 }, { QMetaType::QString, 116 },
         }}),
         // Method 'getUserDepartment'
-        QtMocHelpers::MethodData<QString(const QString &)>(106, 2, QMC::AccessPublic, QMetaType::QString, {{
+        QtMocHelpers::MethodData<QString(const QString &)>(117, 2, QMC::AccessPublic, QMetaType::QString, {{
             { QMetaType::QString, 24 },
         }}),
         // Method 'getCurrentUsername'
-        QtMocHelpers::MethodData<QString() const>(107, 2, QMC::AccessPublic, QMetaType::QString),
+        QtMocHelpers::MethodData<QString() const>(118, 2, QMC::AccessPublic, QMetaType::QString),
         // Method 'getCurrentUserEmail'
-        QtMocHelpers::MethodData<QString() const>(108, 2, QMC::AccessPublic, QMetaType::QString),
+        QtMocHelpers::MethodData<QString() const>(119, 2, QMC::AccessPublic, QMetaType::QString),
         // Method 'getUserEmail'
-        QtMocHelpers::MethodData<QString(const QString &)>(109, 2, QMC::AccessPublic, QMetaType::QString, {{
+        QtMocHelpers::MethodData<QString(const QString &)>(120, 2, QMC::AccessPublic, QMetaType::QString, {{
             { QMetaType::QString, 24 },
         }}),
         // Method 'fetchAndStoreTasks'
-        QtMocHelpers::MethodData<void()>(110, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(121, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'updateTaskStatus'
-        QtMocHelpers::MethodData<void(int)>(111, 2, QMC::AccessPublic, QMetaType::Void, {{
+        QtMocHelpers::MethodData<void(int)>(122, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::Int, 27 },
         }}),
         // Method 'logout'
-        QtMocHelpers::MethodData<void()>(112, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(123, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'sendProductivityAppToAPI'
-        QtMocHelpers::MethodData<void(const QString &, const QString &, const QString &, int)>(113, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 98 }, { QMetaType::QString, 99 }, { QMetaType::QString, 100 }, { QMetaType::Int, 101 },
+        QtMocHelpers::MethodData<void(const QString &, const QString &, const QString &, int)>(124, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 109 }, { QMetaType::QString, 110 }, { QMetaType::QString, 111 }, { QMetaType::Int, 112 },
         }}),
         // Method 'loadWorkTimeData'
-        QtMocHelpers::MethodData<void()>(114, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(125, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'checkAndCreateNewDayRecord'
-        QtMocHelpers::MethodData<void()>(115, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(126, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'calculateTodayProductiveSeconds'
-        QtMocHelpers::MethodData<int() const>(116, 2, QMC::AccessPublic, QMetaType::Int),
+        QtMocHelpers::MethodData<int() const>(127, 2, QMC::AccessPublic, QMetaType::Int),
         // Method 'sendProductiveTimeToAPI'
-        QtMocHelpers::MethodData<void()>(117, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(128, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'sendDailyUsageReport'
-        QtMocHelpers::MethodData<void()>(118, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(129, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'sendPing'
-        QtMocHelpers::MethodData<void(int)>(119, 2, QMC::AccessPublic, QMetaType::Void, {{
+        QtMocHelpers::MethodData<void(int)>(130, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::Int, 27 },
         }}),
         // Method 'sendPausePlayDataToAPI'
-        QtMocHelpers::MethodData<void(int, const QString &, const QString &, const QString &)>(120, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::Int, 27 }, { QMetaType::QString, 48 }, { QMetaType::QString, 49 }, { QMetaType::QString, 121 },
+        QtMocHelpers::MethodData<void(int, const QString &, const QString &, const QString &)>(131, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Int, 27 }, { QMetaType::QString, 59 }, { QMetaType::QString, 60 }, { QMetaType::QString, 132 },
         }}),
         // Method 'getAppProductivityType'
-        QtMocHelpers::MethodData<int(const QString &, const QString &) const>(122, 2, QMC::AccessPublic, QMetaType::Int, {{
-            { QMetaType::QString, 98 }, { QMetaType::QString, 100 },
+        QtMocHelpers::MethodData<int(const QString &, const QString &) const>(133, 2, QMC::AccessPublic, QMetaType::Int, {{
+            { QMetaType::QString, 109 }, { QMetaType::QString, 111 },
         }}),
         // Method 'totalWorkSeconds'
-        QtMocHelpers::MethodData<int() const>(123, 2, QMC::AccessPublic, QMetaType::Int),
+        QtMocHelpers::MethodData<int() const>(134, 2, QMC::AccessPublic, QMetaType::Int),
         // Method 'launchMaintenanceTool'
-        QtMocHelpers::MethodData<void()>(124, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(135, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'checkForUpdates'
-        QtMocHelpers::MethodData<void()>(125, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(136, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'savedUsername'
-        QtMocHelpers::MethodData<QString() const>(126, 2, QMC::AccessPublic, QMetaType::QString),
+        QtMocHelpers::MethodData<QString() const>(137, 2, QMC::AccessPublic, QMetaType::QString),
         // Method 'savedPassword'
-        QtMocHelpers::MethodData<QString() const>(127, 2, QMC::AccessPublic, QMetaType::QString),
+        QtMocHelpers::MethodData<QString() const>(138, 2, QMC::AccessPublic, QMetaType::QString),
+        // Method 'submitTaskDetails'
+        QtMocHelpers::MethodData<void(int, const QString &, const QString &, int)>(139, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Int, 27 }, { QMetaType::QString, 56 }, { QMetaType::QString, 47 }, { QMetaType::Int, 48 },
+        }}),
+        // Method 'submitTaskDetails'
+        QtMocHelpers::MethodData<void(int, const QString &, const QString &)>(139, 2, QMC::AccessPublic | QMC::MethodCloned, QMetaType::Void, {{
+            { QMetaType::Int, 27 }, { QMetaType::QString, 56 }, { QMetaType::QString, 47 },
+        }}),
+        // Method 'taskDetailsDialogClosed'
+        QtMocHelpers::MethodData<void(const QString &)>(140, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 47 },
+        }}),
+        // Method 'notify'
+        QtMocHelpers::MethodData<void(const QString &, const QString &)>(141, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 52 }, { QMetaType::QString, 17 },
+        }}),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'currentAppName'
-        QtMocHelpers::PropertyData<QString>(128, QMetaType::QString, QMC::DefaultPropertyFlags, 0),
+        QtMocHelpers::PropertyData<QString>(142, QMetaType::QString, QMC::DefaultPropertyFlags, 0),
         // property 'currentWindowTitle'
-        QtMocHelpers::PropertyData<QString>(129, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
+        QtMocHelpers::PropertyData<QString>(143, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
         // property 'logCount'
-        QtMocHelpers::PropertyData<int>(130, QMetaType::Int, QMC::DefaultPropertyFlags, 2),
+        QtMocHelpers::PropertyData<int>(144, QMetaType::Int, QMC::DefaultPropertyFlags, 2),
         // property 'logContent'
-        QtMocHelpers::PropertyData<QString>(131, QMetaType::QString, QMC::DefaultPropertyFlags, 3),
+        QtMocHelpers::PropertyData<QString>(145, QMetaType::QString, QMC::DefaultPropertyFlags, 3),
         // property 'productivityStats'
-        QtMocHelpers::PropertyData<QVariantMap>(132, 0x80000000 | 133, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 4),
+        QtMocHelpers::PropertyData<QVariantMap>(146, 0x80000000 | 147, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 4),
         // property 'taskList'
-        QtMocHelpers::PropertyData<QVariantList>(134, 0x80000000 | 56, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 5),
+        QtMocHelpers::PropertyData<QVariantList>(148, 0x80000000 | 67, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 5),
         // property 'activeTaskId'
-        QtMocHelpers::PropertyData<int>(135, QMetaType::Int, QMC::DefaultPropertyFlags, 6),
+        QtMocHelpers::PropertyData<int>(149, QMetaType::Int, QMC::DefaultPropertyFlags, 6),
         // property 'isTaskPaused'
-        QtMocHelpers::PropertyData<bool>(136, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
+        QtMocHelpers::PropertyData<bool>(150, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
         // property 'globalTimeUsage'
-        QtMocHelpers::PropertyData<qint64>(137, QMetaType::LongLong, QMC::DefaultPropertyFlags, 8),
+        QtMocHelpers::PropertyData<qint64>(151, QMetaType::LongLong, QMC::DefaultPropertyFlags, 8),
         // property 'isTrackingActive'
-        QtMocHelpers::PropertyData<bool>(138, QMetaType::Bool, QMC::DefaultPropertyFlags, 9),
+        QtMocHelpers::PropertyData<bool>(152, QMetaType::Bool, QMC::DefaultPropertyFlags, 9),
         // property 'currentUserId'
-        QtMocHelpers::PropertyData<int>(139, QMetaType::Int, QMC::DefaultPropertyFlags, 11),
+        QtMocHelpers::PropertyData<int>(153, QMetaType::Int, QMC::DefaultPropertyFlags, 11),
         // property 'productiveAppsModel'
-        QtMocHelpers::PropertyData<QAbstractItemModel*>(140, 0x80000000 | 141, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
+        QtMocHelpers::PropertyData<QAbstractItemModel*>(154, 0x80000000 | 155, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
         // property 'nonProductiveAppsModel'
-        QtMocHelpers::PropertyData<QAbstractItemModel*>(142, 0x80000000 | 141, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
+        QtMocHelpers::PropertyData<QAbstractItemModel*>(156, 0x80000000 | 155, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
         // property 'authToken'
-        QtMocHelpers::PropertyData<QString>(143, QMetaType::QString, QMC::DefaultPropertyFlags, 14),
+        QtMocHelpers::PropertyData<QString>(157, QMetaType::QString, QMC::DefaultPropertyFlags, 14),
         // property 'userEmail'
-        QtMocHelpers::PropertyData<QString>(144, QMetaType::QString, QMC::DefaultPropertyFlags, 15),
+        QtMocHelpers::PropertyData<QString>(158, QMetaType::QString, QMC::DefaultPropertyFlags, 15),
         // property 'currentUsername'
-        QtMocHelpers::PropertyData<QString>(69, QMetaType::QString, QMC::DefaultPropertyFlags, 16),
+        QtMocHelpers::PropertyData<QString>(80, QMetaType::QString, QMC::DefaultPropertyFlags, 16),
         // property 'currentUserEmail'
-        QtMocHelpers::PropertyData<QString>(145, QMetaType::QString, QMC::DefaultPropertyFlags, 17),
+        QtMocHelpers::PropertyData<QString>(159, QMetaType::QString, QMC::DefaultPropertyFlags, 17),
         // property 'workTimeElapsedSeconds'
-        QtMocHelpers::PropertyData<int>(146, QMetaType::Int, QMC::DefaultPropertyFlags, 24),
+        QtMocHelpers::PropertyData<int>(160, QMetaType::Int, QMC::DefaultPropertyFlags, 24),
         // property 'logModel'
-        QtMocHelpers::PropertyData<QSqlQueryModel*>(147, 0x80000000 | 148, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
+        QtMocHelpers::PropertyData<QSqlQueryModel*>(161, 0x80000000 | 162, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -548,110 +599,99 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         case 32: _t->showPingErrorDialog((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
         case 33: _t->hidePingErrorDialog(); break;
         case 34: _t->showAuthTokenErrorWindow((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
-        case 35: _t->logActiveWindow(); break;
-        case 36: _t->logIdle((*reinterpret_cast< std::add_pointer_t<qint64>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<qint64>>(_a[2]))); break;
-        case 37: _t->refreshAll(); break;
-        case 38: _t->refreshTasks(); break;
-        case 39: _t->handleTaskStatusReply((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[2]))); break;
-        case 40: { QVariantList _r = _t->getPendingApplicationRequests();
+        case 35: _t->requestTaskDetails((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[3]))); break;
+        case 36: _t->taskDetailsSubmissionSuccess(); break;
+        case 37: _t->taskDetailsSubmissionFailed((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
+        case 38: _t->showNotification((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
+        case 39: _t->readyToProceedWithQuit(); break;
+        case 40: _t->taskDetailsSubmissionFailedWithRetry((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[4])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[5]))); break;
+        case 41: _t->logActiveWindow(); break;
+        case 42: _t->logIdle((*reinterpret_cast< std::add_pointer_t<qint64>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<qint64>>(_a[2]))); break;
+        case 43: _t->refreshAll(); break;
+        case 44: _t->refreshTasks(); break;
+        case 45: _t->handleTaskStatusReply((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[2]))); break;
+        case 46: { QVariantList _r = _t->getPendingApplicationRequests();
             if (_a[0]) *reinterpret_cast< QVariantList*>(_a[0]) = std::move(_r); }  break;
-        case 41: _t->handleProductivityAppsResponse((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
-        case 42: _t->handleDailyUsageReportResponse((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
-        case 43: _t->submitEarlyLeaveReason((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
-        case 44: _t->startPingTimer(); break;
-        case 45: _t->handleTaskFetchReply((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
-        case 46: _t->fetchWorkTimeFromAPI(); break;
-        case 47: _t->handleFetchWorkTimeResponse((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
-        case 48: { QString _r = _t->debugShowRawData();
+        case 47: _t->handleProductivityAppsResponse((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
+        case 48: _t->handleDailyUsageReportResponse((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
+        case 49: _t->submitEarlyLeaveReason((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
+        case 50: _t->startPingTimer(); break;
+        case 51: _t->handleTaskFetchReply((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
+        case 52: _t->fetchWorkTimeFromAPI(); break;
+        case 53: _t->handleFetchWorkTimeResponse((*reinterpret_cast< std::add_pointer_t<QNetworkReply*>>(_a[1]))); break;
+        case 54: { QString _r = _t->debugShowRawData();
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
-        case 49: _t->showLogs(); break;
-        case 50: { bool _r = _t->isUsernameTaken((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
+        case 55: _t->showLogs(); break;
+        case 56: { bool _r = _t->isUsernameTaken((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = std::move(_r); }  break;
-        case 51: { QString _r = _t->updateUserProfile((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])));
+        case 57: { QString _r = _t->updateUserProfile((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])));
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
-        case 52: { QString _r = _t->cropProfileImage((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<qreal>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<qreal>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<qreal>>(_a[4])),(*reinterpret_cast< std::add_pointer_t<qreal>>(_a[5])),(*reinterpret_cast< std::add_pointer_t<qreal>>(_a[6])),(*reinterpret_cast< std::add_pointer_t<qreal>>(_a[7])));
+        case 58: { QString _r = _t->cropProfileImage((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<qreal>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<qreal>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<qreal>>(_a[4])),(*reinterpret_cast< std::add_pointer_t<qreal>>(_a[5])),(*reinterpret_cast< std::add_pointer_t<qreal>>(_a[6])),(*reinterpret_cast< std::add_pointer_t<qreal>>(_a[7])));
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
-        case 53: _t->clearLogFilter(); break;
-        case 54: { bool _r = _t->validateFilePath((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
+        case 59: _t->clearLogFilter(); break;
+        case 60: { bool _r = _t->validateFilePath((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = std::move(_r); }  break;
-        case 55: _t->setLogFilter((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
-        case 56: { bool _r = _t->updateProfileImage((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])));
+        case 61: _t->setLogFilter((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
+        case 62: { bool _r = _t->updateProfileImage((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])));
             if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = std::move(_r); }  break;
-        case 57: { QString _r = _t->getProfileImagePath((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
+        case 63: { QString _r = _t->getProfileImagePath((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
-        case 58: _t->setActiveTask((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
-        case 59: _t->finishTask((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
-        case 60: _t->toggleTaskPause(); break;
-        case 61: { QString _r = _t->formatDuration((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])));
+        case 64: _t->setActiveTask((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
+        case 65: _t->finishTask((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
+        case 66: _t->toggleTaskPause(); break;
+        case 67: { QString _r = _t->formatDuration((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])));
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
-        case 62: _t->startGlobalTimer(); break;
-        case 63: { QString _r = _t->getUserPassword((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
+        case 68: _t->startGlobalTimer(); break;
+        case 69: { QString _r = _t->getUserPassword((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
-        case 64: _t->setIdleThreshold((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
-        case 65: { QVariantList _r = _t->getAvailableApps();
+        case 70: _t->setIdleThreshold((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
+        case 71: { QVariantList _r = _t->getAvailableApps();
             if (_a[0]) *reinterpret_cast< QVariantList*>(_a[0]) = std::move(_r); }  break;
-        case 66: _t->addProductivityApp((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[4]))); break;
-        case 67: { QVariantList _r = _t->getProductivityApps();
+        case 72: _t->addProductivityApp((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[4]))); break;
+        case 73: { QVariantList _r = _t->getProductivityApps();
             if (_a[0]) *reinterpret_cast< QVariantList*>(_a[0]) = std::move(_r); }  break;
-        case 68: { QString _r = _t->authenticate((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])));
+        case 74: { QString _r = _t->authenticate((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])));
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
-        case 69: { QString _r = _t->getUserDepartment((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
+        case 75: { QString _r = _t->getUserDepartment((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
-        case 70: { QString _r = _t->getCurrentUsername();
+        case 76: { QString _r = _t->getCurrentUsername();
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
-        case 71: { QString _r = _t->getCurrentUserEmail();
+        case 77: { QString _r = _t->getCurrentUserEmail();
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
-        case 72: { QString _r = _t->getUserEmail((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
+        case 78: { QString _r = _t->getUserEmail((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
-        case 73: _t->fetchAndStoreTasks(); break;
-        case 74: _t->updateTaskStatus((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
-        case 75: _t->logout(); break;
-        case 76: _t->sendProductivityAppToAPI((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[4]))); break;
-        case 77: _t->loadWorkTimeData(); break;
-        case 78: _t->checkAndCreateNewDayRecord(); break;
-        case 79: { int _r = _t->calculateTodayProductiveSeconds();
+        case 79: _t->fetchAndStoreTasks(); break;
+        case 80: _t->updateTaskStatus((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
+        case 81: _t->logout(); break;
+        case 82: _t->sendProductivityAppToAPI((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[4]))); break;
+        case 83: _t->loadWorkTimeData(); break;
+        case 84: _t->checkAndCreateNewDayRecord(); break;
+        case 85: { int _r = _t->calculateTodayProductiveSeconds();
             if (_a[0]) *reinterpret_cast< int*>(_a[0]) = std::move(_r); }  break;
-        case 80: _t->sendProductiveTimeToAPI(); break;
-        case 81: _t->sendDailyUsageReport(); break;
-        case 82: _t->sendPing((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
-        case 83: _t->sendPausePlayDataToAPI((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[4]))); break;
-        case 84: { int _r = _t->getAppProductivityType((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])));
+        case 86: _t->sendProductiveTimeToAPI(); break;
+        case 87: _t->sendDailyUsageReport(); break;
+        case 88: _t->sendPing((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
+        case 89: _t->sendPausePlayDataToAPI((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[4]))); break;
+        case 90: { int _r = _t->getAppProductivityType((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])));
             if (_a[0]) *reinterpret_cast< int*>(_a[0]) = std::move(_r); }  break;
-        case 85: { int _r = _t->totalWorkSeconds();
+        case 91: { int _r = _t->totalWorkSeconds();
             if (_a[0]) *reinterpret_cast< int*>(_a[0]) = std::move(_r); }  break;
-        case 86: _t->launchMaintenanceTool(); break;
-        case 87: _t->checkForUpdates(); break;
-        case 88: { QString _r = _t->savedUsername();
+        case 92: _t->launchMaintenanceTool(); break;
+        case 93: _t->checkForUpdates(); break;
+        case 94: { QString _r = _t->savedUsername();
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
-        case 89: { QString _r = _t->savedPassword();
+        case 95: { QString _r = _t->savedPassword();
             if (_a[0]) *reinterpret_cast< QString*>(_a[0]) = std::move(_r); }  break;
+        case 96: _t->submitTaskDetails((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3])),(*reinterpret_cast< std::add_pointer_t<int>>(_a[4]))); break;
+        case 97: _t->submitTaskDetails((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3]))); break;
+        case 98: _t->taskDetailsDialogClosed((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
+        case 99: _t->notify((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
         default: ;
         }
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
         switch (_id) {
         default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
-        case 39:
-            switch (*reinterpret_cast<int*>(_a[1])) {
-            default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
-            case 0:
-                *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType::fromType< QNetworkReply* >(); break;
-            }
-            break;
-        case 41:
-            switch (*reinterpret_cast<int*>(_a[1])) {
-            default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
-            case 0:
-                *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType::fromType< QNetworkReply* >(); break;
-            }
-            break;
-        case 42:
-            switch (*reinterpret_cast<int*>(_a[1])) {
-            default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
-            case 0:
-                *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType::fromType< QNetworkReply* >(); break;
-            }
-            break;
         case 45:
             switch (*reinterpret_cast<int*>(_a[1])) {
             default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
@@ -660,6 +700,27 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
             }
             break;
         case 47:
+            switch (*reinterpret_cast<int*>(_a[1])) {
+            default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
+            case 0:
+                *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType::fromType< QNetworkReply* >(); break;
+            }
+            break;
+        case 48:
+            switch (*reinterpret_cast<int*>(_a[1])) {
+            default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
+            case 0:
+                *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType::fromType< QNetworkReply* >(); break;
+            }
+            break;
+        case 51:
+            switch (*reinterpret_cast<int*>(_a[1])) {
+            default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
+            case 0:
+                *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType::fromType< QNetworkReply* >(); break;
+            }
+            break;
+        case 53:
             switch (*reinterpret_cast<int*>(_a[1])) {
             default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
             case 0:
@@ -739,6 +800,18 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
             return;
         if (QtMocHelpers::indexOfMethod<void (Logger::*)(const QString & )>(_a, &Logger::showAuthTokenErrorWindow, 34))
             return;
+        if (QtMocHelpers::indexOfMethod<void (Logger::*)(int , const QString & , int )>(_a, &Logger::requestTaskDetails, 35))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (Logger::*)()>(_a, &Logger::taskDetailsSubmissionSuccess, 36))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (Logger::*)(const QString & )>(_a, &Logger::taskDetailsSubmissionFailed, 37))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (Logger::*)(const QString & , const QString & )>(_a, &Logger::showNotification, 38))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (Logger::*)()>(_a, &Logger::readyToProceedWithQuit, 39))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (Logger::*)(const QString & , int , const QString & , const QString & , int )>(_a, &Logger::taskDetailsSubmissionFailedWithRetry, 40))
+            return;
     }
     if (_c == QMetaObject::RegisterPropertyMetaType) {
         switch (_id) {
@@ -796,14 +869,14 @@ int Logger::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 90)
+        if (_id < 100)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 90;
+        _id -= 100;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 90)
+        if (_id < 100)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 90;
+        _id -= 100;
     }
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty
@@ -1022,5 +1095,41 @@ void Logger::hidePingErrorDialog()
 void Logger::showAuthTokenErrorWindow(const QString & _t1)
 {
     QMetaObject::activate<void>(this, &staticMetaObject, 34, nullptr, _t1);
+}
+
+// SIGNAL 35
+void Logger::requestTaskDetails(int _t1, const QString & _t2, int _t3)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 35, nullptr, _t1, _t2, _t3);
+}
+
+// SIGNAL 36
+void Logger::taskDetailsSubmissionSuccess()
+{
+    QMetaObject::activate(this, &staticMetaObject, 36, nullptr);
+}
+
+// SIGNAL 37
+void Logger::taskDetailsSubmissionFailed(const QString & _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 37, nullptr, _t1);
+}
+
+// SIGNAL 38
+void Logger::showNotification(const QString & _t1, const QString & _t2)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 38, nullptr, _t1, _t2);
+}
+
+// SIGNAL 39
+void Logger::readyToProceedWithQuit()
+{
+    QMetaObject::activate(this, &staticMetaObject, 39, nullptr);
+}
+
+// SIGNAL 40
+void Logger::taskDetailsSubmissionFailedWithRetry(const QString & _t1, int _t2, const QString & _t3, const QString & _t4, int _t5)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 40, nullptr, _t1, _t2, _t3, _t4, _t5);
 }
 QT_WARNING_POP

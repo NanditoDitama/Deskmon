@@ -129,25 +129,23 @@ qt_add_executable(Deskmon
 qt_add_qml_module(Deskmon
     URI window_logger
     VERSION 1.0
-    QML_FILES ${QML_FILES}
-    SOURCES
-    QML_FILES Pop_up_waktuhabis.qml
-    QML_FILES Login_page.qml
-    QML_FILES Profil_page.qml
-    QML_FILES Productivty.qml
-    QML_FILES SaveTombolCropImage.qml
-    RESOURCES
-    QML_FILES Current_Task.qml
-    QML_FILES Activity_Monitor.qml
     QML_FILES
-    QML_FILES Monitored_Applications.qml
-    QML_FILES AddAplicatioRequest.qml
-    QML_FILES RequstAppPending.qml
-    QML_FILES DateRange.qml
-    QML_FILES
-    QML_FILES EarlyLeaveDialog.qml
-    SOURCES
-    SOURCES
+        Main.qml
+        Pop_up_waktuhabis.qml
+        Login_page.qml
+        Profil_page.qml
+        Productivty.qml
+        SaveTombolCropImage.qml
+        Current_Task.qml
+        Activity_Monitor.qml
+        Monitored_Applications.qml
+        AddAplicatioRequest.qml
+        RequstAppPending.qml
+        DateRange.qml
+        EarlyLeaveDialog.qml
+        TaskDetailsDialog.qml
+        FailureDialog.qml
+        QML_FILES NeedReviewDialog.qml
 )
 
 # Menambahkan resource file jika diperlukan

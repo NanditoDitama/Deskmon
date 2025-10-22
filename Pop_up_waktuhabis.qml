@@ -1,18 +1,25 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Controls.Material
+import QtQuick.Dialogs
+import QtQuick.Effects
+import QtQuick.Window
 import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Window 2.15
 
 ApplicationWindow {
     id: warningWindowComponent
-    width: 400
-    height: 220
+    width: 340
+    height: 180
     title: qsTr("Peringatan")
     visible: false
     modality: Qt.ApplicationModal
     flags: Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+    color: "transparent"
 
     // Sistem theme aware
     readonly property bool isDarkMode: Qt.application.styleHints.colorScheme === Qt.Dark
+    property color warningColor: isDarkMode ? "#00e0a8" : "#00e0a8"
     property string newText: ""
 
     // Animasi
@@ -20,68 +27,126 @@ ApplicationWindow {
         NumberAnimation { duration: 150 }
     }
 
-    // Background dengan efek shadow modern
+    // === KARTU MODERN ====================================================
     Rectangle {
+        id: card
         anchors.fill: parent
-        color: isDarkMode ? "#2d2d2d" : "#ffffff"
-        border.color: isDarkMode ? "#444" : "#ddd"
+        radius: 16
+        color: cardColor
+        border.color: Qt.rgba(warningColor.r, warningColor.g, warningColor.b, 0.15)
         border.width: 1
-        radius: 12
-    }
+        opacity: warningWindowComponent.visible ? 1 : 0
+        scale: warningWindowComponent.visible ? 1 : 0.96
 
-    Column {
-        anchors {
-            fill: parent
-            margins: 20
-        }
-        spacing: 24
+        Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+        Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutBack; easing.overshoot: 1.2 } }
 
-        // Icon peringatan
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: "⚠️"
-            font.pixelSize: 32
-        }
+        // === KONTEN =======================================================
+        Column {
+            anchors.fill: parent
+            anchors.margins: 24
+            spacing: 20
 
-        // Teks pesan
-        Label {
-            id: labelText
-            width: parent.width
-            text: newText
-            font.pixelSize: 16
-            font.weight: Font.Medium
-            wrapMode: Text.Wrap
-            horizontalAlignment: Text.AlignHCenter
-            color: isDarkMode ? "#f0f0f0" : "#333333"
-            topPadding: 4
-            bottomPadding: 4
-        }
+            // HEADER: ikon + judul
+            Row {
+                width: parent.width
+                spacing: 14
 
-        // Tombol aksi
-        Button {
-            id: closeButton
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: 120
-            height: 40
+                // ikon modern dengan gradient
+                Rectangle {
+                    width: 40
+                    height: 40
+                    radius: 20
+                    color: Qt.rgba(warningColor.r, warningColor.g, warningColor.b, 0.12)
+                    anchors.verticalCenter: parent.verticalCenter
 
-            background: Rectangle {
-                radius: 6
-                color: isDarkMode ? (closeButton.down ? "#3a6ea5" : (closeButton.hovered ? "#4a7eb5" : "#2d5d8c")) :
-                                   (closeButton.down ? "#1a73e8" : (closeButton.hovered ? "#2b83ea" : "#007bff"))
-                Behavior on color { ColorAnimation { duration: 100 } }
+                    // animasi pulse halus
+                    SequentialAnimation on scale {
+                        running: warningWindowComponent.visible
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 1.0; to: 1.08; duration: 1200; easing.type: Easing.InOutQuad }
+                        NumberAnimation { from: 1.08; to: 1.0; duration: 1200; easing.type: Easing.InOutQuad }
+                    }
+
+                    Image {
+                        anchors.centerIn: parent
+                        width: 24
+                        height: 24
+                        source: "qrc:/icon.ico"
+                        fillMode: Image.PreserveAspectFit
+                        smooth: true
+                    }
+                }
+
+                Column {
+                    width: parent.width - 54
+                    spacing: 2
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Label {
+                        text: "Peringatan Waktu Task"
+                        font.pixelSize: 17
+                        font.weight: Font.DemiBold
+                        color: textColor
+                        width: parent.width
+                    }
+
+                    Label {
+                        text: newText
+                        font.pixelSize: 13
+                        color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6)
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        maximumLineCount: 2
+                        elide: Text.ElideRight
+                    }
+                }
             }
 
-            contentItem: Text {
-                text: "Tutup"
-                color: "white"
-                font.pixelSize: 14
-                font.weight: Font.Medium
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
+            // SPACER
+            Item {
+                width: parent.width
+                height: 1
+                Layout.fillHeight: true
             }
 
-            onClicked: {
-                warningWindowComponent.close()
+            // TOMBOL AKSI MODERN
+            Row {
+                width: parent.width
+                spacing: 10
+                layoutDirection: Qt.RightToLeft
+
+                Button {
+                    id: closeButton
+                    text: "Tutup"
+
+                    leftPadding: 24
+                    rightPadding: 24
+                    topPadding: 10
+                    bottomPadding: 10
+
+                    background: Rectangle {
+                        radius: 8
+                        color: closeButton.pressed ? Qt.darker(warningColor, 1.1) :
+                               closeButton.hovered ? Qt.lighter(warningColor, 1.05) : warningColor
+                        border.width: 0
+
+                        Behavior on color { ColorAnimation { duration: 150 } }
+                    }
+
+                    contentItem: Text {
+                        text: closeButton.text
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        color: "white"
+                    }
+
+                    onClicked: {
+                        warningWindowComponent.close()
+                    }
+                }
             }
         }
     }
@@ -126,4 +191,13 @@ ApplicationWindow {
             y = (Screen.height - height) / 2
         }
     }
+
+    // === SHORTCUTS ============================================================
+    Shortcut {
+        sequences: [ StandardKey.Close, "Escape", "Return", "Enter" ]
+        onActivated: closeButton.clicked()
+    }
+
+    // Fokus awal ke aksi utama
+    Component.onCompleted: closeButton.forceActiveFocus()
 }

@@ -68,12 +68,18 @@
                     "index": 3,
                     "name": "handleSystemNotification",
                     "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 4,
+                    "name": "hideIdleNotification",
+                    "returnType": "void"
                 }
             ],
             "slots": [
                 {
                     "access": "private",
-                    "index": 4,
+                    "index": 5,
                     "name": "checkIdleTime",
                     "returnType": "void"
                 }

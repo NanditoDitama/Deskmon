@@ -13,13 +13,12 @@
 #include "logger.h"
 #include "idlechecker.h"
 
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/icon.ico"));
-    app.setQuitOnLastWindowClosed(true);
-
-    // Initialize components
+    app.setQuitOnLastWindowClosed(false);
 
     QSharedMemory sharedMemory("DeskmonAppInstance");
     if (!sharedMemory.create(1)) {
@@ -41,8 +40,46 @@ int main(int argc, char *argv[])
 
     bool isEarlyLeaveDialogShown = false;
 
+    // ===================================================================
+    // 1. Inisialisasi QML Engine dan Window di awal
+    // ===================================================================
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("logger", &logger);
+    engine.rootContext()->setContextProperty("idleChecker", &idleChecker);
+    engine.loadFromModule("window_logger", "Main");
 
-    // Setup system tray
+    if (engine.rootObjects().isEmpty()) {
+        qWarning() << "Failed to load QML module: window_logger, Main. Aborting.";
+        return -1;
+    }
+
+    QQuickWindow *qmlWindow = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
+    if (!qmlWindow) {
+        qWarning() << "Failed to cast root object to QQuickWindow. Aborting.";
+        return -1;
+    }
+
+    // ===================================================================
+    // 2. Sekarang qmlWindow dijamin tidak null, kita bisa definisikan fungsi
+    // ===================================================================
+    auto showQmlWindow = [&]() {
+        if (qmlWindow->visibility() == QWindow::Hidden) {
+            qmlWindow->show();
+        }
+        qmlWindow->showMaximized();
+        qmlWindow->raise();
+        qmlWindow->requestActivate();
+        qDebug() << "QML window shown, state:" << qmlWindow->windowState();
+    };
+
+    auto showEarlyLeaveDialog = [&]() {
+        showQmlWindow();
+        QMetaObject::invokeMethod(qmlWindow, "showEarlyLeaveDialog");
+    };
+
+    // ===================================================================
+    // 3. Setup System Tray dan hubungkan dengan fungsi yang sudah didefinisikan
+    // ===================================================================
     QSystemTrayIcon trayIcon(QIcon(":/icon.ico"));
     trayIcon.setToolTip("Deskmon");
 
@@ -51,12 +88,15 @@ int main(int argc, char *argv[])
     QAction *pauseAction = trayMenu.addAction("Pause");
     QAction *quitAction = trayMenu.addAction("Quit");
 
-#ifdef Q_OS_MACOS
-    // macOS memerlukan setVisible(true) untuk menampilkan tray icon
-    trayIcon.setVisible(true);
-#endif
+    QObject::connect(showAction, &QAction::triggered, &app, showQmlWindow);
 
-    // Function to update tray icon based on pause state
+    // 1. Menangani klik ganda (double click) pada tray icon untuk menampilkan window
+    QObject::connect(&trayIcon, &QSystemTrayIcon::activated, &app, [&](QSystemTrayIcon::ActivationReason reason) {
+        if (reason == QSystemTrayIcon::DoubleClick) {
+            showQmlWindow(); // Panggil fungsi untuk menampilkan window
+        }
+    });
+
     auto updateTrayIcon = [&]() {
         if (logger.isTaskPaused()) {
             trayIcon.setIcon(QIcon(":/play_icon_app.png"));
@@ -67,146 +107,93 @@ int main(int argc, char *argv[])
         }
     };
 
-    // Connect pause action
     QObject::connect(pauseAction, &QAction::triggered, &app, [&]() {
         logger.toggleTaskPause();
         updateTrayIcon();
     });
 
-    // Initialize QML engine and window
-    QQmlApplicationEngine *engine = nullptr;
-    QQuickWindow *qmlWindow = nullptr;
-
-
-    QMetaObject::invokeMethod(qmlWindow, "goToLoginPage");
-
-
-    // Function to show QML window
-    auto showQmlWindow = [&]() {
-        if (!engine) {
-            engine = new QQmlApplicationEngine(&app);
-            engine->rootContext()->setContextProperty("logger", &logger);
-            engine->rootContext()->setContextProperty("idleChecker", &idleChecker);
-            qDebug() << "Loading QML module: window_logger, Main";
-            engine->loadFromModule("window_logger", "Main");
-
-            if (engine->rootObjects().isEmpty()) {
-                qWarning() << "Failed to load QML module: window_logger, Main";
-                return;
-            }
-
-            const auto rootObjects = engine->rootObjects();
-            if (!rootObjects.isEmpty()) {
-                qmlWindow = qobject_cast<QQuickWindow*>(rootObjects.constFirst());
-                // qmlWindow->setVisibility(QWindow::Maximized);
-                if (!qmlWindow) {
-                    qWarning() << "Failed to cast root object to QQuickWindow";
-                    return;
-                }
-            }
-        }
-
-        if (qmlWindow) {
-            // Pastikan jendela tidak minimized
-
-            if (qmlWindow->visibility() == QWindow::Hidden) {
-                qmlWindow->show();
-            }
-            qmlWindow->showMaximized();
-            qmlWindow->raise();
-            qmlWindow->requestActivate(); // Perbaikan: Ganti setActiveWindow
-            qDebug() << "QML window shown, state:" << qmlWindow->windowState();
-        } else {
-            qWarning() << "qmlWindow is null, cannot show window";
-        }
-    };
-    // Fungsi untuk menampilkan dialog alasan keluar lebih awal
-    auto showEarlyLeaveDialog = [&]() {
-        if (qmlWindow) { // Pastikan window utama sudah ada
-            showQmlWindow();  // ===== TAMBAHKAN BARIS INI =====
-            QMetaObject::invokeMethod(qmlWindow, "showEarlyLeaveDialog");
-
-        } else {
-            qWarning() << "Main window is not available to show the dialog. Quitting as a fallback.";
-            // Jika window tidak ada, kita tidak bisa menampilkan dialog, jadi langsung keluar.
-            app.quit();
-        }
-    };
-
-
-    if (logger.currentUserId() == -1) {
-        qDebug() << "No user logged in, redirecting to login page...";
-        QMetaObject::invokeMethod(qmlWindow, "onRequestLoginPage");
-    }
-
-    // Connect show action
-    QObject::connect(showAction, &QAction::triggered, &app, showQmlWindow);
-
-    // Handle tray icon double-click to show the window
-    QObject::connect(&trayIcon, &QSystemTrayIcon::activated, &app, [&](QSystemTrayIcon::ActivationReason reason) {
-        if (reason == QSystemTrayIcon::DoubleClick) {
-            showQmlWindow();
-        }
-    });
-
-
-    // Di main.cpp, tambahkan koneksi untuk menangani notifikasi review
-    QObject::connect(&logger, &Logger::taskReviewNotification, &app, [&](const QString &message) {
-        // Tampilkan notifikasi system tray
-        trayIcon.showMessage("Task Review", message, QSystemTrayIcon::Information, 10000);
-
-        // Jika window QML terbuka, kirim sinyal untuk menampilkan notifikasi in-app
-        if (qmlWindow) {
-            QMetaObject::invokeMethod(qmlWindow, "showReviewNotification",
-                                      Q_ARG(QVariant, message));
-        }
-    });
-
-    // Connect notifikasi idle ke system tray
-    QObject::connect(&idleChecker, &IdleChecker::showIdleNotification, &app, [&](const QString &message) {
-        trayIcon.showMessage("Deskmon", message, QSystemTrayIcon::Information, 15000);
-        qDebug() << "System tray notification shown:" << message;
-    });
-
-    // Connect klik notifikasi untuk membuka aplikasi
-    QObject::connect(&trayIcon, &QSystemTrayIcon::messageClicked, &app, [&]() {
-        qDebug() << "Notification clicked, attempting to show QML window";
-        showQmlWindow();
-    });
-
-    auto quitApplication = [&]() {
+    // ===================================================================
+    // 4. Definisikan dan hubungkan quitApplication SETELAH semuanya siap
+    // ===================================================================
+    auto proceedWithEarlyLeaveCheck = [&]() {
         if (isEarlyLeaveDialogShown) {
-            // Jika dialog sudah ditampilkan, buka aplikasi
             qDebug() << "Early leave dialog already shown, opening application";
             showQmlWindow();
             return;
         }
-        if (logger.workTimeElapsedSeconds() < logger.totalWorkSeconds()) {
+
+        // --- PERUBAHAN LOGIKA ADA DI SINI ---
+        // Cek waktu kerja HANYA SETELAH dialog detail tugas selesai.
+        if (logger.workTimeElapsedSeconds() < 32400) {
+            // Waktu BELUM cukup -> Tampilkan EarlyLeaveDialog.
             qDebug() << "Work time is less than required. Showing reason dialog.";
             showEarlyLeaveDialog();
         } else {
+            // Waktu SUDAH cukup -> Langsung Quit.
             qDebug() << "Work time is sufficient. Quitting directly.";
             app.quit();
         }
+        // --- BATAS PERUBAHAN ---
     };
 
-    QObject::connect(quitAction, &QAction::triggered, &app, quitApplication);
+    // Hubungkan sinyal dari logger ke lambda di atas.
+    // Ini akan dipanggil SETELAH dialog detail tugas selesai (baik di-OK maupun di-Cancel).
+    QObject::connect(&logger, &Logger::readyToProceedWithQuit, &app, proceedWithEarlyLeaveCheck);
+
+    // 'quitApplication' sekarang menjadi pemicu utama
+    auto quitApplication = [&]() {
+        // --- PERUBAHAN LOGIKA ADA DI SINI ---
+        // 1. Cek JIKA ADA task aktif.
+        if (logger.activeTaskId() != -1 && !logger.isTaskPaused()) {
+            // Ada task aktif, tampilkan dialog detail dan TUNGGU sinyal.
+            qDebug() << "Active task detected. Requesting details before proceeding with quit checks.";
+            QMetaObject::invokeMethod(qmlWindow, "showTaskDetailsDialog",
+                                      Q_ARG(QVariant, logger.activeTaskId()),
+                                      Q_ARG(QVariant, "quit"), // Aksi "quit"
+                                      Q_ARG(QVariant, -1));
+            return; // Berhenti di sini, tunggu sinyal 'readyToProceedWithQuit'
+        }
+
+        // 2. TIDAK ADA task aktif.
+        //    Langsung lanjutkan ke pemeriksaan 'Early Leave' (yang akan mengecek waktu).
+        qDebug() << "No active task. Proceeding to early leave check.";
+        proceedWithEarlyLeaveCheck();
+        // --- BATAS PERUBAHAN ---
+    };
+
+    QObject::connect(quitAction, &QAction::triggered, &app, [&]() {
+        // Panggil logika quit yang sudah ada
+        showQmlWindow();
+        quitApplication();
+    });
     QObject::connect(&logger, &Logger::earlyLeaveReasonSubmitted, &app, &QCoreApplication::quit);
+
     trayIcon.setContextMenu(&trayMenu);
     trayIcon.show();
 
+#ifdef Q_OS_MACOS
+    trayIcon.setVisible(true);
+#endif
 
-
-    // Connect to logger's pause state changed signal
-    QObject::connect(&logger, &Logger::taskPausedChanged, &app, [&]() {
-        updateTrayIcon();
+    // ===================================================================
+    // 5. Hubungkan sinyal notifikasi dan lainnya
+    // ===================================================================
+    QObject::connect(&logger, &Logger::taskPausedChanged, &app, updateTrayIcon);
+    QObject::connect(&idleChecker, &IdleChecker::showIdleNotification, &app, [&](const QString &message) {
+        trayIcon.showMessage("Deskmon", message, QSystemTrayIcon::Information, 15000);
+    });
+    QObject::connect(&trayIcon, &QSystemTrayIcon::messageClicked, &app, showQmlWindow);
+    QObject::connect(&logger, &Logger::taskReviewNotification, &app, [&](const QString &message) {
+        trayIcon.showMessage("Task Review", message, QSystemTrayIcon::Information, 10000);
+        QMetaObject::invokeMethod(qmlWindow, "showReviewNotification", Q_ARG(QVariant, message));
     });
 
-    // Initial icon update
+    // ===================================================================
+    // 6. Mulai Timer dan tampilkan window
+    // ===================================================================
     updateTrayIcon();
-    showQmlWindow();
+    showQmlWindow(); // Tampilkan window utama saat start
 
-    // Start monitoring
     QTimer timer;
     QObject::connect(&timer, &QTimer::timeout, &app, [&]() {
         if (!idleChecker.isIdle()) {
@@ -215,9 +202,8 @@ int main(int argc, char *argv[])
     });
     timer.start(1000);
 
-    // Di main()
-    QTimer *dayChangeTimer = new QTimer(&app);
-    QObject::connect(dayChangeTimer, &QTimer::timeout, [&]() {
+    QTimer dayChangeTimer;
+    QObject::connect(&dayChangeTimer, &QTimer::timeout, [&]() {
         static QString lastDate = QDate::currentDate().toString("yyyy-MM-dd");
         QString currentDate = QDate::currentDate().toString("yyyy-MM-dd");
         if (currentDate != lastDate) {
@@ -226,20 +212,7 @@ int main(int argc, char *argv[])
             logger.loadWorkTimeData();
         }
     });
-    dayChangeTimer->start(60000); // cek setiap 1 menit
-
-    // Load QML UI if started with --show argument
-    // Load QML UI if started with --show argument
-    if (app.arguments().contains("--show")) {
-        // Jika window sudah ada, aktifkan yang sudah ada
-        if (qmlWindow) {
-            qmlWindow->show();
-            qmlWindow->raise();
-            qmlWindow->requestActivate();
-        } else {
-            showQmlWindow();
-        }
-    }
+    dayChangeTimer.start(60000);
 
     return app.exec();
 }

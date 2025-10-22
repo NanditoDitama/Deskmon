@@ -127,6 +127,7 @@ Logger::Logger(QObject *parent) : QObject(parent)
     initializeProductivityDatabase();
     checkTaskStatusBeforeStart();
 
+
     m_productiveAppsModel = new QSqlQueryModel(this);
     m_nonProductiveAppsModel = new QSqlQueryModel(this);
     m_productiveAppsModel->setQuery("SELECT aplikasi AS appName, window_title AS windowTitle, jenis AS type FROM aplikasi WHERE jenis = 1", m_productivityDb);
@@ -177,6 +178,7 @@ Logger::Logger(QObject *parent) : QObject(parent)
     m_taskRefreshTimer.start();
 
     m_lastShownPingError.clear();
+    m_pingRetryCount = 0;
 
     m_logModel = new QSqlQueryModel(this);
 
@@ -223,6 +225,9 @@ QString Logger::savedPassword() const {
     return "";
 }
 
+void Logger::notify(const QString &type, const QString &message) {
+    emit showNotification(type, message);
+}
 
 void Logger::startGlobalTimer()
 {
@@ -1893,9 +1898,6 @@ void Logger::refreshProductivityModels()
 
 
 // logger.cpp
-
-// GANTI FUNGSI YANG LAMA DENGAN VERSI BARU INI
-// logger.cpp
 void Logger::sendDailyUsageReport()
 {
     if (m_currentUserId == -1 || m_authToken.isEmpty()) {
@@ -2495,6 +2497,12 @@ void Logger::migrateProductivityDatabase()
 
 void Logger::setActiveTask(int taskId)
 {
+    if (m_activeTaskId != -1 && m_activeTaskId != taskId && !m_isTaskPaused) {
+        qDebug() << "Active task " << m_activeTaskId << " is running. Requesting details before switching.";
+        // Jika ya, tampilkan dialog dan hentikan eksekusi fungsi ini untuk sementara.
+        emit requestTaskDetails(m_activeTaskId, "switch", taskId);
+    }
+
     if (taskId == m_activeTaskId && !m_isTaskPaused) {
         qDebug() << "Task" << taskId << "is already active and running. No action needed.";
         return;
@@ -2642,6 +2650,7 @@ void Logger::setActiveTask(int taskId)
 }
 
 // logger.cpp dalam fungsi Logger::sendPing
+// logger.cpp dalam fungsi Logger::sendPing
 void Logger::sendPing(int taskId)
 {
     if (!ensureProductivityDatabaseOpen()) {
@@ -2676,39 +2685,88 @@ void Logger::sendPing(int taskId)
     QNetworkReply* reply = m_networkManager->post(request, QJsonDocument(payload).toJson());
     QTimer::singleShot(30000, reply, &QNetworkReply::abort);
 
+    // --- LOGIKA BARU DIMULAI DI SINI ---
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         QByteArray responseData = reply->readAll();
         QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
         QJsonObject jsonObj = jsonDoc.object();
 
         bool isAuthError = false;
+        bool isConnectionError = false;
+        QString connectionErrorMessage;
 
         if (reply->error() != QNetworkReply::NoError) {
-            // PRIORITAS UTAMA
+            // PRIORITAS UTAMA: Cek error autentikasi
             if (reply->errorString().contains("Host requires authentication", Qt::CaseInsensitive)) {
                 isAuthError = true;
-                showAuthTokenErrorMessage();
             } else {
-                emit showPingErrorDialog("Koneksi gagal: " + reply->errorString());
+                // Ini adalah error koneksi jaringan
+                isConnectionError = true;
+                connectionErrorMessage = "Koneksi gagal: " + reply->errorString();
             }
         } else {
             bool success = jsonObj.value("success").toBool();
             if (!success) {
                 QString errMsg = jsonObj.value("message").toString("Terjadi kesalahan.");
-                // PRIORITAS UTAMA
+                // PRIORITAS UTAMA: Cek error autentikasi dari server
                 if (errMsg.contains("Host requires authentication", Qt::CaseInsensitive)) {
                     isAuthError = true;
-                    showAuthTokenErrorMessage();
                 } else {
-                    emit showPingErrorDialog(errMsg);
+                    // Ini adalah error dari server (bukan auth), dianggap error koneksi
+                    isConnectionError = true;
+                    connectionErrorMessage = errMsg;
                 }
-            } else {
-                emit hidePingErrorDialog(); // tutup dialog kalau sukses
             }
+            // else: Ini adalah kasus SUKSES
+        }
+
+        // --- Logika Penanganan Error dan Retry ---
+
+        if (isAuthError) {
+            // Error Autentikasi: Berhenti mencoba dan tampilkan error login
+            qWarning() << "Ping failed: Authentication error.";
+            m_pingTimer.setInterval(30000); // Kembalikan ke 30 detik
+            m_pingRetryCount = 0;
+            showAuthTokenErrorMessage(); // Tampilkan jendela error login
+
+        } else if (isConnectionError) {
+            // Error Koneksi: Mulai atau lanjutkan logika retry 5 detik
+
+            // Cek apakah ini kegagalan PERTAMA (saat timer masih 30 detik)
+            if (m_pingTimer.interval() == 30000) {
+                m_pingRetryCount = 0; // Mulai hitungan
+                m_pingTimer.setInterval(5000); // Ubah ke 5 detik
+                emit showPingErrorDialog(connectionErrorMessage); // Tampilkan error
+                qDebug() << "Ping failed. Starting 5-second retries." << connectionErrorMessage;
+            } else {
+                // Ini adalah kegagalan BERIKUTNYA (saat timer sudah 5 detik)
+                m_pingRetryCount++;
+                qDebug() << "Ping retry" << m_pingRetryCount << "failed.";
+
+                if (m_pingRetryCount >= 22) {
+                    // Gagal 22 kali: Menyerah, kembalikan timer ke 30 detik
+                    qDebug() << "Ping retries failed 22 times. Giving up, returning to 30s interval.";
+                    m_pingTimer.setInterval(30000); // Kembalikan ke 30 detik
+                    m_pingRetryCount = 0; // Reset hitungan
+                    emit hidePingErrorDialog(); // Sembunyikan dialog error (sesuai permintaan "tampilkan hidePingErrorDialog")
+                }
+                // Jika kurang dari 22, tidak melakukan apa-apa (timer 5 detik akan berjalan lagi)
+            }
+        } else {
+            // KONEKSI SUKSES
+
+            // Cek apakah sukses ini terjadi saat mode retry 5 detik
+            if (m_pingTimer.interval() != 30000) {
+                qDebug() << "Ping retry successful. Returning to 30s interval.";
+                m_pingTimer.setInterval(30000); // Kembalikan ke 30 detik
+                m_pingRetryCount = 0; // Reset hitungan
+            }
+            emit hidePingErrorDialog(); // Sembunyikan dialog error
         }
 
         reply->deleteLater();
     });
+    // --- LOGIKA BARU BERAKHIR DI SINI ---
 }
 
 
@@ -3452,6 +3510,9 @@ QString Logger::authenticate(const QString &loginInput, const QString &password)
         QString department = userData["department"].toObject()["rolename"].toString();
         QString token = jsonObj["token"].toString();
 
+        m_authToken = token;           // <-- 1. TAMBAHKAN INI (Simpan token ke variabel member)
+        emit authTokenChanged();     // <-- 2. TAMBAHKAN INI (Beri tahu QML bahwa token sudah siap)
+
         QSqlQuery query(m_db);
         query.prepare(
             "INSERT OR REPLACE INTO users "
@@ -4174,14 +4235,112 @@ QString Logger::statusMessage() const
     return m_statusMessage;
 }
 
+void Logger::taskDetailsDialogClosed(const QString &action)
+{
+    // Cek aksi apa yang sedang berlangsung saat dialog ditutup
+    if (action == "quit") {
+        // Jika sedang dalam proses QUIT, maka LANJUTKAN ke dialog early leave
+        qDebug() << "Dialog details canceled during QUIT action. Proceeding to early leave check...";
+        emit readyToProceedWithQuit();
+    } else if (action == "switch") {
+        // Jika hanya sedang PINDAH TASK, maka BATALKAN proses
+        qDebug() << "Dialog details canceled during SWITCH action. Task switch aborted.";
+        // Tidak melakukan apa-apa, sehingga proses pindah task berhenti.
+    }
+}
 
+// 1. Fungsi yang dipanggil QML saat tombol "OK" di dialog ditekan
+void Logger::submitTaskDetails(int taskId, const QString &details, const QString &action, int nextTaskId)
+{
+    // Cukup panggil fungsi API
+    sendTaskDetailsToAPI(taskId, details, action, nextTaskId);
+}
+
+// 2. Fungsi untuk mengirim data ke server (endpoint API perlu disesuaikan)
+// Di logger.cpp
+void Logger::sendTaskDetailsToAPI(int taskId, const QString &details, const QString &action, int nextTaskId)
+{
+    if (m_authToken.isEmpty()) {
+        qWarning() << "Cannot send task details: No auth token.";
+
+        // Kirim sinyal GAGAL ke dialog DAN notifikasi
+        emit taskDetailsSubmissionFailed("Authentication token not found.");
+        emit showNotification("error", "Gagal: Token otentikasi tidak ditemukan.");
+
+        if (action == "quit") {
+            emit readyToProceedWithQuit();
+        }
+        return;
+    }
+
+    QJsonObject payload;
+    payload["task_id"] = taskId;
+    payload["user_id"] = m_currentUserId;
+    payload["message"] = details;
+
+    QNetworkRequest request(QUrl("https://deskmon.pranala-dt.co.id/api/send-detail-pekerjaan"));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
+
+    qWarning() << "Sending task details for action '" << action << "':" << QJsonDocument(payload).toJson();
+
+    QNetworkReply *reply = m_networkManager->post(request, QJsonDocument(payload).toJson());
+    QTimer::singleShot(15000, reply, &QNetworkReply::abort);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply, taskId, details, action, nextTaskId]() {
+
+        if (reply->error() != QNetworkReply::NoError) {
+            // GAGAL JARINGAN
+            qWarning() << "Failed to send task details (Network Error):" << reply->errorString();
+
+            // Kirim sinyal GAGAL ke dialog DAN notifikasi
+            QString errorMsg = "Network Error: " + reply->errorString();
+            emit taskDetailsSubmissionFailed(errorMsg);
+            emit showNotification("warning", "Detail pekerjaan Gagal dikirim!");
+
+            if (action == "quit") {
+                qDebug() << "Network error during quit, but proceeding to early leave check...";
+                emit readyToProceedWithQuit();
+            }
+        } else {
+            // SUKSES JARINGAN (HTTP 200 OK)
+            qDebug() << "Task details submission (HTTP) successful for action:" << action;
+
+            // (Logika parsing Anda sudah benar)
+            QByteArray responseData = reply->readAll();
+            QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
+            if (jsonDoc.isObject() && jsonDoc.object().contains("success") && jsonDoc.object()["success"].toBool() == true) {
+                qDebug() << "Server response (parsed): Success";
+            } else {
+                qDebug() << "Server response (unparsed or failed):" << responseData;
+            }
+
+            // --- INI PERBAIKANNYA ---
+            // 1. Kirim sinyal SUKSES ke dialog (untuk menutup)
+            emit taskDetailsSubmissionSuccess();
+            // 2. Kirim sinyal SUKSES ke Main.qml (untuk notifikasi)
+            emit showNotification("success", "Detail pekerjaan berhasil dikirim!");
+            // ------------------------
+
+            if (action == "quit") {
+                qDebug() << "Submission successful, proceeding to early leave check...";
+                emit readyToProceedWithQuit();
+            }
+            else if (action == "switch") {
+                qWarning() << "Submission successful, proceeding to switch task to:" << nextTaskId;
+                setActiveTask(nextTaskId);
+            }
+        }
+        reply->deleteLater();
+    });
+}
 
 
 // 2. Tambahkan implementasi fungsi utama
 void Logger::checkForUpdates()
 {
     // Ganti dengan versi aplikasi Anda saat ini
-    const QString currentVersion = "1.0.3.0";
+    const QString currentVersion = "1.0.3.1";
 
     // Ganti dengan URL file version.json Anda di GitHub
     QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");
@@ -4194,7 +4353,7 @@ void Logger::checkForUpdates()
     connect(reply, &QNetworkReply::finished, this, [=]() {
         if (reply->error() != QNetworkReply::NoError) {
             QString errorMsg = "Gagal mengecek update: " + reply->errorString();
-            emit showStatusMessage(errorMsg);
+            emit showNotification("error", errorMsg);
             reply->deleteLater();
             return;
         }
@@ -4202,7 +4361,7 @@ void Logger::checkForUpdates()
         QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
         if (!doc.isObject()) {
             qWarning() << "Format JSON update tidak valid.";
-            emit showStatusMessage("Format file update di server tidak valid.");
+            emit showNotification("warning","Format file update di server tidak valid.");
             reply->deleteLater();
             return;
         }
@@ -4214,17 +4373,17 @@ void Logger::checkForUpdates()
         if (serverVersion > currentVersion) {
             QString notes = obj.value("releaseNotes").toString();
 
-        #ifdef Q_OS_MAC
+#ifdef Q_OS_MAC
             // Di macOS: JANGAN munculkan pop-up updateAvailable
             qDebug() << "Update tersedia (macOS, suppressed):" << serverVersion;
             emit showStatusMessage(QStringLiteral("Update %1 tersedia.").arg(serverVersion));
-        #else
+#else
             // Platform lain tetap munculkan pop-up
             emit updateAvailable(serverVersion, notes);
-        #endif
+#endif
         } else {
             qDebug() << "Aplikasi sudah versi terbaru.";
-            emit showStatusMessage("Aplikasi Anda sudah versi terbaru.");
+            emit showNotification("success", "Aplikasi Anda sudah versi terbaru.");
         }
 
         reply->deleteLater();

@@ -47,6 +47,7 @@ template <> constexpr inline auto IdleChecker::qt_create_metaobjectdata<qt_meta_
         "showIdleNotification",
         "message",
         "handleSystemNotification",
+        "hideIdleNotification",
         "checkIdleTime",
         "idleThreshold"
     };
@@ -66,12 +67,14 @@ template <> constexpr inline auto IdleChecker::qt_create_metaobjectdata<qt_meta_
         QtMocHelpers::SignalData<void(const QString &)>(8, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::QString, 7 },
         }}),
+        // Signal 'hideIdleNotification'
+        QtMocHelpers::SignalData<void()>(9, 2, QMC::AccessPublic, QMetaType::Void),
         // Slot 'checkIdleTime'
-        QtMocHelpers::SlotData<void()>(9, 2, QMC::AccessPrivate, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(10, 2, QMC::AccessPrivate, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'idleThreshold'
-        QtMocHelpers::PropertyData<int>(10, QMetaType::Int, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 1),
+        QtMocHelpers::PropertyData<int>(11, QMetaType::Int, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 1),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -97,7 +100,8 @@ void IdleChecker::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id,
         case 1: _t->idleThresholdChanged(); break;
         case 2: _t->showIdleNotification((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
         case 3: _t->handleSystemNotification((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
-        case 4: _t->checkIdleTime(); break;
+        case 4: _t->hideIdleNotification(); break;
+        case 5: _t->checkIdleTime(); break;
         default: ;
         }
     }
@@ -109,6 +113,8 @@ void IdleChecker::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id,
         if (QtMocHelpers::indexOfMethod<void (IdleChecker::*)(QString )>(_a, &IdleChecker::showIdleNotification, 2))
             return;
         if (QtMocHelpers::indexOfMethod<void (IdleChecker::*)(const QString & )>(_a, &IdleChecker::handleSystemNotification, 3))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (IdleChecker::*)()>(_a, &IdleChecker::hideIdleNotification, 4))
             return;
     }
     if (_c == QMetaObject::ReadProperty) {
@@ -146,14 +152,14 @@ int IdleChecker::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 5)
+        if (_id < 6)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 5;
+        _id -= 6;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 5)
+        if (_id < 6)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 5;
+        _id -= 6;
     }
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty
@@ -186,5 +192,11 @@ void IdleChecker::showIdleNotification(QString _t1)
 void IdleChecker::handleSystemNotification(const QString & _t1)
 {
     QMetaObject::activate<void>(this, &staticMetaObject, 3, nullptr, _t1);
+}
+
+// SIGNAL 4
+void IdleChecker::hideIdleNotification()
+{
+    QMetaObject::activate(this, &staticMetaObject, 4, nullptr);
 }
 QT_WARNING_POP

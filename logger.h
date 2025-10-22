@@ -157,7 +157,11 @@ public:
     Q_INVOKABLE QString savedUsername() const;
     Q_INVOKABLE QString savedPassword() const;
 
+    Q_INVOKABLE void submitTaskDetails(int taskId, const QString &details, const QString &action, int nextTaskId = -1);
 
+    Q_INVOKABLE void taskDetailsDialogClosed(const QString &action);
+    Q_INVOKABLE void notify(const QString &type,
+                            const QString &message);
 
 
 public slots:
@@ -175,6 +179,8 @@ public slots:
 
     void startPingTimer();
     // void stopPingTimer();
+
+
 
 
 private slots:
@@ -233,7 +239,19 @@ signals:
     void hidePingErrorDialog();
     void showAuthTokenErrorWindow(const QString &message);
 
+    // Sinyal untuk memicu dialog di QML
+    void requestTaskDetails(int taskId, const QString &action, int nextTaskId);
 
+    // Sinyal untuk memberitahu QML status pengiriman (untuk loading effect)
+    void taskDetailsSubmissionSuccess();
+    void taskDetailsSubmissionFailed(const QString &error);
+
+    void showNotification(const QString &type, const QString &message);
+
+    // Sinyal untuk memberitahu main.cpp agar melanjutkan proses quit
+    void readyToProceedWithQuit();
+
+    void taskDetailsSubmissionFailedWithRetry(const QString &errorMessage, int taskId, const QString &details, const QString &action, int nextTaskId);
 
 private:
     void syncActiveTask();
@@ -298,6 +316,11 @@ private:
         void updateProductivityCache();
 
     QSqlQueryModel* m_logModel;
+
+    void sendTaskDetailsToAPI(int taskId, const QString &details, const QString &action, int nextTaskId);
+
+    int m_pingRetryCount;
+
 #ifdef Q_OS_WIN
     WindowInfo getActiveWindowInfoWindows();
     QString getBrowserUrlWindows(HWND hwnd);
