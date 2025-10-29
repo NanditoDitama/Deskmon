@@ -137,17 +137,10 @@ void IdleChecker::checkIdleTime()
             emit showIdleNotification("Idle Terdeteksi");
             qDebug() << "Sent idle notification: You have been idle";
 
-            // === PERUBAHAN DIMULAI DI SINI ===
-            // Secara otomatis menjeda tugas yang aktif jika pengguna menjadi idle
             if (m_logger && !m_logger->isTaskPaused()) {
                 qDebug() << "Idle state detected. Automatically pausing the active task.";
                 m_logger->toggleTaskPause();
             }
-            // === PERUBAHAN SELESAI ===
-
-            // if (m_logger) {
-            //     m_logger->stopPingTimer();
-            // }
         }
 
         // Log idle every 60 seconds while idle
@@ -167,6 +160,7 @@ void IdleChecker::checkIdleTime()
                 qDebug() << "Logged final idle period, ended at:" << QDateTime::fromSecsSinceEpoch(currentTime).toString();
             }
 
+            emit hideIdleNotification();
 
             // Secara otomatis melanjutkan kembali task yang sebelumnya dijeda karena idle
             if (m_logger->isTaskPaused()) {

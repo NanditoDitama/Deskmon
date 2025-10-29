@@ -180,7 +180,7 @@ Item {
                                 ColorAnimation { duration: 200 }
                             }
                         }
-                        onAccepted: loginButton.clicked()
+                        onAccepted: if (!loginPageRoot.isLoading) loginButton.clicked()
                     }
                 }
 
@@ -227,7 +227,7 @@ Item {
                                     ColorAnimation { duration: 200 }
                                 }
                             }
-                            onAccepted: loginButton.clicked()
+                            onAccepted: if (!loginPageRoot.isLoading) loginButton.clicked()
                         }
 
                         Button {
@@ -242,6 +242,7 @@ Item {
                             anchors.rightMargin: 8
                             anchors.verticalCenter: passwordField.verticalCenter
                             flat: true
+                            enabled: !loginPageRoot.isLoading
                             onClicked: showPassword = !showPassword
                             background: Rectangle {
                                 color: "transparent"
@@ -251,6 +252,7 @@ Item {
                             MouseArea {
                                 anchors.fill: parent
                                 hoverEnabled: true
+                                enabled: !loginPageRoot.isLoading
                                 onEntered: parent.background.color = isDarkMode ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(1, 1, 1, 0.1)
                                 onExited: parent.background.color = "transparent"
                                 onClicked: showPassword = !showPassword
@@ -259,10 +261,11 @@ Item {
                     }
                 }
 
-                // Login button dengan design modern
+                // Login button dengan design modern dan loading state
                 Button {
                     id: loginButton
-                    text: "Sign In"
+                    text: loginPageRoot.isLoading ? "" : "Sign In"
+                    enabled: !loginPageRoot.isLoading
                     Layout.fillWidth: true
                     Layout.preferredHeight: 54
                     font.pixelSize: 16
@@ -272,14 +275,15 @@ Item {
                     background: Rectangle {
                         radius: 12
                         gradient: Gradient {
-                            GradientStop { position: 0.0; color: primaryColor }
-                            GradientStop { position: 1.0; color: secondaryColor }
+                            GradientStop { position: 0.0; color: loginPageRoot.isLoading ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.7) : primaryColor }
+                            GradientStop { position: 1.0; color: loginPageRoot.isLoading ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.7) : primaryColor }
                         }
 
                         // Hover effect
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
+                            enabled: !loginPageRoot.isLoading
                             onEntered: parent.color = Qt.darker(parent.color, 1.1)
                             onExited: parent.color = Qt.lighter(parent.color, 1.1)
                             onClicked: loginButton.clicked()
@@ -290,54 +294,127 @@ Item {
                         Behavior on scale {
                             NumberAnimation { duration: 100 }
                         }
+
+                        Behavior on gradient {
+                            ColorAnimation { duration: 200 }
+                        }
                     }
 
-                    contentItem: Text {
-                        text: loginButton.text
-                        font: loginButton.font
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
+                    contentItem: Item {
+                        anchors.fill: parent
+
+                        // Loading spinner
+                        BusyIndicator {
+                            id: loadingSpinner
+                            anchors.centerIn: parent
+                            width: 24
+                            height: 24
+                            running: loginPageRoot.isLoading
+                            visible: loginPageRoot.isLoading
+
+                            contentItem: Item {
+                                width: 24
+                                height: 24
+
+                                Rectangle {
+                                    width: 24
+                                    height: 24
+                                    radius: 12
+                                    color: "transparent"
+                                    border.width: 3
+                                    border.color: "white"
+                                    opacity: 0.3
+                                }
+
+                                Rectangle {
+                                    width: 24
+                                    height: 24
+                                    radius: 12
+                                    color: "transparent"
+                                    border.width: 3
+                                    border.color: "transparent"
+
+                                    Rectangle {
+                                        width: parent.width / 2
+                                        height: 3
+                                        color: "white"
+                                        radius: 1.5
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: parent.width / 2
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    RotationAnimator on rotation {
+                                        running: loginPageRoot.isLoading
+                                        from: 0
+                                        to: 360
+                                        duration: 1000
+                                        loops: Animation.Infinite
+                                    }
+                                }
+                            }
+                        }
+
+                        // Button text
+                        Text {
+                            text: loginButton.text
+                            font: loginButton.font
+                            color: "white"
+                            anchors.centerIn: parent
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            visible: !loginPageRoot.isLoading
+                        }
                     }
 
                     onClicked: {
+                        if (loginPageRoot.isLoading) return
+
                         error_Label.text = ""
-                        var result = logger.authenticate(usernameField.text, passwordField.text)
-                        if (result === "") {
-                            console.log("Login successful")
-                            loginPageRoot.isLoading = false;
+                        loginPageRoot.isLoading = true
 
-                            isLoggedIn = true
-                            currentUsername = logger.currentUsername
-                            console.log("Current username from logger:", currentUsername)
-                            console.log("Current email from logger:", logger.currentUserEmail)
+                        // Simulate network delay for smooth UX
+                        Qt.callLater(function() {
+                            var result = logger.authenticate(usernameField.text, passwordField.text)
 
-                            tempUsername = currentUsername
-                            tempPassword = ""
-                            tempDepartment = logger.getUserDepartment(currentUsername)
+                            if (result === "") {
+                                console.log("Login successful")
+                                loginPageRoot.isLoading = false
+                                isLoggedIn = true
+                                currentUsername = logger.currentUsername
+                                console.log("Current username from logger:", currentUsername)
+                                console.log("Current email from logger:", logger.currentUserEmail)
 
-                            console.log("Username:", currentUsername)
-                            console.log("Email:", logger.getUserEmail(currentUsername))
-                            console.log("Department:", tempDepartment)
+                                tempUsername = currentUsername
+                                tempPassword = ""
+                                tempDepartment = logger.getUserDepartment(currentUsername)
 
-                            var savedImagePath = logger.getProfileImagePath(currentUsername)
-                            profileImagePath = savedImagePath !== "" ? savedImagePath + "?t=" + new Date().getTime() : ":/profilImage.png"
-                            refreshProfileImage()
+                                console.log("Username:", currentUsername)
+                                console.log("Email:", logger.getUserEmail(currentUsername))
+                                console.log("Department:", tempDepartment)
 
-                            var today = new Date()
-                            startSelectedDate = today
-                            endSelectedDate = today
-                            isDateSelected = true
-                            applyDateRange()
+                                var savedImagePath = logger.getProfileImagePath(currentUsername)
+                                profileImagePath = savedImagePath !== "" ? savedImagePath + "?t=" + new Date().getTime() : ":/profilImage.png"
+                                refreshProfileImage()
 
-                            usernameField.text = ""
-                            passwordField.text = ""
-                            error_Label.text = ""
+                                var today = new Date()
+                                startSelectedDate = today
+                                endSelectedDate = today
+                                isDateSelected = true
+                                applyDateRange()
 
-                        } else {
-                            console.log("Login failed:", result)
-                            error_Label.text = result
-                        }
+                                usernameField.text = ""
+                                passwordField.text = ""
+                                error_Label.text = ""
+
+
+
+                            } else {
+                                console.log("Login failed:", result)
+                                error_Label.text = result
+                                loginPageRoot.isLoading = false
+                            }
+                        })
                     }
                 }
 
@@ -363,22 +440,6 @@ Item {
             Item {
                 Layout.fillHeight: true
             }
-        }
-
-        Rectangle {
-            id: loadingOverlay
-            anchors.fill: parent
-            radius: parent.radius
-            color: Qt.rgba(0, 0, 0, 0.4)
-            visible: loginPageRoot.isLoading
-            z: 99 // Ensure it's on top of other elements inside the card
-
-            BusyIndicator {
-                anchors.centerIn: parent
-                running: loginPageRoot.isLoading
-            }
-
-            Behavior on visible { NumberAnimation { duration: 300 } }
         }
 
         function refreshProfileImage() {

@@ -20,6 +20,8 @@ signals:
     void idleThresholdChanged();
     void showIdleNotification(QString message);
     void handleSystemNotification(const QString &message);
+
+    void hideIdleNotification();
 private slots:
     void checkIdleTime();
 private:

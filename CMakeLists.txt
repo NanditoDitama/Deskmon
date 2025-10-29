@@ -148,8 +148,8 @@ qt_add_executable(Deskmon
 qt_add_qml_module(Deskmon
     URI window_logger
     VERSION 1.0
-    QML_FILES 
-        ${QML_FILES}
+    QML_FILES
+        Main.qml
         Pop_up_waktuhabis.qml
         Login_page.qml
         Profil_page.qml
@@ -162,6 +162,9 @@ qt_add_qml_module(Deskmon
         RequstAppPending.qml
         DateRange.qml
         EarlyLeaveDialog.qml
+        TaskDetailsDialog.qml
+        FailureDialog.qml
+        QML_FILES NeedReviewDialog.qml
 )
 
 # Menambahkan resource file jika diperlukan

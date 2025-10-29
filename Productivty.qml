@@ -10,6 +10,104 @@ import QtQuick.Effects
 Item {
     anchors.fill: parent
 
+    property string clockIn: "--:--"
+    property string clockOut: "--:--"
+
+    property int userId: logger.currentUserId
+
+    function fetchClockData() {
+        // Cek pengaman (guard condition)
+        if (userId <= 0 || typeof logger.authToken === "undefined" || logger.authToken === "") {
+            console.log("fetchClockData: Guard check failed. User ID or Token not ready.");
+            return;
+        }
+
+        console.log("fetchClockData: Attempting to fetch from API...");
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status === 200) {
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        if (response.success) {
+                            console.log("fetchClockData: Success.", response);
+                            clockIn = response.clock_in || "--:--";
+                            // --- PERBAIKAN LOGIKA ---
+                            // Jika clock_out null/kosong, tampilkan "Online"
+                            clockOut = response.clock_out || "Online";
+                        } else {
+                            console.log("fetchClockData: API Error:", response.message || "Unknown error");
+                            clockOut = "Error"; // <-- TAMBAHAN 1: API Error
+                        }
+                    } catch (e) {
+                        console.error("fetchClockData: Error parsing JSON:", e, xhr.responseText);
+                        clockOut = "Error"; // <-- TAMBAHAN 2: JSON Error
+                    }
+                } else {
+                    // Ini adalah permintaan Anda (Koneksi gagal)
+                    console.log("fetchClockData: Network error. Status:", xhr.status, xhr.statusText);
+                    clockOut = "Error"; // <-- TAMBAHAN 3: Network Error
+                }
+            }
+        }
+
+        xhr.open("GET", "https://deskmon.pranala-dt.co.id/api/get-check-in/" + userId);
+
+        // PENTING: Tambahkan header Authorization
+        xhr.setRequestHeader("Authorization", "Bearer " + logger.authToken);
+
+        xhr.send();
+    }
+
+    // FUNGSI 2: Untuk mengecek dan memulai timer
+    // Ini adalah fungsi yang seharusnya dipanggil oleh Connections
+    function checkAndFetchClockData() {
+        // Cek jika KEDUA data siap dan timer belum jalan
+        if (logger.currentUserId > 0 && logger.authToken !== "" && !clockRefreshTimer.running) {
+
+            console.log("checkAndFetchClockData: User AND Token are ready. Starting timer...");
+            fetchClockData(); // Panggil pertama kali
+            clockRefreshTimer.start(); // Mulai timer
+        } else {
+            console.log("checkAndFetchClockData: Conditions not met. Waiting... (UserID: " + logger.currentUserId + ", Token Ready: " + (logger.authToken !== "") + ", Timer Running: " + clockRefreshTimer.running + ")");
+        }
+    }
+
+    // TIMER: Dibuat tidak berjalan saat awal
+    Timer {
+        id: clockRefreshTimer
+        interval: 30000  // 1 menit
+        repeat: true
+        running: false // PENTING: Awalnya false
+        onTriggered: fetchClockData() // Timer hanya memanggil fetchClockData
+    }
+
+    // CONNECTIONS: Menunggu C++ siap
+    Connections {
+        target: logger
+
+        // Sinyal 1: Saat User ID berubah
+        function onCurrentUserIdChanged() {
+            console.log("Connections: onCurrentUserIdChanged detected. ID:", logger.currentUserId);
+            if (logger.currentUserId <= 0) { // Handle logout
+                console.log("Connections: User logged out. Stopping clock timer.");
+                clockRefreshTimer.stop();
+                clockIn = "--:--";
+                clockOut = "--:--";
+            } else {
+                // Coba cek, mungkin token sudah siap
+                checkAndFetchClockData();
+            }
+        }
+
+        // Sinyal 2: Saat Auth Token berubah
+        function onAuthTokenChanged() {
+            console.log("Connections: onAuthTokenChanged detected. Token is ready.");
+            // Coba cek, mungkin ID sudah siap
+            checkAndFetchClockData();
+        }
+    }
+
 
 
     RowLayout {
@@ -813,6 +911,7 @@ Item {
                     productivityCanvas.glowIntensity = 0
                     productivityCanvas.rotationOffset = 0
                     productivityCanvas.requestPaint()
+
                 }
 
                 // Enhanced animation with multiple effects
@@ -973,18 +1072,6 @@ Item {
                     Layout.fillHeight: true
                     Layout.preferredWidth: 180
 
-                    // Legend Title
-                    Label {
-                        text: "Time Distribution"
-                        font {
-                            pixelSize: 14
-                            weight: Font.DemiBold
-                            capitalization: Font.AllUppercase
-                        }
-                        color: Qt.darker(textColor, 1.3)
-                        Layout.bottomMargin: 8
-                    }
-
                     // Productive
                     RowLayout {
                         spacing: 10
@@ -1052,13 +1139,13 @@ Item {
 
                     // ** NEW: Idle Legend Item **
                     RowLayout {
-                        visible: idlePercent.value > 0 // Only show if there's idle time
+                        visible: idlePercent.value > 0
                         spacing: 10
                         Rectangle {
                             implicitWidth: 16
                             implicitHeight: 16
                             radius: 4
-                            color: "#f1c40f" // Yellow color
+                            color: "#f1c40f"
                             border {
                                 width: 1
                                 color: Qt.darker("#f1c40f", 1.2)
@@ -1079,9 +1166,10 @@ Item {
                                 pixelSize: 13
                                 weight: Font.DemiBold
                             }
-                            color: "#f1c40f" // Yellow color
+                            color: "#f1c40f"
                         }
                     }
+
                     // Neutral
                     RowLayout {
                         spacing: 10
@@ -1114,7 +1202,7 @@ Item {
                         }
                     }
 
-                    // Optional: Add subtle divider
+                    // Divider
                     Rectangle {
                         Layout.topMargin: 8
                         Layout.fillWidth: true
@@ -1122,143 +1210,336 @@ Item {
                         color: dividerColor
                     }
 
-                    // Timer Display
-                    ColumnLayout {
-                        spacing: 8
+                    // Ultra Modern Compact Work Timer
+                    Rectangle {
                         Layout.fillWidth: true
+                        Layout.preferredHeight: 90
+                        radius: 10
+                        color: Qt.rgba(cardColor.r, cardColor.g, cardColor.b, 0.03)
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 20
+                        ColumnLayout {
+                            anchors.fill: parent
 
-                            Label {
-                                text: "Time at Work"
-                                font.pixelSize: 14
-                                font.weight: Font.Medium
-                                color: primaryColor
-                            }
-
-                            Item { Layout.fillWidth: true }
-
-                            Label {
-                                text: Math.round(workTimer.getProgress() * 100) + "%"
-                                font.pixelSize: 14
-                                font.weight: Font.Bold
-                                color: workTimer.elapsedSeconds >= 32400 ? "#27ae60" : "#e74c3c"
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing : 10
-
-                            Label {
-                                text: workTimer.getFormattedElapsed()
-                                font.pixelSize: 10
-                                font.weight: Font.Medium
-                                color: workTimer.elapsedSeconds >= 28800 ? "#27ae60" : lightTextColor
-                            }
-
-                            Rectangle {
+                            // Header dengan elapsed time
+                            RowLayout {
                                 Layout.fillWidth: true
-                                height: 6
-                                radius: 3
-                                color: Qt.rgba(0, 0, 0, 0.1)
+                                spacing: 5
 
                                 Rectangle {
-                                    width: parent.width * workTimer.getProgress()
-                                    height: parent.height
-                                    radius: 3
+                                    width: 3
+                                    height: 14
+                                    radius: 1.5
                                     color: primaryColor
-                                    Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                                }
+
+                                Label {
+                                    text: "Time At Work"
+                                    font {
+                                        pixelSize: 11
+                                        weight: Font.DemiBold
+                                        letterSpacing: 0.3
+                                    }
+                                    color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.9)
+                                }
+
+                            }
+
+
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+
+                                    // Elapsed Time (prominent) - dipindahkan ke sini
+                                    Label {
+                                        text: workTimer.getFormattedElapsed()
+                                        font {
+                                            pixelSize: 15
+                                            weight: Font.Bold
+                                            letterSpacing: 1
+                                            family: "Consolas, Monaco, monospace"
+                                        }
+                                        color: workTimer.elapsedSeconds >= 28800 ? "#27ae60" : Qt.rgba(textColor.r, textColor.g, textColor.b, 0.9)
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+
+
+                                    // Percentage badge - dipindahkan ke sini
+                                    Rectangle {
+                                        Layout.preferredWidth: 50
+                                        Layout.preferredHeight: 18
+                                        radius: 6
+                                        color: workTimer.elapsedSeconds >= 32400 ?
+                                                   Qt.rgba(0.15, 0.68, 0.38, 0.12) :
+                                                   Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.08)
+                                        border.width: 1
+                                        border.color: workTimer.elapsedSeconds >= 32400 ?
+                                                          Qt.rgba(0.15, 0.68, 0.38, 0.25) :
+                                                          Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.2)
+
+                                        Label {
+                                            anchors.centerIn: parent
+                                            text: Math.round(workTimer.getProgress() * 100) + "%"
+                                            font {
+                                                pixelSize: 10
+                                                weight: Font.Bold
+                                            }
+                                            color: workTimer.elapsedSeconds >= 32400 ? "#27ae60" : primaryColor
+                                        }
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+                                }
+
+
+                            // Clock In/Out row di bawah
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+
+                                // Clock In
+                                Rectangle {
+                                    Layout.preferredWidth: 60
+                                    Layout.preferredHeight: 24
+                                    radius: 6
+                                    color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.06)
+                                    border.width: 1
+                                    border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.15)
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 8
+                                        spacing: 4
+
+                                        // Icon
+                                        Label {
+                                            text: "↓"
+                                            font.pixelSize: 10
+                                            color: primaryColor
+                                            rotation: 45
+                                        }
+
+                                        Label {
+                                            text: clockIn
+                                            font {
+                                                pixelSize: 10
+                                                weight: Font.Bold
+                                                family: "Consolas, Monaco, monospace"
+                                            }
+                                            color: primaryColor
+                                            Layout.fillWidth: true
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: clockInArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                    }
+
+                                    ToolTip.visible: clockInArea.containsMouse
+                                    ToolTip.text: {
+                                        if (clockIn === "--:--") {
+                                            return "Menunggu data jam masuk...";
+                                        } else {
+                                            return "Anda tercatat masuk pada jam " + clockIn;
+                                        }
+                                    }
+                                }
+
+
+                                Item { Layout.fillWidth: true }
+
+                                // Target label
+                                Label {
+                                    text: "Target: 9h"
+                                    font {
+                                        pixelSize: 9
+                                        weight: Font.Medium
+                                        letterSpacing: 0.1
+                                    }
+                                    color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.5)
+                                    visible: window.width >= 1300  // Sembunyikan saat window width < 950
+                                }
+
+                                Item { Layout.fillWidth: true }
+
+                                // Clock Out
+                                Rectangle {
+                                    Layout.preferredWidth: clockOut === "Online" ? 65 : 60
+                                    Layout.preferredHeight: 24
+                                    radius: 6
+                                    color: clockOut === "Online" ?
+                                               Qt.rgba(0.15, 0.68, 0.38, 0.08) :
+                                               Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.06)
+                                    border.width: 1
+                                    border.color: clockOut === "Online" ?
+                                                      Qt.rgba(0.15, 0.68, 0.38, 0.2) :
+                                                      Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.15)
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 8
+                                        spacing: 4
+
+                                        // Pulse indicator untuk online
+                                        Rectangle {
+                                            visible: clockOut === "Online"
+                                            width: 5
+                                            height: 5
+                                            radius: 2.5
+                                            color: "#27ae60"
+
+                                            SequentialAnimation on opacity {
+                                                running: clockOut === "Online"
+                                                loops: Animation.Infinite
+                                                NumberAnimation { from: 1; to: 0.3; duration: 800; easing.type: Easing.InOutSine }
+                                                NumberAnimation { from: 0.3; to: 1; duration: 800; easing.type: Easing.InOutSine }
+                                            }
+
+                                            // Ring effect
+                                            Rectangle {
+                                                anchors.centerIn: parent
+                                                width: parent.width + 4
+                                                height: parent.height + 4
+                                                radius: width/2
+                                                color: "transparent"
+                                                border.width: 1
+                                                border.color: "#27ae60"
+                                                opacity: 0
+
+                                                SequentialAnimation on opacity {
+                                                    running: clockOut === "Online"
+                                                    loops: Animation.Infinite
+                                                    NumberAnimation { from: 0.6; to: 0; duration: 1200; easing.type: Easing.OutCubic }
+                                                }
+
+                                                SequentialAnimation on scale {
+                                                    running: clockOut === "Online"
+                                                    loops: Animation.Infinite
+                                                    NumberAnimation { from: 0.8; to: 1.4; duration: 1200; easing.type: Easing.OutCubic }
+                                                }
+                                            }
+                                        }
+
+                                        Label {
+                                            text: clockOut === "Online" ? "Online" : clockOut
+                                            font {
+                                                pixelSize: 10
+                                                weight: Font.Bold
+                                                family: clockOut === "Online" ? "Segoe UI" : "Consolas, Monaco, monospace"
+                                            }
+                                            color: clockOut === "Online" ? "#27ae60" : primaryColor
+                                            Layout.fillWidth: true
+                                        }
+
+                                        // Icon untuk clock out
+                                        Label {
+                                            visible: clockOut !== "Online" && clockOut !== "--:--" && clockOut !== "Error"
+                                            text: "↑"
+                                            font.pixelSize: 10
+                                            color: primaryColor
+                                            rotation: 45
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: clockOutArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                    }
+
+                                    ToolTip.visible: clockOutArea.containsMouse
+                                    ToolTip.text: {
+                                        if (clockOut === "Online") {
+                                            return "Anda sedang dalam jam kerja";
+                                        } else if (clockOut === "Error") {
+                                            return "Koneksi gagal, tidak bisa mengambil data";
+                                        } else if (clockOut === "--:--") {
+                                            return "Menunggu data jam keluar...";
+                                        } else {
+                                            return "Anda tercatat keluar pada jam " + clockOut;
+                                        }
+                                    }
                                 }
                             }
-
-                            Label {
-                                text: "9h"
-                                font.pixelSize: 10
-                                font.weight: Font.Medium
-                                color: lightTextColor
-                            }
                         }
                     }
+                }
 
+                // Ganti QtObject dengan id workTimer yang ada
+                QtObject {
+                    id: workTimer
 
+                    property int elapsedSeconds: logger.workTimeElapsedSeconds
+                    property int totalWorkSeconds: 32400 // 9 jam dalam detik (9 * 3600)
 
-                    // Ganti QtObject dengan id workTimer yang ada
-                    QtObject {
-                        id: workTimer
-
-                        property int elapsedSeconds: logger.workTimeElapsedSeconds
-                        property int totalWorkSeconds: 32400 // 9 jam dalam detik (9 * 3600)
-
-                        // Fungsi yang diubah untuk format "jam dan menit"
-                        function getFormattedElapsed() {
-                            if (elapsedSeconds < 0) return "0h 0m";
-                            var hours = Math.floor(elapsedSeconds / 3600);
-                            var minutes = Math.floor((elapsedSeconds % 3600) / 60);
-                            return hours + "h " + minutes + "m";
-                        }
-
-                        function getProgress() {
-                            return Math.min(1.0, elapsedSeconds / totalWorkSeconds)
-                        }
+                    // Fungsi yang diubah untuk format "jam dan menit"
+                    function getFormattedElapsed() {
+                        if (elapsedSeconds < 0) return "0h 0m";
+                        var hours = Math.floor(elapsedSeconds / 3600);
+                        var minutes = Math.floor((elapsedSeconds % 3600) / 60);
+                        return hours + "h " + minutes + "m";
                     }
 
-                    Connections {
-                        target: logger
-                        function onWorkTimeElapsedSecondsChanged() {
-                            workTimer.elapsedSeconds = logger.workTimeElapsedSeconds
-                        }
+                    function getProgress() {
+                        return Math.min(1.0, elapsedSeconds / totalWorkSeconds)
                     }
-
-
                 }
-            }
 
-
-            // Keep these for the legend display
-            Label {
-                id: productivePercent
-                visible: false
-                property real value: 0
-
-                NumberAnimation on value {
-                    id: productivePercentAnim
-                    duration: 1000
-                    easing.type: Easing.OutCubic
+                Connections {
+                    target: logger
+                    function onWorkTimeElapsedSecondsChanged() {
+                        workTimer.elapsedSeconds = logger.workTimeElapsedSeconds
+                    }
                 }
+
+
             }
+        }
 
-            Label {
-                id: nonProductivePercent
-                visible: false
-                property real value: 0
 
-                NumberAnimation on value {
-                    id: nonProductivePercentAnim
-                    duration: 1000
-                    easing.type: Easing.OutCubic
-                }
+        // Keep these for the legend display
+        Label {
+            id: productivePercent
+            visible: false
+            property real value: 0
+
+            NumberAnimation on value {
+                id: productivePercentAnim
+                duration: 1000
+                easing.type: Easing.OutCubic
             }
-            Label {
-                id: idlePercent
-                visible: false
-                property real value: 0
+        }
+
+        Label {
+            id: nonProductivePercent
+            visible: false
+            property real value: 0
+
+            NumberAnimation on value {
+                id: nonProductivePercentAnim
+                duration: 1000
+                easing.type: Easing.OutCubic
             }
+        }
+        Label {
+            id: idlePercent
+            visible: false
+            property real value: 0
+        }
 
-            Label {
-                id: neutralPercent
-                visible: false
-                property real value: 0
+        Label {
+            id: neutralPercent
+            visible: false
+            property real value: 0
 
-                NumberAnimation on value {
-                    id: neutralPercentAnim
-                    duration: 1000
-                    easing.type: Easing.OutCubic
-                }
+            NumberAnimation on value {
+                id: neutralPercentAnim
+                duration: 1000
+                easing.type: Easing.OutCubic
             }
         }
     }
-
 }
