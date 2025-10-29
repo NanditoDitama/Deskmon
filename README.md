@@ -35,7 +35,7 @@ After a successful build, you can run the application with the following command
 
 ```bash
 cd build
-cd /Users/nielio/Documents/GitHub/Deskmon/build
+cd /Users/nielio/Documents/GitHub/Pranala/Deskmon/build
 ./Deskmon.app/Contents/MacOS/Deskmon --show
 ```
 
