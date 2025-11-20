@@ -1259,7 +1259,7 @@ Item {
                                             letterSpacing: 1
                                             family: "Consolas, Monaco, monospace"
                                         }
-                                        color: workTimer.elapsedSeconds >= 28800 ? "#27ae60" : Qt.rgba(textColor.r, textColor.g, textColor.b, 0.9)
+                                        color: workTimer.elapsedSeconds >= 33120 ? "#27ae60" : Qt.rgba(textColor.r, textColor.g, textColor.b, 0.9)
                                         Layout.alignment: Qt.AlignVCenter
                                     }
 
@@ -1473,7 +1473,7 @@ Item {
                     id: workTimer
 
                     property int elapsedSeconds: logger.workTimeElapsedSeconds
-                    property int totalWorkSeconds: 32400 // 9 jam dalam detik (9 * 3600)
+                    property int totalWorkSeconds: 33120 // 9 jam dalam detik (9 * 3600)
 
                     // Fungsi yang diubah untuk format "jam dan menit"
                     function getFormattedElapsed() {

@@ -4242,6 +4242,9 @@ void Logger::taskDetailsDialogClosed(const QString &action)
         // Jika sedang dalam proses QUIT, maka LANJUTKAN ke dialog early leave
         qDebug() << "Dialog details canceled during QUIT action. Proceeding to early leave check...";
         emit readyToProceedWithQuit();
+    } else if (action == "logout") {
+        qDebug() << "Dialog details canceled/skipped during LOGOUT. Proceeding to logout...";
+        emit readyToProceedWithLogout();
     } else if (action == "switch") {
         // Jika hanya sedang PINDAH TASK, maka BATALKAN proses
         qDebug() << "Dialog details canceled during SWITCH action. Task switch aborted.";
@@ -4330,6 +4333,10 @@ void Logger::sendTaskDetailsToAPI(int taskId, const QString &details, const QStr
                 qWarning() << "Submission successful, proceeding to switch task to:" << nextTaskId;
                 setActiveTask(nextTaskId);
             }
+            else if (action == "logout") {
+                qDebug() << "Submission successful, proceeding to logout...";
+                emit readyToProceedWithLogout();
+            }
         }
         reply->deleteLater();
     });
@@ -4340,7 +4347,7 @@ void Logger::sendTaskDetailsToAPI(int taskId, const QString &details, const QStr
 void Logger::checkForUpdates()
 {
     // Ganti dengan versi aplikasi Anda saat ini
-    const QString currentVersion = "1.0.3.1";
+    const QString currentVersion = "1.0.3.2";
 
     // Ganti dengan URL file version.json Anda di GitHub
     QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");

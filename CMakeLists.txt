@@ -146,6 +146,7 @@ qt_add_qml_module(Deskmon
         TaskDetailsDialog.qml
         FailureDialog.qml
         QML_FILES NeedReviewDialog.qml
+        RESOURCES ../../../Downloads/dm.png
 )
 
 # Menambahkan resource file jika diperlukan
@@ -157,6 +158,7 @@ qt_add_resources(Deskmon "resources"
         play_icon_app.png
         pause_icon_app.png
         profilImage.png
+        icons/dm.png
         icons/arrow_back.svg
         icons/camera.svg
         icons/edit.svg

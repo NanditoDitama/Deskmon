@@ -13,7 +13,7 @@ Window {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 700
-    property string appVersion: "1.0.3.1"
+    property string appVersion: "1.0.3.2"
     color: cardColor
 
 
@@ -60,10 +60,10 @@ Window {
         radius: 12
         color: {
             switch(ntype) {
-                case "success": return cardColor
-                case "warning": return cardColor
-                case "error": return cardColor
-                default: return cardColor
+            case "success": return cardColor
+            case "warning": return cardColor
+            case "error": return cardColor
+            default: return cardColor
             }
         }
 
@@ -71,10 +71,10 @@ Window {
         border.width: 1.5
         border.color: {
             switch(ntype) {
-                case "success": return primaryColor
-                case "warning": return "#F59E0B20"
-                case "error": return "#EF444420"
-                default: return "#E5E7EB"
+            case "success": return primaryColor
+            case "warning": return "#F59E0B20"
+            case "error": return "#EF444420"
+            default: return "#E5E7EB"
             }
         }
 
@@ -118,10 +118,10 @@ Window {
                 radius: 8
                 color: {
                     switch(notification.ntype) {
-                        case "success": return "#10B98110"
-                        case "warning": return "#F59E0B10"
-                        case "error": return "#EF444410"
-                        default: return "#F3F4F6"
+                    case "success": return "#10B98110"
+                    case "warning": return "#F59E0B10"
+                    case "error": return "#EF444410"
+                    default: return "#F3F4F6"
                     }
                 }
 
@@ -131,10 +131,10 @@ Window {
                     height: 20
                     source: {
                         switch(notification.ntype) {
-                            case "success": return notification.successIcon
-                            case "warning": return notification.warningIcon
-                            case "error": return notification.errorIcon
-                            default: return notification.successIcon
+                        case "success": return notification.successIcon
+                        case "warning": return notification.warningIcon
+                        case "error": return notification.errorIcon
+                        default: return notification.successIcon
                         }
                     }
                     smooth: true
@@ -201,10 +201,10 @@ Window {
             width: parent.width - 3
             color: {
                 switch(notification.ntype) {
-                    case "success": return primaryColor
-                    case "warning": return "#F59E0B"
-                    case "error": return "#EF4444"
-                    default: return "#10B981"
+                case "success": return primaryColor
+                case "warning": return "#F59E0B"
+                case "error": return "#EF4444"
+                default: return "#10B981"
                 }
             }
             opacity: 0.4
@@ -606,7 +606,7 @@ Window {
     }
 
     function extractDomain(urlString) {
-       if (!urlString || urlString.trim() === "") {
+        if (!urlString || urlString.trim() === "") {
             return "";
         }
         try {
@@ -1090,7 +1090,7 @@ Window {
                         background: Rectangle {
                             radius: 8
                             color: btnResume.pressed ? Qt.darker(primaryColor, 1.1) :
-                                   btnResume.hovered ? Qt.lighter(primaryColor, 1.05) : primaryColor
+                                                       btnResume.hovered ? Qt.lighter(primaryColor, 1.05) : primaryColor
                             border.width: 0
 
                             Behavior on color { ColorAnimation { duration: 150 } }
@@ -1148,7 +1148,7 @@ Window {
         }
         function onHideIdleNotification() {
             showIdleNotification = false
-    }
+        }
     }
 
     // Fungsi untuk system tray notification
@@ -1282,7 +1282,7 @@ Window {
 
                     Button {
                         id: okButton
-                        text: "Kembali ke Login"
+                        text: "Kembali ke halaman Login"
 
                         leftPadding: 24
                         rightPadding: 24
@@ -1369,9 +1369,36 @@ Window {
             if (idleNotificationWindow.visible) {
                 idleNotificationWindow.close()
             }
-            // Tampilkan dialog error sesi berakhir
-            authErrorText.text = message
-            authErrorWindow.visible = true
+            if (isLoggedIn) {
+                console.log("Token expired, showing auth error window.")
+                authErrorText.text = message
+                authErrorWindow.visible = true
+                authErrorWindow.raise()
+            } else {
+                console.log("Ignored auth token error because user is already logged out.")
+            }
+        }
+        function onReadyToProceedWithLogout() {
+            console.log("Processing logout cleanup...")
+
+            // Tutup paksa window error jika sedang terbuka
+            taskDetailsDialog.close()
+            taskDetailsDialog.visible = false
+            authErrorWindow.visible = false
+            authErrorWindow.close()
+
+
+            // Lakukan logout sistemlogoutBtn
+            logger.logout()
+
+            // Ubah state UI ke halaman Login
+            isLoggedIn = false // <- Ini yang akan mencegah pop-up muncul berkat pengecekan di atas
+
+            // Reset UI lainnya...
+            currentUsername = ""
+            profileImagePath = ":/profilImage.png"
+            showRegisterPage = false
+            logger.clearLogFilter()
         }
     }
 
@@ -1551,7 +1578,7 @@ Window {
                         background: Rectangle {
                             radius: 8
                             color: okButton1.pressed ? Qt.darker(primaryColor, 1.1) :
-                                   okButton1.hovered ? Qt.lighter(primaryColor, 1.05) : primaryColor
+                                                       okButton1.hovered ? Qt.lighter(primaryColor, 1.05) : primaryColor
                             border.width: 0
 
                             Behavior on color { ColorAnimation { duration: 150 } }
@@ -1653,25 +1680,25 @@ Window {
         visible: isLoggedIn && !isProfileVisible
 
         onVisibleChanged: {
-                if (visible) { // Pastikan kode hanya berjalan saat dashboard menjadi terlihat
-                    console.log("Dashboard is now visible. Resetting date range to today.");
-                    var today = new Date();
-                    startSelectedDate = today;
-                    endSelectedDate = today;
-                    isDateSelected = true;
-                    applyDateRange();
-                }
-            }
-
-            // Component.onCompleted bisa tetap ada untuk memastikan tanggal diatur pada pemuatan pertama kali
-            Component.onCompleted: {
-                console.log("Dashboard component completed. Setting date range to today.");
+            if (visible) { // Pastikan kode hanya berjalan saat dashboard menjadi terlihat
+                console.log("Dashboard is now visible. Resetting date range to today.");
                 var today = new Date();
                 startSelectedDate = today;
                 endSelectedDate = today;
                 isDateSelected = true;
                 applyDateRange();
             }
+        }
+
+        // Component.onCompleted bisa tetap ada untuk memastikan tanggal diatur pada pemuatan pertama kali
+        Component.onCompleted: {
+            console.log("Dashboard component completed. Setting date range to today.");
+            var today = new Date();
+            startSelectedDate = today;
+            endSelectedDate = today;
+            isDateSelected = true;
+            applyDateRange();
+        }
 
         ColumnLayout {
             anchors.fill: parent
@@ -1866,14 +1893,15 @@ Window {
                             }
 
                             onClicked: {
-                                logger.logout(); // Call the new logout function
-                                isLoggedIn = false
-                                currentUsername = ""
-                                sortedApps = []
-                                logger.clearLogFilter()
-                                profileImagePath = ":/profilImage.png"
-                                authErrorWindow.close()
-                            }
+                                    if (logger.activeTaskId && logger.activeTaskId > 0) {
+                                        console.log("Task aktif terdeteksi (ID: " + logger.activeTaskId + "). Membuka dialog detail.");
+                                        taskDetailsDialog.show(logger.activeTaskId, "logout", -1);
+
+                                    } else {
+                                        console.log("Tidak ada task aktif. Langsung logout.");
+                                        logger.taskDetailsDialogClosed("logout");
+                                    }
+                                }
                         }
 
                         Button {
@@ -2503,7 +2531,7 @@ Window {
                                     background: Rectangle {
                                         radius: 8
                                         color: cancelButton.pressed ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.08) :
-                                               cancelButton.hovered ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.04) : "transparent"
+                                                                      cancelButton.hovered ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.04) : "transparent"
                                         border.width: 1
                                         border.color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.15)
 
@@ -2536,7 +2564,7 @@ Window {
                                     background: Rectangle {
                                         radius: 8
                                         color: confirmButton.pressed ? Qt.darker(accentColor, 1.15) :
-                                               confirmButton.hovered ? Qt.lighter(accentColor, 1.08) : accentColor
+                                                                       confirmButton.hovered ? Qt.lighter(accentColor, 1.08) : accentColor
 
                                         Behavior on color {
                                             ColorAnimation { duration: 150 }

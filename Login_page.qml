@@ -98,16 +98,16 @@ Item {
                     width: 80
                     height: 80
                     radius: 40
-                    color: isDarkMode ? Qt.rgba(0.3, 0.3, 0.3, 0.3) : Qt.rgba(1, 1, 1, 0.2)
+                    color: isDarkMode ? Qt.rgba(0.2, 0.2, 0.2, 0.3) : Qt.rgba(1, 1, 1, 0.1)
                     border.color: isDarkMode ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(1, 1, 1, 0.3)
                     border.width: 2
                     Layout.alignment: Qt.AlignHCenter
 
                     Image {
                         id: icon
-                        source: "qrc:/icon.png"
-                        sourceSize.width: 58
-                        sourceSize.height: 58
+                        source: "qrc:icon.ico"
+                        sourceSize.width: 50
+                        sourceSize.height: 50
                         anchors.centerIn: parent
                     }
                 }

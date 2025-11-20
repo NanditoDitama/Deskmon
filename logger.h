@@ -253,6 +253,8 @@ signals:
 
     void taskDetailsSubmissionFailedWithRetry(const QString &errorMessage, int taskId, const QString &details, const QString &action, int nextTaskId);
 
+    void readyToProceedWithLogout();
+
 private:
     void syncActiveTask();
     void initializeDatabase();

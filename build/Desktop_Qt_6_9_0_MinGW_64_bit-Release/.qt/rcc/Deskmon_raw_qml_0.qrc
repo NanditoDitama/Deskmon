@@ -16,6 +16,7 @@
     <file alias="TaskDetailsDialog.qml">C:/Users/prnl2/OneDrive/Documents/window_logger/TaskDetailsDialog.qml</file>
     <file alias="FailureDialog.qml">C:/Users/prnl2/OneDrive/Documents/window_logger/FailureDialog.qml</file>
     <file alias="NeedReviewDialog.qml">C:/Users/prnl2/OneDrive/Documents/window_logger/NeedReviewDialog.qml</file>
+    <file alias="../../../Downloads/dm.png">C:/Users/prnl2/OneDrive/Documents/window_logger/../../../Downloads/dm.png</file>
   </qresource>
 </RCC>
 
