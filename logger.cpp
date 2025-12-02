@@ -693,7 +693,8 @@ void Logger::initializeProductivityDatabase()
                     "active BOOLEAN NOT NULL, "
                     "status TEXT NOT NULL, "
                     "paused BOOLEAN NOT NULL DEFAULT 0,"
-                    "user_id INTEGER NOT NULL)")) {
+                    "user_id INTEGER NOT NULL,"
+                    "created_at TEXT)")) {
         qWarning() << "Failed to create task table:" << query.lastError().text();
     }
 
@@ -4460,7 +4461,7 @@ void Logger::sendTaskDetailsToAPI(int taskId, const QString &details, const QStr
 void Logger::checkForUpdates()
 {
     // Ganti dengan versi aplikasi Anda saat ini
-    const QString currentVersion = "1.0.3.2";
+    const QString currentVersion = "1.0.3.3";
 
     // Ganti dengan URL file version.json Anda di GitHub
     QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");

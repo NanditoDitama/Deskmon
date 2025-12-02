@@ -13,7 +13,7 @@ Window {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 700
-    property string appVersion: "1.0.3.2"
+    property string appVersion: "1.0.3.3"
     color: cardColor
 
 
