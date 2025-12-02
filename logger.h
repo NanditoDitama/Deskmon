@@ -163,6 +163,9 @@ public:
     Q_INVOKABLE void notify(const QString &type,
                             const QString &message);
 
+    Q_INVOKABLE bool isTaskExpired(int taskId);
+    Q_INVOKABLE int getPendingStartedTaskCount();
+
 
 public slots:
     void logActiveWindow();

@@ -22,6 +22,8 @@ ApplicationWindow {
     property color warningColor: isDarkMode ? "#00e0a8" : "#00e0a8"
     property string newText: ""
 
+    property string titleText: "Peringatan Waktu Task"
+
     // Animasi
     Behavior on opacity {
         NumberAnimation { duration: 150 }
@@ -84,7 +86,7 @@ ApplicationWindow {
                     anchors.verticalCenter: parent.verticalCenter
 
                     Label {
-                        text: "Peringatan Waktu Task"
+                        text: warningWindowComponent.titleText
                         font.pixelSize: 17
                         font.weight: Font.DemiBold
                         color: textColor

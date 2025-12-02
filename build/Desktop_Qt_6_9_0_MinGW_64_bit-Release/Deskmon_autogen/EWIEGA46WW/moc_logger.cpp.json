@@ -549,6 +549,24 @@
                     "index": 100,
                     "name": "notify",
                     "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "taskId",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 101,
+                    "name": "isTaskExpired",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "index": 102,
+                    "name": "getPendingStartedTaskCount",
+                    "returnType": "int"
                 }
             ],
             "object": true,

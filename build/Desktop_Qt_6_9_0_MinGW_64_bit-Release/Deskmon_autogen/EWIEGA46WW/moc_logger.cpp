@@ -182,6 +182,8 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         "submitTaskDetails",
         "taskDetailsDialogClosed",
         "notify",
+        "isTaskExpired",
+        "getPendingStartedTaskCount",
         "currentAppName",
         "currentWindowTitle",
         "logCount",
@@ -506,46 +508,52 @@ template <> constexpr inline auto Logger::qt_create_metaobjectdata<qt_meta_tag_Z
         QtMocHelpers::MethodData<void(const QString &, const QString &)>(142, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::QString, 52 }, { QMetaType::QString, 17 },
         }}),
+        // Method 'isTaskExpired'
+        QtMocHelpers::MethodData<bool(int)>(143, 2, QMC::AccessPublic, QMetaType::Bool, {{
+            { QMetaType::Int, 27 },
+        }}),
+        // Method 'getPendingStartedTaskCount'
+        QtMocHelpers::MethodData<int()>(144, 2, QMC::AccessPublic, QMetaType::Int),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'currentAppName'
-        QtMocHelpers::PropertyData<QString>(143, QMetaType::QString, QMC::DefaultPropertyFlags, 0),
+        QtMocHelpers::PropertyData<QString>(145, QMetaType::QString, QMC::DefaultPropertyFlags, 0),
         // property 'currentWindowTitle'
-        QtMocHelpers::PropertyData<QString>(144, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
+        QtMocHelpers::PropertyData<QString>(146, QMetaType::QString, QMC::DefaultPropertyFlags, 1),
         // property 'logCount'
-        QtMocHelpers::PropertyData<int>(145, QMetaType::Int, QMC::DefaultPropertyFlags, 2),
+        QtMocHelpers::PropertyData<int>(147, QMetaType::Int, QMC::DefaultPropertyFlags, 2),
         // property 'logContent'
-        QtMocHelpers::PropertyData<QString>(146, QMetaType::QString, QMC::DefaultPropertyFlags, 3),
+        QtMocHelpers::PropertyData<QString>(148, QMetaType::QString, QMC::DefaultPropertyFlags, 3),
         // property 'productivityStats'
-        QtMocHelpers::PropertyData<QVariantMap>(147, 0x80000000 | 148, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 4),
+        QtMocHelpers::PropertyData<QVariantMap>(149, 0x80000000 | 150, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 4),
         // property 'taskList'
-        QtMocHelpers::PropertyData<QVariantList>(149, 0x80000000 | 68, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 5),
+        QtMocHelpers::PropertyData<QVariantList>(151, 0x80000000 | 68, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 5),
         // property 'activeTaskId'
-        QtMocHelpers::PropertyData<int>(150, QMetaType::Int, QMC::DefaultPropertyFlags, 6),
+        QtMocHelpers::PropertyData<int>(152, QMetaType::Int, QMC::DefaultPropertyFlags, 6),
         // property 'isTaskPaused'
-        QtMocHelpers::PropertyData<bool>(151, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
+        QtMocHelpers::PropertyData<bool>(153, QMetaType::Bool, QMC::DefaultPropertyFlags, 7),
         // property 'globalTimeUsage'
-        QtMocHelpers::PropertyData<qint64>(152, QMetaType::LongLong, QMC::DefaultPropertyFlags, 8),
+        QtMocHelpers::PropertyData<qint64>(154, QMetaType::LongLong, QMC::DefaultPropertyFlags, 8),
         // property 'isTrackingActive'
-        QtMocHelpers::PropertyData<bool>(153, QMetaType::Bool, QMC::DefaultPropertyFlags, 9),
+        QtMocHelpers::PropertyData<bool>(155, QMetaType::Bool, QMC::DefaultPropertyFlags, 9),
         // property 'currentUserId'
-        QtMocHelpers::PropertyData<int>(154, QMetaType::Int, QMC::DefaultPropertyFlags, 11),
+        QtMocHelpers::PropertyData<int>(156, QMetaType::Int, QMC::DefaultPropertyFlags, 11),
         // property 'productiveAppsModel'
-        QtMocHelpers::PropertyData<QAbstractItemModel*>(155, 0x80000000 | 156, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
+        QtMocHelpers::PropertyData<QAbstractItemModel*>(157, 0x80000000 | 158, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
         // property 'nonProductiveAppsModel'
-        QtMocHelpers::PropertyData<QAbstractItemModel*>(157, 0x80000000 | 156, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
+        QtMocHelpers::PropertyData<QAbstractItemModel*>(159, 0x80000000 | 158, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
         // property 'authToken'
-        QtMocHelpers::PropertyData<QString>(158, QMetaType::QString, QMC::DefaultPropertyFlags, 14),
+        QtMocHelpers::PropertyData<QString>(160, QMetaType::QString, QMC::DefaultPropertyFlags, 14),
         // property 'userEmail'
-        QtMocHelpers::PropertyData<QString>(159, QMetaType::QString, QMC::DefaultPropertyFlags, 15),
+        QtMocHelpers::PropertyData<QString>(161, QMetaType::QString, QMC::DefaultPropertyFlags, 15),
         // property 'currentUsername'
         QtMocHelpers::PropertyData<QString>(81, QMetaType::QString, QMC::DefaultPropertyFlags, 16),
         // property 'currentUserEmail'
-        QtMocHelpers::PropertyData<QString>(160, QMetaType::QString, QMC::DefaultPropertyFlags, 17),
+        QtMocHelpers::PropertyData<QString>(162, QMetaType::QString, QMC::DefaultPropertyFlags, 17),
         // property 'workTimeElapsedSeconds'
-        QtMocHelpers::PropertyData<int>(161, QMetaType::Int, QMC::DefaultPropertyFlags, 24),
+        QtMocHelpers::PropertyData<int>(163, QMetaType::Int, QMC::DefaultPropertyFlags, 24),
         // property 'logModel'
-        QtMocHelpers::PropertyData<QSqlQueryModel*>(162, 0x80000000 | 163, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
+        QtMocHelpers::PropertyData<QSqlQueryModel*>(164, 0x80000000 | 165, QMC::DefaultPropertyFlags | QMC::EnumOrFlag | QMC::Constant),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -690,6 +698,10 @@ void Logger::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         case 98: _t->submitTaskDetails((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[3]))); break;
         case 99: _t->taskDetailsDialogClosed((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1]))); break;
         case 100: _t->notify((*reinterpret_cast< std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast< std::add_pointer_t<QString>>(_a[2]))); break;
+        case 101: { bool _r = _t->isTaskExpired((*reinterpret_cast< std::add_pointer_t<int>>(_a[1])));
+            if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = std::move(_r); }  break;
+        case 102: { int _r = _t->getPendingStartedTaskCount();
+            if (_a[0]) *reinterpret_cast< int*>(_a[0]) = std::move(_r); }  break;
         default: ;
         }
     }
@@ -875,14 +887,14 @@ int Logger::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 101)
+        if (_id < 103)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 101;
+        _id -= 103;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 101)
+        if (_id < 103)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 101;
+        _id -= 103;
     }
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty

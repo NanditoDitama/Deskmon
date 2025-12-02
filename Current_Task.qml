@@ -6,338 +6,346 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
+import QtQuick.Dialogs
 
 Item {
     anchors.fill: parent
+    MessageDialog {
+            id: warningDialog
+            title: "Warning"
+            buttons: MessageDialog.Ok
+            // Icon warning standar
+        }
+
+    Pop_up_waktuhabis {
+            id: customWarningDialog
+            // Judul default
+            titleText: "Peringatan"
+        }
     ColumnLayout {
         anchors.fill: parent
-        spacing: 12
+        spacing: 8
 
 
-        RowLayout {
+
+        ColumnLayout {
             id: taskControlRow
             Layout.fillWidth: true
-            spacing: 8
+            spacing: 10
 
             property bool isLoading: false
 
-            RowLayout {
-                spacing: 8
-
-                Rectangle {
-                    width: 76
-                    height: 27
-                    radius: 16
-                    color: {
-                        var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                        if (activeTask && activeTask.status === "Review") {
-                            return Qt.rgba(1, 0.6, 0, 0.12)
-                        }
-                        return logger.isTaskPaused ? Qt.rgba(0.4, 0.4, 0.7, 0.12) : Qt.rgba(0.2, 0.8, 0.4, 0.12)
-                    }
-
-                    visible: {
-                        if (logger.activeTaskId === -1) return false;
-
-                        // Find active task
-                        for (let i = 0; i < logger.taskList.length; i++) {
-                            if (logger.taskList[i].id === logger.activeTaskId) {
-                                return logger.taskList[i].status !== "Review";
-                            }
-                        }
-                        return false;
-                    }
-
-                    RowLayout {
-                        anchors.centerIn: parent
-                        spacing: 6
-
-                        Rectangle {
-                            width: 9
-                            height: 9
-                            radius: 5
-                            color: {
-                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                if (activeTask && activeTask.status === "Review") {
-                                    return "#FF9800"
-                                }
-                                return logger.isTaskPaused ? accentColor : productiveColor
-                            }
-
-                            SequentialAnimation on opacity {
-                                running: {
-                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                    return !logger.isTaskPaused && !(activeTask && activeTask.status === "Review")
-                                }
-                                loops: Animation.Infinite
-                                NumberAnimation { from: 0.1; to: 1; duration: 800; easing.type: Easing.InOutQuad }
-                                NumberAnimation { from: 1; to: 0.1; duration: 800; easing.type: Easing.InOutQuad }
-                            }
-                        }
-
-                        Label {
-                            text: {
-                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                if (activeTask && activeTask.status === "Review") {
-                                    return "Review"
-                                }
-                                return logger.isTaskPaused ? "Paused" : "Active"
-                            }
-                            font {
-                                family: "Segoe UI"
-                                pixelSize: 14
-                                weight: Font.DemiBold
-                            }
-                            color: {
-                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                if (activeTask && activeTask.status === "Review") {
-                                    return "#FF9800"
-                                }
-                                return logger.isTaskPaused ? accentColor : productiveColor
-                            }
-                        }
-                    }
-                }
-            }
-
-            Item { Layout.fillWidth: true }
-
-            BusyIndicator {
-                visible: taskControlRow.isLoading
-                running: taskControlRow.isLoading
-                Layout.preferredWidth: 24
-                Layout.preferredHeight: 24
-            }
-
-            Button {
-                id: pauseResumeButton
-                visible: {
-                    if (logger.activeTaskId === -1) return false;
-
-                    // Find active task
-                    for (let i = 0; i < logger.taskList.length; i++) {
-                        if (logger.taskList[i].id === logger.activeTaskId) {
-                            return logger.taskList[i].status !== "Review";
-                        }
-                    }
-                    return false;
-                }
-
-                text: logger.isTaskPaused ? "Paused" : "Running"
-                Layout.preferredWidth: 100
-                Layout.preferredHeight: 38
-                font.pixelSize: 14
-
-                background: Rectangle {
-                    radius: 14
-                    color: logger.isTaskPaused ? accentColor : productiveColor
-                }
-
-                contentItem: Text {
-                    text: pauseResumeButton.text
-                    font: pauseResumeButton.font
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                onClicked: {
-                    taskControlRow.isLoading = true;
-
-                    if (logger.isTaskPaused) {
-                        // Resume task
-                        logger.toggleTaskPause(); // Use the existing toggle function
-                    } else {
-                        // Pause task
-                        logger.toggleTaskPause(); // Use the existing toggle function
-                    }
-                }
-            }
-        }
-
-        Connections {
-            target: logger
-
-            function onTaskPausedChanged() {
-                taskControlRow.isLoading = false;
-            }
-
-            function onAuthTokenError(message) {
-                taskControlRow.isLoading = false;
-                console.error("API Error:", message);
-            }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: dividerColor
-            Layout.topMargin: 4
-        }
-
-        // Active Task Info
-        ColumnLayout {
-            visible: logger.activeTaskId !== -1
-            Layout.fillWidth: true
-            spacing: 12
-            opacity: logger.activeTaskId !== -1 ? 1 : 0
-
-            Behavior on opacity {
-                NumberAnimation { duration: 300 }
-            }
-
-
-            // Progress Section
-            ColumnLayout {
+            // Main Control Panel
+            Rectangle {
                 Layout.fillWidth: true
-                spacing: 8
+                height: logger.activeTaskId !== -1 ? 50 : 50
+                color: "transparent"
 
-                // Time labels
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-
-                    Label {
-                        text: {
-                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                            if (activeTask) {
-                                var hours = Math.floor(activeTask.time_usage / 3600)
-                                var minutes = Math.floor((activeTask.time_usage % 3600) / 60)
-                                var timeText = ""
-                                if (hours > 0) timeText += hours + "h "
-                                timeText += minutes + "m"
-                                public_curent_time = timeText
-                                return timeText
-                            }
-                            return "0h 0m"
-                        }
-                        font.pixelSize: 13
-                        font.weight: Font.DemiBold
-                        font.family: "Segoe UI"
-                        color: {
-                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                            if (activeTask && activeTask.time_usage > activeTask.max_time) {
-                                return nonProductiveColor
-                            }
-                            return primaryColor
-                        }
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    Label {
-                        text: {
-                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                            if (activeTask) {
-                                var hours = Math.floor(activeTask.max_time / 3600)
-                                var minutes = Math.floor((activeTask.max_time % 3600) / 60)
-                                var timeText_max = ""
-                                if (hours > 0) timeText_max += hours + "h "
-                                timeText_max += minutes + "m"
-                                public_max_time = timeText_max
-                                return timeText_max
-                            }
-                            return "0h 0m"
-                        }
-                        font.pixelSize: 13
-                        font.family: "Segoe UI"
-                        color: lightTextColor
-                    }
+                Behavior on height {
+                    NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
                 }
 
-                // Modern Progress Bar
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 8
-                    radius: 4
-                    color: Qt.rgba(0, 0, 0, 0.05)
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing: 12
 
-                    Rectangle {
-                        width: {
-                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                            if (activeTask) {
-                                return parent.width * Math.min(1, activeTask.time_usage / activeTask.max_time)
-                            }
-                            return parent.width * Math.min(1, logger.globalTimeUsage / (8 * 3600))
+                    // Active Task Layout
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        visible: logger.activeTaskId !== -1
+                        opacity: logger.activeTaskId !== -1 ? 1 : 0
+
+                        Behavior on opacity {
+                            NumberAnimation { duration: 200 }
                         }
-                        height: parent.height
-                        radius: 4
 
-                        gradient: Gradient {
-                            orientation: Gradient.Horizontal
-                            GradientStop {
-                                position: 0.0
+                        // Top Row: Status Badge + Time Info + Button
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 14
+
+                            // Status Badge
+                            Rectangle {
+                                width: 76
+                                height: 30
+                                radius: 15
+                                visible: {
+                                    if (logger.activeTaskId === -1) return false
+                                    for (let i = 0; i < logger.taskList.length; i++) {
+                                        if (logger.taskList[i].id === logger.activeTaskId) {
+                                            return logger.taskList[i].status !== "Review"
+                                        }
+                                    }
+                                    return false
+                                }
+
+                                color: {
+                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                    if (activeTask && activeTask.status === "Review") {
+                                        return Qt.rgba(1, 0.6, 0, 0.12)
+                                    }
+                                    return logger.isTaskPaused ? Qt.rgba(0.4, 0.4, 0.7, 0.12) : Qt.rgba(0.2, 0.8, 0.4, 0.12)
+                                }
+
+                                RowLayout {
+                                    anchors.centerIn: parent
+                                    spacing: 6
+
+                                    Rectangle {
+                                        width: 8
+                                        height: 8
+                                        radius: 4
+                                        color: {
+                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                            if (activeTask && activeTask.status === "Review") return "#FF9800"
+                                            return logger.isTaskPaused ? accentColor : productiveColor
+                                        }
+
+                                        SequentialAnimation on opacity {
+                                            running: {
+                                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                                return !logger.isTaskPaused && !(activeTask && activeTask.status === "Review")
+                                            }
+                                            loops: Animation.Infinite
+                                            NumberAnimation { from: 0.3; to: 1; duration: 700; easing.type: Easing.InOutQuad }
+                                            NumberAnimation { from: 1; to: 0.3; duration: 700; easing.type: Easing.InOutQuad }
+                                        }
+                                    }
+
+                                    Label {
+                                        text: {
+                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                            if (activeTask && activeTask.status === "Review") return "Review"
+                                            return logger.isTaskPaused ? "Paused" : "Active"
+                                        }
+                                        font.pixelSize: 13
+                                        font.weight: Font.DemiBold
+                                        font.family: "Segoe UI"
+                                        color: {
+                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                            if (activeTask && activeTask.status === "Review") return "#FF9800"
+                                            return logger.isTaskPaused ? accentColor : productiveColor
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Current Time
+                            Label {
+                                text: {
+                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                    if (activeTask) {
+                                        var hours = Math.floor(activeTask.time_usage / 3600)
+                                        var minutes = Math.floor((activeTask.time_usage % 3600) / 60)
+                                        var timeText = ""
+                                        if (hours > 0) timeText += hours + "h "
+                                        timeText += minutes + "m"
+                                        public_curent_time = timeText
+                                        return timeText
+                                    }
+                                    return "0m"
+                                }
+                                font.pixelSize: 14
+                                font.weight: Font.Bold
+                                font.family: "Segoe UI"
                                 color: {
                                     var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
                                     if (activeTask && activeTask.time_usage > activeTask.max_time) {
                                         return nonProductiveColor
                                     }
-                                    return secondaryColor
+                                    return primaryColor
                                 }
                             }
-                            GradientStop {
-                                position: 1.0
-                                color: {
-                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                    if (activeTask && activeTask.time_usage > activeTask.max_time) {
-                                        return Qt.lighter(nonProductiveColor, 1.2)
+
+                            // Progress Bar - Centered
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                                height: 8
+                                radius: 4
+                                color: Qt.rgba(0, 0, 0, 0.06)
+
+                                Rectangle {
+                                    width: {
+                                        var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                        if (activeTask) {
+                                            return parent.width * Math.min(1, activeTask.time_usage / activeTask.max_time)
+                                        }
+                                        return 0
                                     }
-                                    return Qt.lighter(secondaryColor, 1.2)
+                                    height: parent.height
+                                    radius: 4
+
+                                    gradient: Gradient {
+                                        orientation: Gradient.Horizontal
+                                        GradientStop {
+                                            position: 0.0
+                                            color: {
+                                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                                if (activeTask && activeTask.time_usage > activeTask.max_time) {
+                                                    return nonProductiveColor
+                                                }
+                                                return secondaryColor
+                                            }
+                                        }
+                                        GradientStop {
+                                            position: 1.0
+                                            color: {
+                                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                                if (activeTask && activeTask.time_usage > activeTask.max_time) {
+                                                    return Qt.lighter(nonProductiveColor, 1.2)
+                                                }
+                                                return Qt.lighter(secondaryColor, 1.2)
+                                            }
+                                        }
+                                    }
+
+                                    Behavior on width {
+                                        enabled: {
+                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                            return !(activeTask && activeTask.status === "Review")
+                                        }
+                                        NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+                                    }
+                                }
+                            }
+
+                            // Loading Indicator
+                            BusyIndicator {
+                                visible: taskControlRow.isLoading
+                                running: taskControlRow.isLoading
+                                Layout.preferredWidth: 22
+                                Layout.preferredHeight: 22
+                            }
+
+                            // Percentage
+                            Label {
+                                text: {
+                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                    if (activeTask) {
+                                        var percentage = Math.round((activeTask.time_usage / activeTask.max_time) * 100)
+                                        return percentage + "%"
+                                    }
+                                    return "0%"
+                                }
+                                font.pixelSize: 13
+                                font.weight: Font.Medium
+                                font.family: "Segoe UI"
+                                color: primaryColor
+                                opacity: 0.7
+                            }
+
+                            // Max Time
+                            Label {
+                                text: {
+                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
+                                    if (activeTask) {
+                                        var hours = Math.floor(activeTask.max_time / 3600)
+                                        var minutes = Math.floor((activeTask.max_time % 3600) / 60)
+                                        var timeText = ""
+                                        if (hours > 0) timeText += hours + "h "
+                                        timeText += minutes + "m"
+                                        public_max_time = timeText
+                                        return timeText
+                                    }
+                                    return "0m"
+                                }
+                                font.pixelSize: 13
+                                font.family: "Segoe UI"
+                                color: lightTextColor
+                            }
+
+                            // Pause/Resume Button
+                            Button {
+                                id: pauseResumeButton
+                                visible: {
+                                    if (logger.activeTaskId === -1) return false
+                                    for (let i = 0; i < logger.taskList.length; i++) {
+                                        if (logger.taskList[i].id === logger.activeTaskId) {
+                                            return logger.taskList[i].status !== "Review"
+                                        }
+                                    }
+                                    return false
+                                }
+
+                                text: logger.isTaskPaused ? "Resume" : "Pause"
+                                Layout.preferredWidth: 92
+                                Layout.preferredHeight: 40
+                                font.pixelSize: 13
+                                font.weight: Font.DemiBold
+
+                                background: Rectangle {
+                                    radius: 17
+                                    color: pauseResumeButton.hovered ?
+                                        (logger.isTaskPaused ? Qt.lighter(accentColor, 1.15) : Qt.lighter(productiveColor, 1.15)) :
+                                        (logger.isTaskPaused ? accentColor : productiveColor)
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 150 }
+                                    }
+                                }
+
+                                contentItem: Text {
+                                    text: pauseResumeButton.text
+                                    font: pauseResumeButton.font
+                                    color: "white"
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+
+                                onClicked: {
+                                    taskControlRow.isLoading = true
+                                    logger.toggleTaskPause()
                                 }
                             }
                         }
 
-                        Behavior on width {
-                            enabled: {
-                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                return !(activeTask && activeTask.status === "Review")
-                            }
-                            NumberAnimation { duration: 400; easing.type: Easing.OutCubic }
-                        }
 
-                        // Percentage label
+                    }
+
+                    // No Active Task Message
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                        visible: logger.activeTaskId === -1
+
+                        Item { Layout.fillWidth: true }
+
                         Label {
-                            anchors {
-                                right: parent.right
-                                rightMargin: 6
-                                verticalCenter: parent.verticalCenter
-                            }
-                            text: {
-                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                if (activeTask) {
-                                    var percentage = Math.round((activeTask.time_usage / activeTask.max_time) * 100)
-                                    return percentage + "%"
-                                }
-                                return ""
-                            }
-                            font.pixelSize: 9
-                            font.bold: true
+                            text: "No active task"
+                            font.pixelSize: 14
                             font.family: "Segoe UI"
-                            color: "white"
-                            opacity: parent.width > 40 ? 1 : 0
-
-                            Behavior on opacity {
-                                NumberAnimation { duration: 200 }
-                            }
+                            color: lightTextColor
+                            opacity: 0.6
                         }
+
+                        Item { Layout.fillWidth: true }
                     }
                 }
             }
-        }
 
-        Label {
-            visible: logger.activeTaskId === -1
-            text: "No active task"
-            font.pixelSize: 14
-            color: lightTextColor
-            Layout.alignment: Qt.AlignHCenter
-        }
+            // Divider
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: dividerColor
+                opacity: 0.5
+                visible: taskListView.count > 0
+            }
 
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: dividerColor
-            visible: taskListView.count > 0
+            Connections {
+                target: logger
+
+                function onTaskPausedChanged() {
+                    taskControlRow.isLoading = false
+                }
+
+                function onAuthTokenError(message) {
+                    taskControlRow.isLoading = false
+                    console.error("API Error:", message)
+                }
+            }
         }
 
         ScrollView {
@@ -348,6 +356,7 @@ Item {
 
             ScrollBar.vertical.policy: ScrollBar.AsNeeded
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
 
             ListView {
                 id: taskListView
@@ -397,6 +406,7 @@ Item {
                             active: isActive,
                             status: task.status,
                             isTaskPaused: isActive ? logger.isTaskPaused : false,
+                            isExpired: task.isExpired
                             // Tambahkan properti lain yang diperlukan
                         }
                     })
@@ -440,8 +450,11 @@ Item {
                     readonly property bool isNeedReview: modelData.status === "Need Review"
                     readonly property bool isNeedRevise: modelData.status === "Need Revise"
                     readonly property bool isActive: modelData.active
+                    readonly property bool isExpired: modelData.isExpired
 
                     color: {
+
+                        if (isExpired) return isDarkMode ? "#424242" : "#E0E0E0"
                         if (isReview) {
                             return Qt.rgba(255/255, 152/255, 0/255, 0.08) // Subtle orange for review
                         }
@@ -450,6 +463,7 @@ Item {
                         return isActive ? Qt.lighter(cardColor, 1.6) : cardColor
                     }
                     border.color: {
+                        if (isExpired) return isDarkMode ? "#616161" : "#BDBDBD"
                         if (isReview) {
                             return Qt.rgba(255/255, 152/255, 0/255, 0.3) // Soft orange border
                         }
@@ -459,7 +473,8 @@ Item {
                         return isActive ? secondaryColor : Qt.rgba(dividerColor.r, dividerColor.g, dividerColor.b, 0.3)
                     }
                     border.width: 1
-                    opacity: isReview ? 0.85 : 1
+                    opacity: isReview ? 0.85 : 1 ||  isExpired ? 0.7 : (isReview ? 0.85 : 1)
+
 
                     // Subtle shadow effect
                     Rectangle {
@@ -471,18 +486,44 @@ Item {
                     }
 
                     MouseArea {
-                        anchors.fill: parent
-                        enabled:  !(delegateRoot.isReview || delegateRoot.isNeedReview)
-                        onClicked: {
-                            if (!delegateRoot.isActive && logger.activeTaskId !== -1) {
-                                confirmSwitchDialog.taskId = modelData.id
-                                confirmSwitchDialog.open()
-                            } else if (!delegateRoot.isActive) {
-                                logger.setActiveTask(modelData.id)
-                            }
-                        }
-                    }
+                                    anchors.fill: parent
+                                    enabled: !(delegateRoot.isReview || delegateRoot.isNeedReview)
 
+                                    onClicked: {
+                                        // === LOGIKA 1: CEK TASK EXPIRED (Bulan Lalu) ===
+                                        if (logger.isTaskExpired(modelData.id)) {
+                                            // Set teks untuk popup custom
+                                            customWarningDialog.titleText = "Task Expired"
+                                            customWarningDialog.newText = "Task dari bulan lalu tidak dapat dijalankan. Silahkan Need Review."
+
+                                            // Tampilkan dengan animasi bawaan [cite: 595]
+                                            customWarningDialog.showAnimated()
+                                            return;
+                                        }
+
+                                        // === LOGIKA 2: CEK WARNING TASK PENDING ===
+                                        if (!delegateRoot.isActive) {
+                                             var pendingStartedCount = logger.getPendingStartedTaskCount();
+
+                                             if (pendingStartedCount >= 3) {
+                                                 // Set teks untuk popup custom
+                                                customWarningDialog.titleText = "Warning"
+                                                 customWarningDialog.newText = "Terdapat " + pendingStartedCount + " task pending yang sudah berjalan. Mohon segera di-review."
+
+                                                 customWarningDialog.showAnimated()
+                                                 // return; // Uncomment jika ingin memblokir
+                                             }
+                                        }
+
+                                        // === LOGIKA 3: JALANKAN TASK (Jika lolos validasi) ===
+                                        if (!delegateRoot.isActive && logger.activeTaskId !== -1) {
+                                            confirmSwitchDialog.taskId = modelData.id
+                                            confirmSwitchDialog.open()
+                                        } else if (!delegateRoot.isActive) {
+                                            logger.setActiveTask(modelData.id)
+                                        }
+                                    }
+                                }
                     ColumnLayout {
                         id: column
                         anchors.fill: parent
@@ -608,6 +649,7 @@ Item {
                                 Layout.preferredWidth: statusText.implicitWidth + 12
                                 radius: 9
                                 color: {
+                                    if (isExpired) return isDarkMode ? "#616161" : "#BDBDBD";
                                     if (modelData.status === "Review") return Qt.rgba(255/255, 152/255, 0/255, 0.15);
                                     if (modelData.status === "Need Review") return Qt.rgba(33/255, 150/255, 243/255, 0.15);
                                     if (modelData.status === "Need Revise") return Qt.rgba(244/255, 67/255, 54/255, 0.15);
@@ -616,6 +658,7 @@ Item {
                                 }
 
                                 border.color: {
+                                    if (isExpired) return isDarkMode ? "#757575" : "#9E9E9E";
                                     if (modelData.status === "Review") return Qt.rgba(255/255, 152/255, 0/255, 0.4);
                                     if (modelData.status === "Need Review") return Qt.rgba(33/255, 150/255, 243/255, 0.4);
                                     if (modelData.status === "Need Revise") return Qt.rgba(244/255, 67/255, 54/255, 0.4);

@@ -1,4 +1,4 @@
-#include "logger.h"
+ #include "logger.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDateTime>
@@ -2210,8 +2210,6 @@ void Logger::fetchAndStoreTasks()
 
 // logger.cpp
 
-// logger.cpp
-
 void Logger::handleTaskFetchReply(QNetworkReply *reply)
 {
     // 5. Periksa kode status HTTP dari respons
@@ -2352,6 +2350,7 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
         }
 
         bool taskExists = existingTasks.contains(taskId);
+        QString createdAt = taskObj["created_at"].toString();
 
         if (taskExists) {
             QPair<int, int> currentValues = existingTasks[taskId];
@@ -2364,12 +2363,13 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
             int finalTimeUsage = !totalDurationValue.isNull() ? serverTimeUsage : currentTimeUsage;
 
             query.prepare("UPDATE task SET project_name = :projectName, task = :taskDesc, "
-                          "max_time = :maxTime, time_usage = :timeUsage WHERE id = :id");
+                          "max_time = :maxTime, time_usage = :timeUsage, created_at = :createdAt WHERE id = :id");
             query.bindValue(":id", taskId);
             query.bindValue(":projectName", projectName);
             query.bindValue(":taskDesc", taskDesc);
             query.bindValue(":maxTime", finalMaxTime);
             query.bindValue(":timeUsage", finalTimeUsage);
+            query.bindValue(":createdAt", createdAt);
 
         } else {
             // <-- DIUBAH: Logika untuk task baru -->
@@ -2377,14 +2377,15 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
             int finalMaxTime = serverMaxTime;
             int finalTimeUsage = serverTimeUsage;
 
-            query.prepare("INSERT INTO task (id, project_name, task, max_time, time_usage, active, status, paused, user_id) "
-                          "VALUES (:id, :projectName, :taskDesc, :maxTime, :timeUsage, 0, 'Pending', 0, :userId)");
+            query.prepare("INSERT INTO task (id, project_name, task, max_time, time_usage, active, status, paused, user_id, created_at) "
+                          "VALUES (:id, :projectName, :taskDesc, :maxTime, :timeUsage, 0, 'Pending', 0, :userId, :createdAt)");
             query.bindValue(":id", taskId);
             query.bindValue(":projectName", projectName);
             query.bindValue(":taskDesc", taskDesc);
             query.bindValue(":maxTime", finalMaxTime);
             query.bindValue(":timeUsage", finalTimeUsage);
             query.bindValue(":userId", userId);
+            query.bindValue(":createdAt", createdAt);
         }
 
         if (!query.exec()) {
@@ -2405,8 +2406,75 @@ void Logger::handleTaskFetchReply(QNetworkReply *reply)
 }
 
 
+// Update/Ganti fungsi isTaskFromPreviousMonth menjadi isTaskExpired
+bool Logger::isTaskExpired(int taskId)
+{
+    if (!ensureProductivityDatabaseOpen()) return false;
 
+    QSqlQuery query(m_productivityDb);
+    // Kita perlu created_at DAN max_time
+    query.prepare("SELECT created_at, max_time FROM task WHERE id = :id");
+    query.bindValue(":id", taskId);
 
+    if (query.exec() && query.next()) {
+        QString dateStr = query.value(0).toString();
+        int maxTimeSeconds = query.value(1).toInt();
+
+        // 1. Validasi Tanggal Pembuatan
+        QDateTime createdDateTime = QDateTime::fromString(dateStr, Qt::ISODate);
+        if (!createdDateTime.isValid()) return false; // Jika error, anggap task baru (aman)
+
+        QDate createdDate = createdDateTime.date();
+        QDate today = QDate::currentDate();
+
+        // Jika dibuat di tahun/bulan yang sama (atau masa depan), task valid
+        if (createdDate.year() > today.year()) return false;
+        if (createdDate.year() == today.year() && createdDate.month() >= today.month()) return false;
+
+        // --- LOGIKA LINTAS BULAN ---
+        // Jika sampai sini, berarti task dibuat di bulan/tahun lalu.
+        // Kita cek apakah durasinya panjang menembus ke bulan ini.
+
+        // Asumsi: 1 hari kerja = 8 jam (28800 detik)
+        // Kita gunakan ceil agar 9 jam dihitung 2 hari, bukan 1 hari koma sekian.
+        double workHoursPerDay = 8.0 * 3600.0;
+        int daysDuration = std::ceil((double)maxTimeSeconds / workHoursPerDay);
+
+        // Tambahkan durasi ke tanggal pembuatan
+        // Contoh: Dibuat 31 Jan, MaxTime 16 jam (2 hari).
+        // 31 Jan + 2 hari = 2 Feb.
+        QDate estimatedFinishDate = createdDate.addDays(daysDuration);
+
+        // Cek apakah tanggal estimasi selesai masuk ke bulan ini (atau lebih)
+        if (estimatedFinishDate.year() > today.year()) return false; // Valid (lanjut tahun depan)
+        if (estimatedFinishDate.year() == today.year() && estimatedFinishDate.month() >= today.month()) {
+            return false; // Valid (Menyeberang ke bulan ini)
+        }
+
+        // Jika tanggal estimasi selesai pun masih di masa lalu -> EXPIRED
+        return true;
+    }
+
+    return false;
+}
+int Logger::getPendingStartedTaskCount()
+{
+    if (!ensureProductivityDatabaseOpen() || m_currentUserId == -1) return 0;
+
+    QSqlQuery query(m_productivityDb);
+    // Hitung task yang status Pending TAPI time_usage > 0 (sudah pernah jalan)
+    query.prepare("SELECT COUNT(*) FROM task WHERE user_id = :uid AND status = 'Pending' AND time_usage > 0");
+    query.bindValue(":uid", m_currentUserId);
+
+    if (query.exec() && query.next()) {
+        return query.value(0).toInt();
+    }
+    return 0;
+}
+
+// logger.cpp
+
+// Temukan fungsi ini dan ubah isinya
 QVariantList Logger::taskList() const
 {
     if (!ensureProductivityDatabaseOpen()) {
@@ -2419,32 +2487,64 @@ QVariantList Logger::taskList() const
     }
     QVariantList tasks;
     QSqlQuery query(m_productivityDb);
-    query.prepare("SELECT id, project_name, task, max_time, time_usage, active, status FROM task WHERE user_id = :user_id");
+
+    // --- PERUBAHAN 1: Tambahkan 'created_at' ke dalam SELECT ---
+    query.prepare("SELECT id, project_name, task, max_time, time_usage, active, status, created_at FROM task WHERE user_id = :user_id");
     query.bindValue(":user_id", m_currentUserId);
+
     if (!query.exec()) {
         qWarning() << "Failed to fetch tasks:" << query.lastError().text();
         return tasks;
     }
+
+    QDate today = QDate::currentDate(); // Ambil tanggal hari ini sekali saja di luar loop
+
     while (query.next()) {
         QVariantMap task;
-        task["id"] = query.value(0).toInt();
+        int taskId = query.value(0).toInt();
+        task["id"] = taskId;
         task["project_name"] = query.value(1).toString();
         task["task"] = query.value(2).toString();
-        task["max_time"] = query.value(3).toInt();
+        int maxTime = query.value(3).toInt();
+        task["max_time"] = maxTime;
         task["time_usage"] = query.value(4).toInt();
         task["active"] = query.value(5).toBool();
         QString status = query.value(6).toString();
+        QString createdAtStr = query.value(7).toString(); // Ambil created_at
 
-        // Handle status logic
+        // --- PERUBAHAN 2: Logika Cek Expired langsung di sini ---
+        bool isExpired = false;
+        QDateTime createdDateTime = QDateTime::fromString(createdAtStr, Qt::ISODate);
+
+        if (createdDateTime.isValid()) {
+            QDate createdDate = createdDateTime.date();
+
+            // Cek apakah dibuat di masa lalu
+            if (createdDate.year() < today.year() || (createdDate.year() == today.year() && createdDate.month() < today.month())) {
+                // Hitung estimasi selesai
+                double workHoursPerDay = 8.0 * 3600.0;
+                // Gunakan std::ceil dari <cmath>, pastikan sudah di-include di atas file
+                int daysDuration = std::ceil((double)maxTime / workHoursPerDay);
+                QDate estimatedFinishDate = createdDate.addDays(daysDuration);
+
+                // Jika estimasi selesai juga masih di masa lalu -> EXPIRED
+                if (estimatedFinishDate.year() < today.year() || (estimatedFinishDate.year() == today.year() && estimatedFinishDate.month() < today.month())) {
+                    isExpired = true;
+                }
+            }
+        }
+        // Masukkan status expired ke dalam map data
+        task["isExpired"] = isExpired;
+        // ---------------------------------------------------------
+
+
+        // Handle status logic (Kode lama tetap sama)
         if (status.toLower() == "review") {
-            // Task is under review - keep original status
             task["status"] = "Review";
         } else if (task["active"].toBool()) {
-            // Active task - show current state
             status = m_isTaskPaused ? "Paused" : "Is Running";
             task["status"] = status;
         } else {
-            // Inactive task
             task["status"] = status;
         }
 
@@ -2475,6 +2575,19 @@ void Logger::migrateProductivityDatabase()
     if (!hasUserId) {
         if (!query.exec("ALTER TABLE task ADD COLUMN user_id INTEGER NOT NULL DEFAULT 0")) {
             qWarning() << "Failed to add user_id to task table:" << query.lastError().text();
+        }
+    }
+
+    bool hasCreatedAt = false;
+    while (query.next()) {
+        if (query.value("name").toString() == "created_at") {
+            hasCreatedAt = true;
+            break;
+        }
+    }
+    if (!hasCreatedAt) {
+        if (!query.exec("ALTER TABLE task ADD COLUMN created_at TEXT")) {
+            qWarning() << "Failed to add created_at to task table:" << query.lastError().text();
         }
     }
 

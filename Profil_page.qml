@@ -14,26 +14,206 @@ Item {
         anchors.fill: parent
         color: "transparent"
 
+        // Background dengan gradient modern yang responsif terhadap tema
         Rectangle {
-            width: parent.width
-            height: 280
+            anchors.fill: parent
+
             gradient: Gradient {
                 GradientStop {
                     position: 0.0
-                    color: Qt.rgba(primaryColor.r,
-                                   primaryColor.g,
-                                   primaryColor.b,
-                                   1.0)
+                    color: isDarkMode ? "#1a1a2e" : "#667eea"
                 }
                 GradientStop {
                     position: 1.0
-                    color: Qt.rgba(primaryColor.r,
-                                   primaryColor.g,
-                                   primaryColor.b,
-                                   0.0)
+                    color: isDarkMode ? cardColor : "#764ba2"
                 }
             }
-            anchors.top: parent.top
+
+            // Shooting Stars Animation
+            Repeater {
+                    model: 5
+
+                    Item {
+                        id: shootingStar
+                        width: parent.width
+                        height: parent.height
+
+                        // Variabel posisi
+                        property real startX: 0
+                        property real startY: 0
+                        property real endX: 0
+                        property real endY: 0
+
+                        property real animationDelay: index * 2000 + Math.random() * 4000
+                        property real starSize: 2 + Math.random() * 3 // Sedikit diperbesar agar terlihat
+                        property bool isVisible: false
+
+                        visible: shootingStar.isVisible
+
+                        // ---------------------------------------------------------
+                        // 1. STAR TRAIL (Ekor)
+                        // ---------------------------------------------------------
+                        Item {
+                            id: starTrail
+                            width: 100 // Panjang ekor
+                            height: 6  // Ketebalan ekor (semakin tipis semakin tajam)
+
+                            // PERBAIKAN POSISI PIVOT:
+                            // Posisikan awal ekor (Left) tepat di TENGAH Bintang
+                            x: starBody.x + (starBody.width / 1)
+                            y: starBody.y + (starBody.height / 1) - (height / 1)
+
+                            // Titik putar ada di kiri item (yang menempel ke bintang)
+                            transformOrigin: Item.Left
+
+                            // Rotasi default 0, nanti di-override ScriptAction
+                            rotation: 0
+                            opacity: starBody.opacity * 0.8
+
+                            Canvas {
+                                id: trailCanvas
+                                anchors.fill: parent
+
+                                // Digambar ulang saat opacity berubah (fade in/out)
+                                onPaint: {
+                                    var ctx = getContext("2d")
+                                    ctx.clearRect(0, 0, width, height)
+
+                                    // Gradient: Terang di kiri (dekat bintang), Transparan di kanan
+                                    var gradient = ctx.createLinearGradient(0, 0, width, 0)
+                                    gradient.addColorStop(0, "rgba(255, 255, 255, 0.9)")
+                                    gradient.addColorStop(0.2, "rgba(255, 255, 255, 0.5)")
+                                    gradient.addColorStop(1.0, "rgba(255, 255, 255, 0)")
+
+                                    ctx.fillStyle = gradient
+
+                                    // Gambar bentuk Trapezoid yang simetris secara vertikal
+                                    // Menggunakan 'height/2' sebagai acuan tengah (axis)
+                                    var h = height
+                                    var mid = h / 2
+
+                                    ctx.beginPath()
+                                    // Kiri (dekat bintang) agak tebal
+                                    ctx.moveTo(0, mid - 2)
+                                    ctx.lineTo(0, mid + 2)
+
+                                    // Kanan (ujung ekor) menipis ke titik tengah
+                                    ctx.lineTo(width, mid + 0.5)
+                                    ctx.lineTo(width, mid - 0.5)
+
+                                    ctx.closePath()
+                                    ctx.fill()
+                                }
+
+                                // Memaksa repaint saat parent opacity berubah
+                                Connections {
+                                    target: starTrail
+                                    function onOpacityChanged() { trailCanvas.requestPaint() }
+                                }
+                            }
+                        }
+
+                        // ---------------------------------------------------------
+                        // 2. STAR BODY (Kepala)
+                        // ---------------------------------------------------------
+                        Rectangle {
+                            id: starBody
+                            width: shootingStar.starSize
+                            height: shootingStar.starSize
+                            radius: width / 2
+                            color: "white"
+                        }
+
+                        // ---------------------------------------------------------
+                        // 3. LOGIKA ANIMASI
+                        // ---------------------------------------------------------
+                        SequentialAnimation {
+                                        loops: Animation.Infinite
+                                        running: true
+
+                                        PauseAnimation { duration: shootingStar.animationDelay }
+
+                                        ScriptAction {
+                                            script: {
+                                                // A. Posisi Awal (START)
+                                                //    Muncul di area atas, tapi condong ke kanan (dari 20% layar sampai 130% layar)
+                                                //    Supaya bisa masuk dari luar layar kanan.
+                                                shootingStar.startX = (parent.width * 0.2) + Math.random() * (parent.width * 1.1)
+                                                shootingStar.startY = -100 - Math.random() * 150 // Di atas layar
+
+                                                // B. Posisi Akhir (END) - KUNCI PERUBAHAN DISINI
+                                                //    Bergerak sejauh 300-600 pixel
+                                                var travelDistance = 300 + Math.random() * 300
+
+                                                //    X DIKURANGI (Gerak ke Kiri)
+                                                //    Y DITAMBAH (Gerak ke Bawah)
+                                                shootingStar.endX = shootingStar.startX - travelDistance
+                                                shootingStar.endY = shootingStar.startY + travelDistance
+
+                                                // C. Rotasi Presisi
+                                                var dx = shootingStar.endX - shootingStar.startX
+                                                var dy = shootingStar.endY - shootingStar.startY
+                                                var angle = Math.atan2(dy, dx) * 180 / Math.PI
+                                                starTrail.rotation = angle + 180
+
+                                                // Reset
+                                                starBody.x = shootingStar.startX
+                                                starBody.y = shootingStar.startY
+                                                starBody.opacity = 0
+                                                shootingStar.isVisible = true
+                                            }
+                                        }
+
+                                        ParallelAnimation {
+                                            // Animasi Gerak
+                                            NumberAnimation {
+                                                target: starBody; property: "x"
+                                                from: shootingStar.startX; to: shootingStar.endX
+                                                duration: 1200 + Math.random() * 400
+                                                easing.type: Easing.OutQuad
+                                            }
+                                            NumberAnimation {
+                                                target: starBody; property: "y"
+                                                from: shootingStar.startY; to: shootingStar.endY
+                                                duration: 1200 + Math.random() * 400
+                                                easing.type: Easing.OutQuad
+                                            }
+
+                                            // Animasi Kedip (Fade In/Out)
+                                            SequentialAnimation {
+                                                NumberAnimation { target: starBody; property: "opacity"; from: 0; to: 1; duration: 200 }
+                                                PauseAnimation { duration: 200 }
+                                                NumberAnimation { target: starBody; property: "opacity"; from: 1; to: 0; duration: 500 }
+                                            }
+                                        }
+
+                                        ScriptAction { script: { shootingStar.isVisible = false } }
+                                        PauseAnimation { duration: 1500 + Math.random() * 3000 }
+                                    }
+
+                    }
+                }
+
+            // Static stars (Background) - Tetap sama seperti kode asli
+            Repeater {
+                model: 30
+                Rectangle {
+                    width: 1 + Math.random() * 2
+                    height: width
+                    radius: width / 2
+                    color: isDarkMode ? "white" : Qt.rgba(1, 1, 1, 0.8)
+                    x: Math.random() * parent.width
+                    y: Math.random() * parent.height
+                    opacity: 0.3
+                    SequentialAnimation on opacity {
+                        loops: Animation.Infinite
+                        running: true
+                        PauseAnimation { duration: Math.random() * 2000 }
+                        NumberAnimation { from: 0.3; to: 1; duration: 1000 }
+                        NumberAnimation { from: 1; to: 0.3; duration: 1000 }
+                    }
+                }
+            }
         }
 
 
@@ -87,16 +267,34 @@ Item {
 
             // Profile Card with modern design
             Rectangle {
+                anchors.centerIn: parent
                 Layout.preferredWidth: Math.min(500, parent.width - 32)
                 Layout.fillHeight: true
                 Layout.leftMargin: 16
                 Layout.rightMargin: 16
                 Layout.topMargin: 8
                 Layout.bottomMargin: 16
-                color: window.cardColor
-                radius: 24
-                Layout.alignment: Qt.AlignHCenter
-                layer.enabled: true
+                color: isDarkMode ? Qt.rgba(0.2, 0.2, 0.2, 0.3) : Qt.rgba(1, 1, 1, 0.1)
+                border.color: isDarkMode ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.2)
+                border.width: 1
+
+                // Backdrop blur effect simulation
+                Rectangle {
+                    anchors.fill: parent
+                    radius: parent.radius
+                    color: isDarkMode ? Qt.rgba(0, 0, 0, 0.2) : Qt.rgba(0, 0, 0, 0.1)
+                }
+
+                // Shadow effect
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: -5
+                    radius: parent.radius + 5
+                    color: "transparent"
+                    border.color: isDarkMode ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.1)
+                    border.width: 1
+                    z: -1
+                }
 
                 Flickable {
                     anchors.fill: parent
@@ -203,7 +401,7 @@ Item {
                                         bold: true;
                                         family: "Segoe UI Semibold"
                                     }
-                                    color: window.textColor
+                                    color: "white"
                                     Layout.alignment: Qt.AlignHCenter
 
                                     // Debug connection
@@ -227,7 +425,7 @@ Item {
                                         pixelSize: 14;
                                         family: "Segoe UI"
                                     }
-                                    color: window.lightTextColor
+                                    color: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6) : Qt.rgba(1, 1, 1, 0.6)
                                     Layout.alignment: Qt.AlignHCenter
 
                                     // Debug connection
@@ -266,14 +464,14 @@ Item {
                                         bold: true;
                                         family: "Segoe UI"
                                     }
-                                    color: window.lightTextColor
+                                    color: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6) : Qt.rgba(1, 1, 1, 0.6)
                                 }
 
                                 Rectangle {
                                     Layout.fillWidth: true
                                     height: 48
                                     radius: 12
-                                    color: window.Material.theme === Material.Dark ? "#282828" : "#F9FAFB"
+                                    color: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.1) : Qt.rgba(1, 1, 1, 0.1)
                                     border.color: window.dividerColor
                                     border.width: 1
 
@@ -284,7 +482,7 @@ Item {
                                         verticalAlignment: Text.AlignVCenter
                                         text: logger.currentUsername || "Username not set"
                                         font.pixelSize: 15
-                                        color: window.textColor
+                                        color: "white"
                                         elide: Text.ElideRight
                                     }
                                 }
@@ -302,14 +500,14 @@ Item {
                                         bold: true;
                                         family: "Segoe UI"
                                     }
-                                    color: window.lightTextColor
+                                    color: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6) : Qt.rgba(1, 1, 1, 0.6)
                                 }
 
                                 Rectangle {
                                     Layout.fillWidth: true
                                     height: 48
                                     radius: 12
-                                    color: window.Material.theme === Material.Dark ? "#282828" : "#F9FAFB"
+                                    color: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.1) : Qt.rgba(1, 1, 1, 0.1)
                                     border.color: window.dividerColor
                                     border.width: 1
 
@@ -320,7 +518,7 @@ Item {
                                         verticalAlignment: Text.AlignVCenter
                                         text: logger.currentUserEmail || "Email not set"
                                         font.pixelSize: 15
-                                        color: window.textColor
+                                        color: "white"
                                         elide: Text.ElideRight
                                     }
                                 }
@@ -338,14 +536,14 @@ Item {
                                         bold: true;
                                         family: "Segoe UI"
                                     }
-                                    color: window.lightTextColor
+                                    color: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6) : Qt.rgba(1, 1, 1, 0.6)
                                 }
 
                                 Rectangle {
                                     Layout.fillWidth: true
                                     height: 48
                                     radius: 12
-                                    color: window.Material.theme === Material.Dark ? "#282828" : "#F9FAFB"
+                                    color: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.1) : Qt.rgba(1, 1, 1, 0.1)
                                     border.color: window.dividerColor
                                     border.width: 1
 
@@ -356,7 +554,7 @@ Item {
                                         verticalAlignment: Text.AlignVCenter
                                         text: logger.getUserDepartment(logger.currentUsername) || "Role not set"
                                         font.pixelSize: 15
-                                        color: window.textColor
+                                        color: "white"
                                         elide: Text.ElideRight
                                     }
                                 }
@@ -370,14 +568,14 @@ Item {
                                 Label {
                                     text: "Password"
                                     font { pixelSize: 13; bold: true; family: "Segoe UI" }
-                                    color: window.lightTextColor
+                                    color: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6) : Qt.rgba(1, 1, 1, 0.6)
                                 }
 
                                 Rectangle {
                                     Layout.fillWidth: true
                                     height: 48
                                     radius: 12
-                                    color: window.Material.theme === Material.Dark ? "#282828" : "#F9FAFB"
+                                    color: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.1) : Qt.rgba(1, 1, 1, 0.1)
                                     border.color: window.dividerColor
                                     border.width: 1
 
@@ -388,7 +586,7 @@ Item {
                                         verticalAlignment: Text.AlignVCenter
                                         text: "••••••••"
                                         font.pixelSize: 15
-                                        color: window.textColor
+                                        color: "white"
                                     }
                                 }
                             }

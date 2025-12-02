@@ -13,7 +13,7 @@ Window {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 700
-    property string appVersion: "1.0.3.2"
+    property string appVersion: "1.0.3.3"
     color: cardColor
 
 
@@ -2292,8 +2292,6 @@ Window {
 
                     Frame {
                         Layout.fillWidth: true
-                        // Layout.minimumWidth: 100
-                        // Layout.maximumWidth: 800
                         Layout.fillHeight: true
                         padding: 16
                         background: Rectangle {
@@ -2491,7 +2489,7 @@ Window {
                                 }
 
                                 Label {
-                                    text: "Switch Project?"
+                                    text: "Beralih ke Proyek?"
                                     font {
                                         pixelSize: 18
                                         family: "Segoe UI"
@@ -2504,7 +2502,7 @@ Window {
 
                             // Message section
                             Label {
-                                text: "You're about to switch to another project. Your current progress will be saved automatically."
+                                text: "Anda akan segera beralih ke proyek lain. Kemajuan Anda saat ini akan disimpan secara otomatis."
                                 font {
                                     pixelSize: 13
                                     family: "Segoe UI"
@@ -2557,7 +2555,7 @@ Window {
 
                                 Button {
                                     id: confirmButton
-                                    text: "Switch Project"
+                                    text: "Beralih ke Proyek"
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 40
 

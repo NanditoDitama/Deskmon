@@ -7,6 +7,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
 
+
 Item {
     id: loginPageRoot
     anchors.fill: parent
@@ -16,71 +17,262 @@ Item {
         usernameField.text = logger.savedUsername()
         passwordField.text = logger.savedPassword()
     }
-
     // Background dengan gradient modern yang responsif terhadap tema
     Rectangle {
         anchors.fill: parent
+
         gradient: Gradient {
             GradientStop {
                 position: 0.0
-                color: isDarkMode ? "#1a1a2e" : "#667eea"
+                color: isDarkMode ? "#1a1a2e" : "#E0FFF8"
             }
             GradientStop {
                 position: 1.0
-                color: isDarkMode ? "#16213e" : "#764ba2"
+                color: isDarkMode ? "black" : "#e0e5ec"
             }
         }
 
-        // Animated background circles untuk efek modern
+        // Shooting Stars Animation
         Repeater {
-            model: 3
+                model: 5
+
+                Item {
+                    id: shootingStar
+                    width: parent.width
+                    height: parent.height
+
+                    // Variabel posisi
+                    property real startX: 0
+                    property real startY: 0
+                    property real endX: 0
+                    property real endY: 0
+
+                    property real animationDelay: index * 2000 + Math.random() * 4000
+                    property real starSize: 2 + Math.random() * 3 // Sedikit diperbesar agar terlihat
+                    property bool isVisible: false
+
+                    visible: shootingStar.isVisible
+
+                    // ---------------------------------------------------------
+                    // 1. STAR TRAIL (Ekor)
+                    // ---------------------------------------------------------
+                    Item {
+                        id: starTrail
+                        width: 100 // Panjang ekor
+                        height: 6  // Ketebalan ekor (semakin tipis semakin tajam)
+
+                        // PERBAIKAN POSISI PIVOT:
+                        // Posisikan awal ekor (Left) tepat di TENGAH Bintang
+                        x: starBody.x + (starBody.width / 1)
+                        y: starBody.y + (starBody.height / 1) - (height / 1)
+
+                        // Titik putar ada di kiri item (yang menempel ke bintang)
+                        transformOrigin: Item.Left
+
+                        // Rotasi default 0, nanti di-override ScriptAction
+                        rotation: 0
+                        opacity: starBody.opacity * 0.8
+
+                        Canvas {
+                            id: trailCanvas
+                            anchors.fill: parent
+
+                            // Digambar ulang saat opacity berubah (fade in/out)
+                            onPaint: {
+                                var ctx = getContext("2d")
+                                ctx.clearRect(0, 0, width, height)
+
+                                // Gradient: Terang di kiri (dekat bintang), Transparan di kanan
+                                var gradient = ctx.createLinearGradient(0, 0, width, 0)
+                                gradient.addColorStop(0, "rgba(255, 255, 255, 0.9)")
+                                gradient.addColorStop(0.2, "rgba(255, 255, 255, 0.5)")
+                                gradient.addColorStop(1.0, "rgba(255, 255, 255, 0)")
+
+                                ctx.fillStyle = gradient
+
+                                // Gambar bentuk Trapezoid yang simetris secara vertikal
+                                // Menggunakan 'height/2' sebagai acuan tengah (axis)
+                                var h = height
+                                var mid = h / 2
+
+                                ctx.beginPath()
+                                // Kiri (dekat bintang) agak tebal
+                                ctx.moveTo(0, mid - 2)
+                                ctx.lineTo(0, mid + 2)
+
+                                // Kanan (ujung ekor) menipis ke titik tengah
+                                ctx.lineTo(width, mid + 0.5)
+                                ctx.lineTo(width, mid - 0.5)
+
+                                ctx.closePath()
+                                ctx.fill()
+                            }
+
+                            // Memaksa repaint saat parent opacity berubah
+                            Connections {
+                                target: starTrail
+                                function onOpacityChanged() { trailCanvas.requestPaint() }
+                            }
+                        }
+                    }
+
+                    // ---------------------------------------------------------
+                    // 2. STAR BODY (Kepala)
+                    // ---------------------------------------------------------
+                    Rectangle {
+                        id: starBody
+                        width: shootingStar.starSize
+                        height: shootingStar.starSize
+                        radius: width / 2
+                        color: "white"
+                    }
+
+                    // ---------------------------------------------------------
+                    // 3. LOGIKA ANIMASI
+                    // ---------------------------------------------------------
+                    SequentialAnimation {
+                                    loops: Animation.Infinite
+                                    running: true
+
+                                    PauseAnimation { duration: shootingStar.animationDelay }
+
+                                    ScriptAction {
+                                        script: {
+                                            // A. Posisi Awal (START)
+                                            //    Muncul di area atas, tapi condong ke kanan (dari 20% layar sampai 130% layar)
+                                            //    Supaya bisa masuk dari luar layar kanan.
+                                            shootingStar.startX = (parent.width * 0.2) + Math.random() * (parent.width * 1.1)
+                                            shootingStar.startY = -100 - Math.random() * 150 // Di atas layar
+
+                                            // B. Posisi Akhir (END) - KUNCI PERUBAHAN DISINI
+                                            //    Bergerak sejauh 300-600 pixel
+                                            var travelDistance = 300 + Math.random() * 300
+
+                                            //    X DIKURANGI (Gerak ke Kiri)
+                                            //    Y DITAMBAH (Gerak ke Bawah)
+                                            shootingStar.endX = shootingStar.startX - travelDistance
+                                            shootingStar.endY = shootingStar.startY + travelDistance
+
+                                            // C. Rotasi Presisi
+                                            var dx = shootingStar.endX - shootingStar.startX
+                                            var dy = shootingStar.endY - shootingStar.startY
+                                            var angle = Math.atan2(dy, dx) * 180 / Math.PI
+                                            starTrail.rotation = angle + 180
+
+                                            // Reset
+                                            starBody.x = shootingStar.startX
+                                            starBody.y = shootingStar.startY
+                                            starBody.opacity = 0
+                                            shootingStar.isVisible = true
+                                        }
+                                    }
+
+                                    ParallelAnimation {
+                                        // Animasi Gerak
+                                        NumberAnimation {
+                                            target: starBody; property: "x"
+                                            from: shootingStar.startX; to: shootingStar.endX
+                                            duration: 1200 + Math.random() * 400
+                                            easing.type: Easing.OutQuad
+                                        }
+                                        NumberAnimation {
+                                            target: starBody; property: "y"
+                                            from: shootingStar.startY; to: shootingStar.endY
+                                            duration: 1200 + Math.random() * 400
+                                            easing.type: Easing.OutQuad
+                                        }
+
+                                        // Animasi Kedip (Fade In/Out)
+                                        SequentialAnimation {
+                                            NumberAnimation { target: starBody; property: "opacity"; from: 0; to: 1; duration: 200 }
+                                            PauseAnimation { duration: 200 }
+                                            NumberAnimation { target: starBody; property: "opacity"; from: 1; to: 0; duration: 500 }
+                                        }
+                                    }
+
+                                    ScriptAction { script: { shootingStar.isVisible = false } }
+                                    PauseAnimation { duration: 1500 + Math.random() * 3000 }
+                                }
+
+                }
+            }
+
+        // Static stars (Background) - Tetap sama seperti kode asli
+        Repeater {
+            model: 30
             Rectangle {
-                property real animationOffset: index * 120
-                width: 200 + index * 50
+                width: 1 + Math.random() * 2
                 height: width
                 radius: width / 2
-                color: isDarkMode ? Qt.rgba(1, 1, 1, 0.03) : Qt.rgba(1, 1, 1, 0.05)
-                x: parent.width * 0.7 + Math.sin((animationTimer.currentTime + animationOffset) / 2000) * 100
-                y: parent.height * 0.3 + Math.cos((animationTimer.currentTime + animationOffset) / 1500) * 50
-
-                Timer {
-                    id: animationTimer
-                    property real currentTime: 0
-                    interval: 16
+                color: isDarkMode ? "white" : Qt.rgba(1, 1, 1, 0.8)
+                x: Math.random() * parent.width
+                y: Math.random() * parent.height
+                opacity: 0.3
+                SequentialAnimation on opacity {
+                    loops: Animation.Infinite
                     running: true
-                    repeat: true
-                    onTriggered: currentTime += interval
+                    PauseAnimation { duration: Math.random() * 2000 }
+                    NumberAnimation { from: 0.3; to: 1; duration: 1000 }
+                    NumberAnimation { from: 1; to: 0.3; duration: 1000 }
                 }
             }
         }
     }
 
-    // Glass morphism card
-    Rectangle {
+    Item {
+        id: cardContainer
         anchors.centerIn: parent
         width: 420
         height: 580
-        radius: 20
-        color: isDarkMode ? Qt.rgba(0.2, 0.2, 0.2, 0.3) : Qt.rgba(1, 1, 1, 0.1)
-        border.color: isDarkMode ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.2)
-        border.width: 1
 
-        // Backdrop blur effect simulation
+        // 1. Source Card (Bentuk dasar kartu)
+        // Kita sembunyikan (visible: false) karena MultiEffect yang akan menggambarnya
         Rectangle {
+            id: sourceCard
             anchors.fill: parent
-            radius: parent.radius
-            color: isDarkMode ? Qt.rgba(0, 0, 0, 0.2) : Qt.rgba(0, 0, 0, 0.1)
+            radius: 20
+            // Light Mode: Putih agak solid (0.9) agar shadow di belakang tidak tembus aneh
+            color: isDarkMode ? Qt.rgba(0.2, 0.2, 0.2, 0.3) : Qt.rgba(1, 1, 1, 0.9)
+            visible: false
         }
 
-        // Shadow effect
+        // 2. MultiEffect (Menangani Shadow + Rendering Card)
+        MultiEffect {
+            source: sourceCard
+            anchors.fill: sourceCard
+
+            // Agar shadow tidak terpotong frame
+            autoPaddingEnabled: true
+
+            // Konfigurasi Shadow
+            shadowEnabled: !isDarkMode // Hanya aktif di Light Mode
+            shadowColor: Qt.rgba(0, 0, 0, 0.2) // Warna bayangan hitam transparan
+            shadowBlur: 1.0         // Tingkat blur (0.0 - 1.0)
+            shadowVerticalOffset: 10 // Bayangan jatuh ke bawah
+            shadowHorizontalOffset: 0
+            shadowScale: 1.02       // Sedikit diperbesar agar bayangan menyebar
+        }
+
+        // 3. Border / Outline (Opsional)
+        // Digambar terpisah di atas MultiEffect agar tetap tajam (tidak ikut kena blur)
         Rectangle {
             anchors.fill: parent
-            anchors.margins: -5
-            radius: parent.radius + 5
+            radius: 20
             color: "transparent"
-            border.color: isDarkMode ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.1)
+            border.color: isDarkMode ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.1)
             border.width: 1
-            z: -1
+        }
+
+        // 4. Inner Highlight (Opsional - Efek Glassmorphism)
+        // Lapisan dalam untuk kesan kilau kaca
+        Rectangle {
+            anchors.fill: parent
+            radius: 20
+            color: isDarkMode ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+            border.color: isDarkMode ? "transparent" : Qt.rgba(1, 1, 1, 0.5)
+            border.width: 1
+            anchors.margins: 1
+            z: 1
         }
 
         ColumnLayout {
@@ -98,7 +290,7 @@ Item {
                     width: 80
                     height: 80
                     radius: 40
-                    color: isDarkMode ? Qt.rgba(0.2, 0.2, 0.2, 0.3) : Qt.rgba(1, 1, 1, 0.1)
+                    color: dividerColor
                     border.color: isDarkMode ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(1, 1, 1, 0.3)
                     border.width: 2
                     Layout.alignment: Qt.AlignHCenter
@@ -118,9 +310,9 @@ Item {
                         bold: true
                         pixelSize: 32
                         family: "Segoe UI"
-                        weight: Font.Light
+                        weight: bold
                     }
-                    color: isDarkMode ? textColor : "white"
+                    color: textColor
                     Layout.alignment: Qt.AlignHCenter
                 }
 
@@ -131,7 +323,7 @@ Item {
                         family: "Segoe UI"
                         weight: Font.Normal
                     }
-                    color: isDarkMode ? lightTextColor : Qt.rgba(1, 1, 1, 0.8)
+                    color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6)
                     Layout.alignment: Qt.AlignHCenter
                 }
             }
@@ -153,7 +345,7 @@ Item {
                             family: "Segoe UI"
                             weight: Font.Medium
                         }
-                        color: isDarkMode ? textColor : Qt.rgba(1, 1, 1, 0.9)
+                        color: textColor
                     }
 
                     TextField {
@@ -167,13 +359,13 @@ Item {
                         font.family: "Segoe UI"
                         leftPadding: 16
                         rightPadding: 16
-                        color: isDarkMode ? textColor : "white"
-                        placeholderTextColor: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6) : Qt.rgba(1, 1, 1, 0.6)
+                        color: textColor
+                        placeholderTextColor: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6)
 
                         background: Rectangle {
                             radius: 12
                             color: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.1) : Qt.rgba(1, 1, 1, 0.1)
-                            border.color: usernameField.activeFocus ? primaryColor : (isDarkMode ? dividerColor : Qt.rgba(1, 1, 1, 0.2))
+                            border.color: usernameField.activeFocus ? primaryColor : (isDarkMode ? dividerColor : dividerColor)
                             border.width: usernameField.activeFocus ? 2 : 1
 
                             Behavior on border.color {
@@ -196,71 +388,76 @@ Item {
                             family: "Segoe UI"
                             weight: Font.Medium
                         }
-                        color: isDarkMode ? textColor : Qt.rgba(1, 1, 1, 0.9)
+                        color: textColor
                     }
 
-                    RowLayout {
+                    // Container for password field and button
+                    Rectangle {
                         Layout.fillWidth: true
-                        spacing: 0
+                        Layout.preferredHeight: 50
+                        radius: 12
+                        color: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.1) : Qt.rgba(1, 1, 1, 0.1)
+                        border.color: passwordField.activeFocus ? primaryColor : (isDarkMode ? dividerColor : dividerColor)
+                        border.width: passwordField.activeFocus ? 2 : 1
 
-                        TextField {
-                            id: passwordField
-                            placeholderText: "Enter your password"
-                            enabled: !loginPageRoot.isLoading
-                            echoMode: showPassword ? TextInput.Normal : TextInput.Password
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 50
-                            font.pixelSize: 16
-                            font.family: "Segoe UI"
-                            leftPadding: 16
-                            rightPadding: 50
-                            color: isDarkMode ? textColor : "white"
-                            placeholderTextColor: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6) : Qt.rgba(1, 1, 1, 0.6)
-
-                            background: Rectangle {
-                                radius: 12
-                                color: isDarkMode ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.1) : Qt.rgba(1, 1, 1, 0.1)
-                                border.color: passwordField.activeFocus ? primaryColor : (isDarkMode ? dividerColor : Qt.rgba(1, 1, 1, 0.2))
-                                border.width: passwordField.activeFocus ? 2 : 1
-
-                                Behavior on border.color {
-                                    ColorAnimation { duration: 200 }
-                                }
-                            }
-                            onAccepted: if (!loginPageRoot.isLoading) loginButton.clicked()
+                        Behavior on border.color {
+                            ColorAnimation { duration: 200 }
                         }
 
-                        Button {
-                            id: showPasswordButton
-                            icon.source: showPassword ? visibilityIcon : visibilityOffIcon
-                            icon.color: isDarkMode ? lightTextColor : Qt.rgba(1, 1, 1, 0.7)
-                            icon.width: 20
-                            icon.height: 20
-                            width: 40
-                            height: 40
-                            anchors.right: passwordField.right
-                            anchors.rightMargin: 8
-                            anchors.verticalCenter: passwordField.verticalCenter
-                            flat: true
-                            enabled: !loginPageRoot.isLoading
-                            onClicked: showPassword = !showPassword
-                            background: Rectangle {
-                                color: "transparent"
-                                radius: 6
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: 8
+
+                            TextField {
+                                id: passwordField
+                                placeholderText: "Enter your password"
+                                enabled: !loginPageRoot.isLoading
+                                echoMode: showPassword ? TextInput.Normal : TextInput.Password
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                font.pixelSize: 16
+                                font.family: "Segoe UI"
+                                leftPadding: 16
+                                rightPadding: 16
+                                color: textColor
+                                placeholderTextColor: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6)
+
+                                background: Rectangle {
+                                    color: "transparent"
+                                }
+
+                                onAccepted: if (!loginPageRoot.isLoading) loginButton.clicked()
                             }
 
-                            MouseArea {
-                                anchors.fill: parent
-                                hoverEnabled: true
+                            Button {
+                                id: showPasswordButton
+                                icon.source: showPassword ? visibilityIcon : visibilityOffIcon
+                                icon.color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6)
+                                icon.width: 35
+                                icon.height: 35
+                                Layout.preferredWidth: 50
+                                Layout.preferredHeight: 50
+                                flat: true
                                 enabled: !loginPageRoot.isLoading
-                                onEntered: parent.background.color = isDarkMode ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(1, 1, 1, 0.1)
-                                onExited: parent.background.color = "transparent"
                                 onClicked: showPassword = !showPassword
+
+                                background: Rectangle {
+                                    color: "transparent"
+                                    radius: 6
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    enabled: !loginPageRoot.isLoading
+                                    onEntered: parent.background.color = isDarkMode ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(1, 1, 1, 0.1)
+                                    onExited: parent.background.color = "transparent"
+                                    onClicked: showPassword = !showPassword
+                                }
                             }
                         }
                     }
                 }
-
                 // Login button dengan design modern dan loading state
                 Button {
                     id: loginButton
