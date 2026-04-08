@@ -1,0 +1,157 @@
+﻿.\build\Deskmon.exe : Productive apps count: 0
+At line:1 char:22
++ cmake --build build; .\build\Deskmon.exe > crash_dump4.txt 2>&1
++                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Productive apps count: 0:String) [ 
+   ], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Non-productive apps count: 0
+Cannot fetch work time: No user logged in or no auth token.
+No threshold found in database, returning default: 120 seconds
+Retrieved idle threshold from database: 180 seconds
+Idle threshold set to: 180 seconds
+Could not attach Keys property to:  EarlyLeaveDialog_QMLTYPE_120(0x238dff4eb50) 
+ is not an Item
+Cannot count logs: No user logged in
+Cannot fetch task list: No user logged in
+qrc:/qt/qml/window_logger/qml/Current_Task.qml:361:13: QML ListView: Binding 
+loop detected for property "model":
+qrc:/qt/qml/window_logger/qml/Current_Task.qml:368:17
+Cannot fetch task list: No user logged in
+Cannot fetch task list: No user logged in
+Cannot fetch task list: No user logged in
+Cannot fetch task list: No user logged in
+Cannot fetch task list: No user logged in
+Cannot fetch task list: No user logged in
+Cannot fetch task list: No user logged in
+Cannot fetch task list: No user logged in
+Cannot fetch task list: No user logged in
+Cannot fetch task list: No user logged in
+Cannot fetch task list: No user logged in
+Cannot fetch task list: No user logged in
+Failed to get department for user: ""
+qrc:/qt/qml/window_logger/qml/NeedReviewDialog.qml:260:33: QML 
+QQuickRectangle*: The current style does not support customization of this 
+control (property: "background" item: QQuickRectangle_QML_176(0x238e03ad330, 
+parent=0x0, geometry=0,0 0x0)). Please customize a non-native style (such as 
+Basic, Fusion, Material, etc). For more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+qrc:/qt/qml/window_logger/qml/NeedReviewDialog.qml:225:33: QML 
+QQuickRectangle*: The current style does not support customization of this 
+control (property: "background" item: QQuickRectangle_QML_174(0x238e03ac290, 
+parent=0x0, geometry=0,0 0x0)). Please customize a non-native style (such as 
+Basic, Fusion, Material, etc). For more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+qrc:/qt/qml/window_logger/qml/FailureDialog.qml:167:33: QML QQuickRectangle*: 
+The current style does not support customization of this control (property: 
+"background" item: QQuickRectangle_QML_168(0x238e03abd50, parent=0x0, 
+geometry=0,0 0x0)). Please customize a non-native style (such as Basic, Fusion, 
+Material, etc). For more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+qrc:/qt/qml/window_logger/qml/FailureDialog.qml:131:33: QML QQuickRectangle*: 
+The current style does not support customization of this control (property: 
+"background" item: QQuickRectangle_QML_167(0x238e03ac0d0, parent=0x0, 
+geometry=0,0 0x0)). Please customize a non-native style (such as Basic, Fusion, 
+Material, etc). For more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+qrc:/qt/qml/window_logger/qml/TaskDetailsDialog.qml:243:33: QML 
+QQuickRectangle*: The current style does not support customization of this 
+control (property: "background" item: QQuickRectangle_QML_156(0x238e03ad950, 
+parent=0x0, geometry=0,0 0x0)). Please customize a non-native style (such as 
+Basic, Fusion, Material, etc). For more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+qrc:/qt/qml/window_logger/qml/TaskDetailsDialog.qml:206:33: QML 
+QQuickRectangle*: The current style does not support customization of this 
+control (property: "background" item: QQuickRectangle_QML_155(0x238e03ae3d0, 
+parent=0x0, geometry=0,0 0x0)). Please customize a non-native style (such as 
+Basic, Fusion, Material, etc). For more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+Cannot fetch task list: No user logged in
+qrc:/qt/qml/window_logger/qml/Main.qml:1926:33: QML QQuickImage: Cannot open: 
+qrc:/icons/website.svg
+qrc:/qt/qml/window_logger/qml/Main.qml:1787:42: QML QQuickImage: Cannot open: 
+qrc:/icons/refresh.svg
+qrc:/qt/qml/window_logger/qml/Main.qml:1749:42: QML QQuickImage: Cannot open: 
+qrc:/icons/dark_mode.svg
+qrc:/qt/qml/window_logger/qml/Main.qml:1652:5: QML Connections: Implicitly 
+defined onFoo properties in Connections are deprecated. Use this syntax 
+instead: function onFoo(<arguments>) { ... }
+qrc:/qt/qml/window_logger/qml/Main.qml:1492:25: QML QQuickImage: Cannot open: 
+qrc:/icon.ico
+qrc:/qt/qml/window_logger/qml/Profil_page.qml:269:13: QML QQuickRectangle: 
+Detected anchors on an item that is managed by a layout. This is undefined 
+behavior; use Layout.alignment instead.
+qrc:/qt/qml/window_logger/qml/Main.qml:1209:25: QML QQuickImage: Cannot open: 
+qrc:/icon.ico
+qrc:/qt/qml/window_logger/qml/Main.qml:998:25: QML QQuickImage: Cannot open: 
+qrc:/icon.ico
+qrc:/qt/qml/window_logger/qml/Main.qml:851:17: QML QQuickImage: Cannot open: 
+qrc:/icon.ico
+qrc:/qt/qml/window_logger/qml/NeedReviewDialog.qml:302:34: QML QQuickText: The 
+current style does not support customization of this control (property: 
+"contentItem" item: QQuickText(0x238e353ba80, parent=0x0, geometry=0,0 0x0 ?)). 
+Please customize a non-native style (such as Basic, Fusion, Material, etc). For 
+more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+qrc:/qt/qml/window_logger/qml/NeedReviewDialog.qml:234:34: QML QQuickText: The 
+current style does not support customization of this control (property: 
+"contentItem" item: QQuickText(0x238e353ad60, parent=0x0, geometry=0,0 0x0 ?)). 
+Please customize a non-native style (such as Basic, Fusion, Material, etc). For 
+more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+qrc:/qt/qml/window_logger/qml/NeedReviewDialog.qml:176:41: QML QQuickItem: The 
+current style does not support customization of this control (property: 
+"background" item: QQuickItem(0x238e3380960, parent=0x0, geometry=0,0 0x0)). 
+Please customize a non-native style (such as Basic, Fusion, Material, etc). For 
+more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+qrc:/qt/qml/window_logger/qml/EarlyLeaveDialog.qml:257:5: QML Connections: 
+Detected function "onEarlyLeaveSubmitFailed" in Connections element. This is 
+probably intended to be a signal handler but no signal of the target matches 
+the name.
+qrc:/qt/qml/window_logger/qml/FailureDialog.qml:176:34: QML QQuickText: The 
+current style does not support customization of this control (property: 
+"contentItem" item: QQuickText(0x238e353d100, parent=0x0, geometry=0,0 0x0 ?)). 
+Please customize a non-native style (such as Basic, Fusion, Material, etc). For 
+more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+qrc:/qt/qml/window_logger/qml/FailureDialog.qml:140:34: QML QQuickText: The 
+current style does not support customization of this control (property: 
+"contentItem" item: QQuickText(0x238e353d2e0, parent=0x0, geometry=0,0 0x0 ?)). 
+Please customize a non-native style (such as Basic, Fusion, Material, etc). For 
+more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+qrc:/qt/qml/window_logger/qml/TaskDetailsDialog.qml:284:34: QML QQuickText: The 
+current style does not support customization of this control (property: 
+"contentItem" item: QQuickText(0x238e353ae50, parent=0x0, geometry=0,0 0x0 ?)). 
+Please customize a non-native style (such as Basic, Fusion, Material, etc). For 
+more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+qrc:/qt/qml/window_logger/qml/TaskDetailsDialog.qml:215:34: QML QQuickText: The 
+current style does not support customization of this control (property: 
+"contentItem" item: QQuickText(0x238e353e1e0, parent=0x0, geometry=0,0 0x0 ?)). 
+Please customize a non-native style (such as Basic, Fusion, Material, etc). For 
+more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+qrc:/qt/qml/window_logger/qml/TaskDetailsDialog.qml:176:41: QML QQuickItem: The 
+current style does not support customization of this control (property: 
+"background" item: QQuickItem(0x238e33822c0, parent=0x0, geometry=0,0 0x0)). 
+Please customize a non-native style (such as Basic, Fusion, Material, etc). For 
+more information, see: 
+https://doc.qt.io/qt-6/qtquickcontrols2-customize.html#customization-reference
+qrc:/qt/qml/window_logger/qml/Main.qml:684:5: QML Connections: Detected 
+function "onModelUpdated" in Connections element. This is probably intended to 
+be a signal handler but no signal of the target matches the name.
+qrc:/qt/qml/window_logger/qml/Main.qml:1749:42: QML QQuickImage: Cannot open: 
+qrc:/icons/light_mode.svg
+qml: ke halaman login untuk login ulang
+qml: Dashboard component completed. Setting date range to today.
+qml: Setting date filter - Start: 2026-03-31 End: 2026-03-31
+Setting log filter - Start: "2026-03-31" End: "2026-03-31"
+Cannot count logs: No user logged in
+qml: Date range applied: Mar 31, 2026
+qml: Profile page - Email label: Email not set
+qml: Logger currentUserEmail: 
+qml: Profile page - Username label: Username not set
+qml: Logger currentUsername: 

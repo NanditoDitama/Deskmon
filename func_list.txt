@@ -1,0 +1,91 @@
+﻿124: Deskmon::Deskmon(QObject *parent) : QObject(parent)
+201: Deskmon::~Deskmon()
+207: QSqlQueryModel* Deskmon::logModel() const {
+213: int Deskmon::workTimeElapsedSeconds() const
+220: QString Deskmon::savedUsername() const {
+224: QString Deskmon::savedPassword() const {
+228: void Deskmon::notify(const QString &type, const QString &message) {
+232: void Deskmon::startGlobalTimer()
+238: bool Deskmon::ensureDatabaseOpen() const
+243: bool Deskmon::ensureProductivityDatabaseOpen() const
+251: void Deskmon::showAuthTokenErrorMessage()
+265: void Deskmon::refreshAll()
+279: void Deskmon::refreshTasks()
+285: void Deskmon::sendLogoutToAPI()
+290: void Deskmon::submitEarlyLeaveReason(const QString &reason)
+295: void Deskmon::logout()
+314: bool Deskmon::validateFilePath(const QString &filePath)
+349: void Deskmon::fetchWorkTimeFromAPI()
+370: void Deskmon::handleFetchWorkTimeResponse(QNetworkReply *reply)
+408: void Deskmon::checkAndCreateNewDayRecord()
+413: void Deskmon::loadWorkTimeData()
+419: void Deskmon::saveWorkTimeData()
+424: void Deskmon::sendWorkTimeToAPI()
+431: void Deskmon::updateProductivityCache()
+436: int Deskmon::getAppProductivityType(const QString &appName, const QString &url) const
+443: int Deskmon::calculateTodayProductiveSeconds() const
+452: QVariantMap Deskmon::productivityStats() const
+459: void Deskmon::sendProductiveTimeToAPI()
+465: void Deskmon::checkTaskStatusBeforeStart()
+473: int Deskmon::getIdleThreshold() const
+496: QVariantList Deskmon::getProductivityApps() const {
+527: void Deskmon::setIdleThreshold(int seconds)
+550: QString Deskmon::currentAppName() const
+555: QString Deskmon::currentWindowTitle() const
+560: int Deskmon::logCount() const
+595: QString Deskmon::logContent() const
+606: QVariantList Deskmon::getAvailableApps() const
+623: QString extractDomain(const QString &urlString) {
+638: void Deskmon::addProductivityApp(const QString &appName, const QString &windowTitle, const QString &url, int productivityType)
+674: void Deskmon::sendProductivityAppToAPI(const QString &appName, const QString &windowTitle, const QString &url, int productivityType)
+728: void Deskmon::fetchAndStoreProductivityApps()
+733: void Deskmon::handleProductivityAppsResponse(QNetworkReply *reply)
+977: void Deskmon::refreshProductivityModels()
+1012: void Deskmon::sendDailyUsageReport()
+1022: QVariantList Deskmon::getPendingApplicationRequests() {
+1070: void Deskmon::fetchAndStoreTasks()
+1120: void Deskmon::handleTaskFetchReply(QNetworkReply *reply)
+1317: bool Deskmon::isTaskExpired(int taskId)
+1367: int Deskmon::getPendingStartedTaskCount()
+1385: QVariantList Deskmon::taskList() const
+1466: void Deskmon::setActiveTask(int taskId)
+1622: void Deskmon::sendPing(int taskId)
+1742: void Deskmon::startPingTimer()
+1757: QString Deskmon::getUserPassword(const QString &username) {
+1769: void Deskmon::updateTaskStatus(int taskId)
+1824: void Deskmon::handleTaskStatusReply(QNetworkReply *reply, int taskId)
+1966: QString Deskmon::getTaskName(int taskId)
+1987: void Deskmon::finishTask(int taskId)
+2055: void Deskmon::setMaxTimeForTask(int taskId)
+2082: void Deskmon::toggleTaskPause()
+2209: void Deskmon::sendPausePlayDataToAPI(int taskId, const QString& startTime,
+2292: void Deskmon::revertTaskChange()
+2365: QString Deskmon::formatDuration(int seconds) const
+2381: QString Deskmon::debugShowRawData() const
+2405: void Deskmon::showLogs()
+2410: QString Deskmon::authenticate(const QString &loginInput, const QString &password)
+2574: void Deskmon::setCurrentUserInfo(int userId, const QString &username, const QString &email)
+2593: QString Deskmon::getCurrentToken() const {
+2597: void Deskmon::clearToken() {
+2613: QString Deskmon::getUserEmail(const QString &username)
+2634: QString Deskmon::getUserDepartment(const QString &username)
+2657: QString Deskmon::hashPassword(const QString &password)
+2662: bool Deskmon::isUsernameTaken(const QString &username)
+2685: QString Deskmon::updateUserProfile(const QString &currentUsername, const QString &newUsername, const QString &newPassword)
+2727: QString Deskmon::cropProfileImage(const QString &imagePath, qreal x, qreal y, qreal imageWidth, qreal imageHeight, qreal cropWidth, qreal cropHeight)
+2813: QString Deskmon::getUsernameById(int userId) const
+2832: void Deskmon::clearLogFilter()
+2841: void Deskmon::logActiveWindow()
+2877: void Deskmon::syncActiveTask()
+2973: void Deskmon::logIdle(qint64 startTime, qint64 endTime)
+3009: void Deskmon::logWindowChange(const WindowManager::WindowInfo &info, qint64 startTime, qint64 endTime)
+3052: void Deskmon::setLogFilter(const QString &startDate, const QString &endDate)
+3109: bool Deskmon::updateProfileImage(const QString &username, const QString &imagePath)
+3173: QString Deskmon::getProfileImagePath(const QString &username)
+3205: QString Deskmon::statusMessage() const
+3210: void Deskmon::taskDetailsDialogClosed(const QString &action)
+3228: void Deskmon::submitTaskDetails(int taskId, const QString &details, const QString &action, int nextTaskId)
+3236: void Deskmon::sendTaskDetailsToAPI(int taskId, const QString &details, const QString &action, int nextTaskId)
+3319: void Deskmon::checkForUpdates()
+3372: void Deskmon::launchMaintenanceTool()
+3395: WindowManager::WindowInfo Deskmon::getActiveWindowInfo()

@@ -15,39 +15,54 @@ find_package(Qt6 REQUIRED COMPONENTS
     Network
     Widgets
     QuickControls2
+    Svg
 )
 
-# For macOS, set logger.cpp to be compiled as Objective-C++
+# For macOS, set deskmon.cpp to be compiled as Objective-C++
 if(APPLE)
-    set_source_files_properties(logger.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
-    set_source_files_properties(idlechecker.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
+    set_source_files_properties(src/deskmon.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
+    set_source_files_properties(src/idlechecker.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
 endif()
 
 qt_standard_project_setup(REQUIRES 6.8)
 
 # Menambahkan sumber daya (resources) dan file QML
 set(SOURCES
-    main.cpp
-    logger.cpp
-    idlechecker.cpp
+    src/main.cpp
+    src/deskmon.cpp
+    src/deskmon_auth.cpp
+    src/deskmon_worktime.cpp
+    src/deskmon_log.cpp
+    src/deskmon_window.cpp
+    src/deskmon_profile.cpp
+    src/deskmon_system.cpp
+    src/deskmon_task.cpp
+    src/deskmon_productivity.cpp
+    src/datamanager.cpp
+    src/windowmanager.cpp
+    src/apimanager.cpp
+    src/sessionmanager.cpp
+    src/taskcontroller.cpp
+    src/idlechecker.cpp
 )
 
 set(HEADERS
-    logger.h
-    idlechecker.h
-)
-
-set(QML_FILES
-    Main.qml
+    src/deskmon.h
+    src/datamanager.h
+    src/windowmanager.h
+    src/apimanager.h
+    src/sessionmanager.h
+    src/taskcontroller.h
+    src/idlechecker.h
 )
 
 # Konfigurasi Windows Resource file untuk icon
 if(WIN32)
     # Buat file resource Windows
-    set(WIN_RESOURCE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/app.rc)
+    set(WIN_RESOURCE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/app.rc)
 
     # Pastikan file icon.ico ada
-    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/icon.ico)
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.ico)
         # Buat konten app.rc dengan format yang benar
         file(WRITE ${WIN_RESOURCE_FILE}
             "// Microsoft Visual C++ generated resource script.\n"
@@ -58,7 +73,7 @@ if(WIN32)
             "#undef APSTUDIO_READONLY_SYMBOLS\n"
             "\n"
             "// Icon\n"
-            "IDI_ICON1 ICON \"icon.ico\"\n"
+            "IDI_ICON1 ICON \"../assets/icon.ico\"\n"
             "\n"
             "// Version Information\n"
             "VS_VERSION_INFO VERSIONINFO\n"
@@ -92,7 +107,7 @@ if(WIN32)
         )
 
         # Buat file resource.h
-        set(RESOURCE_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/resource.h)
+        set(RESOURCE_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/src/resource.h)
         file(WRITE ${RESOURCE_HEADER}
             "//{{NO_DEPENDENCIES}}\n"
             "// Microsoft Visual C++ generated include file.\n"
@@ -115,7 +130,7 @@ if(WIN32)
 
         message(STATUS "Windows resource file created: ${WIN_RESOURCE_FILE}")
     else()
-        message(WARNING "icon.ico not found! Icon will not be embedded.")
+        message(WARNING "assets/icon.ico not found! Icon will not be embedded.")
     endif()
 endif()
 
@@ -130,52 +145,61 @@ qt_add_qml_module(Deskmon
     URI window_logger
     VERSION 1.0
     QML_FILES
-        Main.qml
-        Pop_up_waktuhabis.qml
-        Login_page.qml
-        Profil_page.qml
-        Productivty.qml
-        SaveTombolCropImage.qml
-        Current_Task.qml
-        Activity_Monitor.qml
-        Monitored_Applications.qml
-        AddAplicatioRequest.qml
-        RequstAppPending.qml
-        DateRange.qml
-        EarlyLeaveDialog.qml
-        TaskDetailsDialog.qml
-        FailureDialog.qml
-        QML_FILES NeedReviewDialog.qml
-        RESOURCES ../../../Downloads/dm.png
+        qml/Main.qml
+        qml/Pop_up_waktuhabis.qml
+        qml/Login_page.qml
+        qml/Profil_page.qml
+        qml/Productivty.qml
+        qml/SaveTombolCropImage.qml
+        qml/Current_Task.qml
+        qml/Activity_Monitor.qml
+        qml/Monitored_Applications.qml
+        qml/AddAplicatioRequest.qml
+        qml/RequstAppPending.qml
+        qml/DateRange.qml
+        qml/EarlyLeaveDialog.qml
+        qml/TaskDetailsDialog.qml
+        qml/FailureDialog.qml
+        qml/NeedReviewDialog.qml
+        qml/AddAppDialog.qml
+        qml/ApplicationsDialog.qml
+        qml/ConfirmFinishDialog.qml
+        qml/ConfirmSwitchDialog.qml
+        qml/DateRangeDialog.qml
+        qml/EarlyLogoutDialog.qml
+        qml/MainDialog.qml
+        qml/RequestDialog.qml
+        qml/TaskDetailPopup.qml
+        qml/Dialog.qml
 )
 
 # Menambahkan resource file jika diperlukan
 qt_add_resources(Deskmon "resources"
     PREFIX "/"
     FILES
-        icon.ico
-        icon.png
-        play_icon_app.png
-        pause_icon_app.png
-        profilImage.png
-        icons/dm.png
-        icons/arrow_back.svg
-        icons/camera.svg
-        icons/edit.svg
-        icons/visibility.svg
-        icons/visibility_off.svg
-        icons/dark_mode.svg
-        icons/light_mode.svg
-        icons/chevron-left.svg
-        icons/chevron-right.svg
-        icons/refresh.svg
-        icons/search.svg
-        icons/check.svg
-        icons/more-horiz.svg
-        icons/review.svg
-        icons/close.svg
-        icons/danger.svg
-        icons/website.svg
+        assets/icon.ico
+        assets/icon.png
+        assets/play_icon_app.png
+        assets/pause_icon_app.png
+        assets/profilImage.png
+        assets/icons/dm.png
+        assets/icons/arrow_back.svg
+        assets/icons/camera.svg
+        assets/icons/edit.svg
+        assets/icons/visibility.svg
+        assets/icons/visibility_off.svg
+        assets/icons/dark_mode.svg
+        assets/icons/light_mode.svg
+        assets/icons/chevron-left.svg
+        assets/icons/chevron-right.svg
+        assets/icons/refresh.svg
+        assets/icons/search.svg
+        assets/icons/check.svg
+        assets/icons/more-horiz.svg
+        assets/icons/review.svg
+        assets/icons/close.svg
+        assets/icons/danger.svg
+        assets/icons/website.svg
 )
 
 # Link library yang diperlukan
@@ -189,11 +213,12 @@ target_link_libraries(Deskmon
         Qt6::Network
         Qt6::Widgets
         Qt6::QuickControls2
+        Qt6::Svg
 )
 
 # Link library spesifik platform
 if(WIN32)
-    target_link_libraries(Deskmon PRIVATE user32 psapi)
+    target_link_libraries(Deskmon PRIVATE user32 psapi ole32 uuid)
 elseif(APPLE)
     # Framework khusus macOS
     find_library(COCOA_LIBRARY Cocoa)
@@ -232,7 +257,7 @@ set_target_properties(Deskmon PROPERTIES
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
+    WIN32_EXECUTABLE FALSE
 )
 
 # Install rules
