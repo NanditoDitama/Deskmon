@@ -111,9 +111,14 @@ if(WIN32)
         )
 
         # Tambahkan resource file ke sources
-        set(SOURCES ${SOURCES} ${WIN_RESOURCE_FILE})
-
-        message(STATUS "Windows resource file created: ${WIN_RESOURCE_FILE}")
+        # windres has known issues with paths containing spaces under MinGW,
+        # so we disable it for debug/console log builds.
+        if(NOT CONSOLE_LOGS)
+            set(SOURCES ${SOURCES} ${WIN_RESOURCE_FILE})
+            message(STATUS "Windows resource file created and added: ${WIN_RESOURCE_FILE}")
+        else()
+            message(STATUS "Windows resource file bypassed for console logging.")
+        endif()
     else()
         message(WARNING "icon.ico not found! Icon will not be embedded.")
     endif()
@@ -145,8 +150,7 @@ qt_add_qml_module(Deskmon
         EarlyLeaveDialog.qml
         TaskDetailsDialog.qml
         FailureDialog.qml
-        QML_FILES NeedReviewDialog.qml
-        RESOURCES ../../../Downloads/dm.png
+        NeedReviewDialog.qml
 )
 
 # Menambahkan resource file jika diperlukan
@@ -228,11 +232,19 @@ if(APPLE)
 endif()
 
 # Set properti target
+option(CONSOLE_LOGS "Enable console output on Windows" OFF)
+
+if(WIN32 AND CONSOLE_LOGS)
+    set(WIN32_EXE_OPTION FALSE)
+else()
+    set(WIN32_EXE_OPTION TRUE)
+endif()
+
 set_target_properties(Deskmon PROPERTIES
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
+    WIN32_EXECUTABLE ${WIN32_EXE_OPTION}
 )
 
 # Install rules
