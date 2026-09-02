@@ -1,0 +1,30 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/Main.qml</file>
+        <file>qml/views/Activity_Monitor.qml</file>
+        <file>qml/views/AddAplicatioRequest.qml</file>
+        <file>qml/views/Current_Task.qml</file>
+        <file>qml/views/DateRange.qml</file>
+        <file>qml/views/Login_page.qml</file>
+        <file>qml/views/Monitored_Applications.qml</file>
+        <file>qml/views/Productivty.qml</file>
+        <file>qml/views/Profil_page.qml</file>
+        <file>qml/views/RequstAppPending.qml</file>
+        <file>qml/views/ShowAplication.qml</file>
+        <file>qml/dialogs/AddApplicationDialog.qml</file>
+        <file>qml/dialogs/ApplicationsDialog.qml</file>
+        <file>qml/dialogs/ConfirmFinishDialog.qml</file>
+        <file>qml/dialogs/ConfirmSwitchDialog.qml</file>
+        <file>qml/dialogs/DateRangeDialog.qml</file>
+        <file>qml/dialogs/EarlyLeaveDialog.qml</file>
+        <file>qml/dialogs/EarlyLogoutDialog.qml</file>
+        <file>qml/dialogs/FailureDialog.qml</file>
+        <file>qml/dialogs/MainDialog.qml</file>
+        <file>qml/dialogs/NeedReviewDialog.qml</file>
+        <file>qml/dialogs/Pop_up_waktuhabis.qml</file>
+        <file>qml/dialogs/RequestDialog.qml</file>
+        <file>qml/dialogs/SaveTombolCropImage.qml</file>
+        <file>qml/dialogs/TaskDetailPopup.qml</file>
+        <file>qml/dialogs/TaskDetailsDialog.qml</file>
+    </qresource>
+</RCC>

@@ -17,9 +17,9 @@ find_package(Qt6 REQUIRED COMPONENTS
     QuickControls2
 )
 
-# For macOS, set logger.cpp to be compiled as Objective-C++
+# For macOS, set WindowInfoProvider_Mac.cpp and IdleChecker.cpp to be compiled as Objective-C++
 if(APPLE)
-    set_source_files_properties(src/app/Logger.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
+    set_source_files_properties(src/core/platform/WindowInfoProvider_Mac.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
     set_source_files_properties(src/features/tracking/IdleChecker.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
 endif()
 
@@ -28,13 +28,40 @@ qt_standard_project_setup(REQUIRES 6.8)
 # Menambahkan sumber daya (resources) dan file QML
 set(SOURCES
     src/app/main.cpp
-    src/app/Logger.cpp
+    src/app/AppController.cpp
+    src/core/network/ApiClient.cpp
+    src/core/database/WorkLogRepository.cpp
+    src/core/database/ProductivityAppRepository.cpp
+    src/features/auth/AuthManager.cpp
+    src/features/profile/UserProfileManager.cpp
+    src/features/worktime/WorkTimeTracker.cpp
+    src/features/tracking/ActivityTracker.cpp
     src/features/tracking/IdleChecker.cpp
+    src/features/tasks/TaskManager.cpp
+    src/features/productivity/ProductivityStatsService.cpp
 )
 
+if(WIN32)
+    list(APPEND SOURCES src/core/platform/WindowInfoProvider_Win.cpp)
+elseif(APPLE)
+    list(APPEND SOURCES src/core/platform/WindowInfoProvider_Mac.cpp)
+else()
+    list(APPEND SOURCES src/core/platform/WindowInfoProvider_Linux.cpp)
+endif()
+
 set(HEADERS
-    src/app/Logger.h
+    src/app/AppController.h
+    src/core/platform/WindowInfoProvider.h
+    src/core/network/ApiClient.h
+    src/core/database/WorkLogRepository.h
+    src/core/database/ProductivityAppRepository.h
+    src/features/auth/AuthManager.h
+    src/features/profile/UserProfileManager.h
+    src/features/worktime/WorkTimeTracker.h
+    src/features/tracking/ActivityTracker.h
     src/features/tracking/IdleChecker.h
+    src/features/tasks/TaskManager.h
+    src/features/productivity/ProductivityStatsService.h
 )
 
 set(QML_FILES
@@ -68,11 +95,30 @@ set(QML_FILES
 
 # Konfigurasi Windows Resource file untuk icon
 if(WIN32)
-    # Buat file resource Windows
-    set(WIN_RESOURCE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/app.rc)
+    # Buat file resource Windows di binary/build dir agar root bersih
+    set(WIN_RESOURCE_FILE ${CMAKE_CURRENT_BINARY_DIR}/app.rc)
 
     # Pastikan file icon.ico ada
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/resources/images/icon.ico)
+        # Buat file resource.h di binary dir
+        set(RESOURCE_HEADER ${CMAKE_CURRENT_BINARY_DIR}/resource.h)
+        file(WRITE ${RESOURCE_HEADER}
+            "//{{NO_DEPENDENCIES}}\n"
+            "// Microsoft Visual C++ generated include file.\n"
+            "#define IDI_ICON1                       101\n"
+            "\n"
+            "// Next default values for new objects\n"
+            "// \n"
+            "#ifdef APSTUDIO_INVOKED\n"
+            "#ifndef APSTUDIO_READONLY_SYMBOLS\n"
+            "#define _APS_NEXT_RESOURCE_VALUE        102\n"
+            "#define _APS_NEXT_COMMAND_VALUE         40001\n"
+            "#define _APS_NEXT_CONTROL_VALUE         1001\n"
+            "#define _APS_NEXT_SYMED_VALUE           101\n"
+            "#endif\n"
+            "#endif\n"
+        )
+
         # Buat konten app.rc dengan format yang benar
         file(WRITE ${WIN_RESOURCE_FILE}
             "// Microsoft Visual C++ generated resource script.\n"
@@ -83,7 +129,7 @@ if(WIN32)
             "#undef APSTUDIO_READONLY_SYMBOLS\n"
             "\n"
             "// Icon\n"
-            "IDI_ICON1 ICON \"resources/images/icon.ico\"\n"
+            "IDI_ICON1 ICON \"${CMAKE_CURRENT_SOURCE_DIR}/resources/images/icon.ico\"\n"
             "\n"
             "// Version Information\n"
             "VS_VERSION_INFO VERSIONINFO\n"
@@ -116,25 +162,6 @@ if(WIN32)
             "END\n"
         )
 
-        # Buat file resource.h
-        set(RESOURCE_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/resource.h)
-        file(WRITE ${RESOURCE_HEADER}
-            "//{{NO_DEPENDENCIES}}\n"
-            "// Microsoft Visual C++ generated include file.\n"
-            "#define IDI_ICON1                       101\n"
-            "\n"
-            "// Next default values for new objects\n"
-            "// \n"
-            "#ifdef APSTUDIO_INVOKED\n"
-            "#ifndef APSTUDIO_READONLY_SYMBOLS\n"
-            "#define _APS_NEXT_RESOURCE_VALUE        102\n"
-            "#define _APS_NEXT_COMMAND_VALUE         40001\n"
-            "#define _APS_NEXT_CONTROL_VALUE         1001\n"
-            "#define _APS_NEXT_SYMED_VALUE           101\n"
-            "#endif\n"
-            "#endif\n"
-        )
-
         if(MINGW)
             set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>")
         endif()
@@ -155,6 +182,7 @@ qt_add_executable(Deskmon
 
 # Menambahkan direktori include untuk compiler
 target_include_directories(Deskmon PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/app
     ${CMAKE_CURRENT_SOURCE_DIR}/src/core
@@ -222,7 +250,7 @@ target_link_libraries(Deskmon
 
 # Link library spesifik platform
 if(WIN32)
-    target_link_libraries(Deskmon PRIVATE user32 psapi)
+    target_link_libraries(Deskmon PRIVATE user32 psapi ole32 oleaut32)
 elseif(APPLE)
     # Framework khusus macOS
     find_library(COCOA_LIBRARY Cocoa)

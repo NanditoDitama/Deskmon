@@ -1,5 +1,5 @@
 #include "IdleChecker.h"
-#include "app/Logger.h"
+#include "app/AppController.h"
 #include <QDateTime>
 #include <QDebug>
 #include <QProcess>
@@ -23,36 +23,17 @@
 #include <X11/extensions/scrnsaver.h>
 #endif
 
-IdleChecker::IdleChecker(Logger *logger, QObject *parent) : QObject(parent), m_logger(logger)
+IdleChecker::IdleChecker(AppController *appController, QObject *parent)
+    : QObject(parent)
+    , m_appController(appController)
 {
     m_timer.setInterval(1000);
     connect(&m_timer, &QTimer::timeout, this, &IdleChecker::checkIdleTime);
-    if (m_logger) {
-        connect(m_logger, &Logger::idleThresholdChanged, this, &IdleChecker::updateIdleThresholdFromDatabase);
-        // connect(m_logger, &Logger::trackingActiveChanged, this, [this]() {
-        //     if (m_logger->isTrackingActive()) {
-        //         // Reset idle state when tracking is reactivated
-        //         m_isIdle = false;
-        //         m_lastIdleLogTime = 0;
-        //         m_lastActiveTime = 0;
-        //     } else {
-        //         // When tracking is stopped (e.g., due to pause), reset idle state
-        //         m_isIdle = false;
-        //         m_lastIdleLogTime = 0;
-        //         m_lastActiveTime = 0;
-        //     }
-        // });
-        // connect(m_logger, &Logger::taskPausedChanged, this, [this]() {
-        //     if (m_logger->isTaskPaused()) {
-        //         // When task is paused, reset idle state to prevent idle detection
-        //         m_isIdle = false;
-        //         m_lastIdleLogTime = 0;
-        //         m_lastActiveTime = 0;
-        //     }
-        // });
+    if (m_appController) {
+        connect(m_appController, &AppController::idleThresholdChanged, this, &IdleChecker::updateIdleThresholdFromDatabase);
         updateIdleThresholdFromDatabase();
     } else {
-        qWarning() << "IdleChecker initialized with null logger, using default threshold:" << m_idleThreshold << "seconds";
+        qWarning() << "IdleChecker initialized with null appController, using default threshold:" << m_idleThreshold << "seconds";
     }
     m_timer.start();
 }
@@ -64,11 +45,11 @@ IdleChecker::~IdleChecker()
 
 void IdleChecker::updateIdleThresholdFromDatabase()
 {
-    if (!m_logger) {
-        qWarning() << "Logger is null, cannot update idle threshold";
+    if (!m_appController) {
+        qWarning() << "AppController is null, cannot update idle threshold";
         return;
     }
-    int dbThreshold = m_logger->getIdleThreshold();
+    int dbThreshold = m_appController->getIdleThreshold();
     qDebug() << "Retrieved idle threshold from database:" << dbThreshold << "seconds";
     if (dbThreshold > 0) {
         setIdleThreshold(dbThreshold);
@@ -100,82 +81,51 @@ bool IdleChecker::isIdle() const
 
 void IdleChecker::checkIdleTime()
 {
-
-    if (m_logger && m_logger->isTaskPaused() && !m_isIdle) {
-        return; // Keluar dari fungsi, jangan lakukan apa-apa.
-    }
-    if (!m_logger || m_logger->currentUserId() == -1) {
-        if (m_isIdle) {
-            m_isIdle = false;
-            m_lastIdleLogTime = 0;
-            m_lastActiveTime = 0;
-        }
-        qDebug() << "Idle check skipped: user not logged in";
-        return;
-    }
-
-
     qint64 currentTime = QDateTime::currentSecsSinceEpoch();
 
-    // Check database threshold every 10 seconds
-    if (currentTime - m_lastThresholdCheckTime >= 10) {
+    if (currentTime - m_lastThresholdCheckTime >= 60) {
         updateIdleThresholdFromDatabase();
     }
 
-    qint64 idleTime = getSystemIdleTime() / 1000; // Convert to seconds
-    if (idleTime < 0) {
-        qWarning() << "Skipping idle check due to system error";
-        return;
-    }
+    qint64 idleSeconds = getSystemIdleTime();
 
-    if (idleTime >= m_idleThreshold) {
+    if (idleSeconds >= m_idleThreshold) {
         if (!m_isIdle) {
-            // Newly idle
-            m_lastActiveTime = currentTime - idleTime;
-            m_lastIdleLogTime = currentTime;
             m_isIdle = true;
-            qDebug() << "Idle detected, started at:" << QDateTime::fromSecsSinceEpoch(m_lastActiveTime).toString();
-            emit showIdleNotification("Idle Terdeteksi");
-            qDebug() << "Sent idle notification: You have been idle";
+            m_lastIdleLogTime = currentTime - idleSeconds;
 
-            if (m_logger && !m_logger->isTaskPaused()) {
-                qDebug() << "Idle state detected. Automatically pausing the active task.";
-                m_logger->toggleTaskPause();
+            if (m_appController && m_appController->activeTaskId() != -1 && !m_appController->isTaskPaused()) {
+                m_appController->toggleTaskPause();
+                m_autoPausedByIdle = true;
+                qDebug() << "Task automatically paused due to idle";
             }
+
+            emit showIdleNotification(QString("Sistem tidak aktif selama %1 detik").arg(m_idleThreshold));
+            qDebug() << "Idle state started. Idle seconds:" << idleSeconds << "Threshold:" << m_idleThreshold;
         }
 
-        // Log idle every 60 seconds while idle
-        if (currentTime - m_lastIdleLogTime >= 60) {
+        if (currentTime - m_lastIdleLogTime >= 10) {
             emit idleDetected(m_lastIdleLogTime, currentTime);
             m_lastIdleLogTime = currentTime;
-            int minutes = idleTime / 60;
-            int seconds = idleTime % 60;
-            QString durationText = QString("%1m %2s").arg(minutes).arg(seconds);
-            qDebug() << "Logged idle period, duration:" << durationText;
         }
     } else {
         if (m_isIdle) {
-            // Returning from idle
-            if (currentTime > m_lastIdleLogTime) {
+            m_isIdle = false;
+            if (m_lastIdleLogTime > 0 && currentTime > m_lastIdleLogTime) {
                 emit idleDetected(m_lastIdleLogTime, currentTime);
-                qDebug() << "Logged final idle period, ended at:" << QDateTime::fromSecsSinceEpoch(currentTime).toString();
+            }
+            m_lastIdleLogTime = 0;
+
+            if (m_autoPausedByIdle) {
+                if (m_appController && m_appController->activeTaskId() != -1 && m_appController->isTaskPaused()) {
+                    m_appController->toggleTaskPause();
+                    qDebug() << "Task automatically resumed after idle";
+                }
+                m_autoPausedByIdle = false;
             }
 
             emit hideIdleNotification();
-
-            // Secara otomatis melanjutkan kembali task yang sebelumnya dijeda karena idle
-            if (m_logger->isTaskPaused()) {
-                qDebug() << "Returned from idle. Automatically resuming the active task.";
-                m_logger->toggleTaskPause();
-            }
-            // if (m_logger){
-            //     m_logger->startPingTimer();
-            // }
-
-            m_isIdle = false;
-            m_lastIdleLogTime = 0;
-            m_lastActiveTime = 0;
-            qDebug() << "Returned from idle";
+            qDebug() << "User returned from idle. Idle seconds:" << idleSeconds;
         }
     }
 }
@@ -194,53 +144,50 @@ qint64 IdleChecker::getSystemIdleTime() const
 #ifdef Q_OS_WIN
 qint64 IdleChecker::getSystemIdleTimeWindows() const
 {
-    LASTINPUTINFO lastInputInfo;
-    lastInputInfo.cbSize = sizeof(LASTINPUTINFO);
-    if (GetLastInputInfo(&lastInputInfo)) {
+    LASTINPUTINFO lii;
+    lii.cbSize = sizeof(LASTINPUTINFO);
+    if (GetLastInputInfo(&lii)) {
         DWORD tickCount = GetTickCount();
-        return static_cast<qint64>(tickCount - lastInputInfo.dwTime);
+        return (tickCount - lii.dwTime) / 1000;
     }
-    qWarning() << "Failed to get last input info";
-    return -1;
+    return 0;
 }
 #elif defined(Q_OS_MACOS)
-qint64 IdleChecker::getSystemIdleTimeMacOS() const {
-    QProcess process;
-    process.start("ioreg", {"-c", "IOHIDSystem", "-r", "-k", "HIDIdleTime"});
-    if (process.waitForFinished(100)) {
-        QString output = QString(process.readAllStandardOutput());
-        QRegularExpression regex("\"HIDIdleTime\" = (\\d+)");
-        QRegularExpressionMatch match = regex.match(output);
-        if (match.hasMatch()) {
-            // Idle time in nanoseconds, convert to milliseconds
-            return match.captured(1).toLongLong() / 1000000;
+qint64 IdleChecker::getSystemIdleTimeMacOS() const
+{
+    int64_t idlesecs = -1;
+    io_iterator_t iter = IO_OBJECT_NULL;
+    if (IOServiceGetMatchingServices(kIOMasterPortDefault, IOServiceMatching("IOHIDSystem"), &iter) == KERN_SUCCESS) {
+        io_registry_entry_t entry = IOIteratorNext(iter);
+        if (entry) {
+            CFMutableDictionaryRef dict = NULL;
+            if (IORegistryEntryCreateCFProperties(entry, &dict, kCFAllocatorDefault, 0) == KERN_SUCCESS) {
+                CFNumberRef obj = (CFNumberRef)CFDictionaryGetValue(dict, CFSTR("HIDIdleTime"));
+                if (obj) {
+                    int64_t nanoseconds = 0;
+                    if (CFNumberGetValue(obj, kCFNumberSInt64Type, &nanoseconds)) {
+                        idlesecs = nanoseconds / 1000000000;
+                    }
+                }
+                CFRelease(dict);
+            }
+            IOObjectRelease(entry);
         }
+        IOObjectRelease(iter);
     }
-    return -1;
+    return idlesecs >= 0 ? idlesecs : 0;
 }
-#elif defined(Q_OS_LINUX)
+#else
 qint64 IdleChecker::getSystemIdleTimeLinux() const
 {
-    Display *display = XOpenDisplay(nullptr);
-    if (!display) {
-        qWarning() << "Failed to open X11 display";
-        return -1;
-    }
+    Display *display = XOpenDisplay(NULL);
+    if (!display) return 0;
+
     XScreenSaverInfo *info = XScreenSaverAllocInfo();
-    if (!info) {
-        XCloseDisplay(display);
-        qWarning() << "Failed to allocate XScreenSaverInfo";
-        return -1;
-    }
-    if (XScreenSaverQueryInfo(display, DefaultRootWindow(display), info)) {
-        qint64 idleTime = info->idle;
-        XFree(info);
-        XCloseDisplay(display);
-        return idleTime;
-    }
+    XScreenSaverQueryInfo(display, DefaultRootWindow(display), info);
+    qint64 idleTime = info->idle / 1000;
     XFree(info);
     XCloseDisplay(display);
-    qWarning() << "Failed to query XScreenSaverInfo";
-    return -1;
+    return idleTime;
 }
 #endif
