@@ -6,6 +6,8 @@ import QtQuick.Dialogs
 import QtQuick.Effects
 import QtQuick.Window
 import QtQuick 2.15
+import "views"
+import "dialogs"
 
 Window {
     id: window
@@ -361,7 +363,7 @@ Window {
         }
         if (logger.currentUserId === -1) {
             stackView.clear()
-            stackView.push("Login_page.qml")
+            stackView.push("views/Login_page.qml")
             console.log("ke halaman login untuk login ulang")
         }
         window.visibility = Window.Maximized
@@ -370,7 +372,7 @@ Window {
 
     function goToLoginPage() {
         stackView.clear()
-        stackView.push(Qt.resolvedUrl("Login_page.qml"))
+        stackView.push(Qt.resolvedUrl("views/Login_page.qml"))
         console.log("ke halaman login untuk login ulang2")
     }
 

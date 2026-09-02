@@ -10,8 +10,8 @@
 #include <QDebug>
 #include <QSharedMemory>
 #include <QMessageBox>
-#include "logger.h"
-#include "idlechecker.h"
+#include "Logger.h"
+#include "features/tracking/IdleChecker.h"
 
 
 int main(int argc, char *argv[])

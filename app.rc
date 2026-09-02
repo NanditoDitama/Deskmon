@@ -6,7 +6,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 // Icon
-IDI_ICON1 ICON "icon.ico"
+IDI_ICON1 ICON "resources/images/icon.ico"
 
 // Version Information
 VS_VERSION_INFO VERSIONINFO

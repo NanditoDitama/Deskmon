@@ -19,26 +19,51 @@ find_package(Qt6 REQUIRED COMPONENTS
 
 # For macOS, set logger.cpp to be compiled as Objective-C++
 if(APPLE)
-    set_source_files_properties(logger.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
-    set_source_files_properties(idlechecker.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
+    set_source_files_properties(src/app/Logger.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
+    set_source_files_properties(src/features/tracking/IdleChecker.cpp PROPERTIES COMPILE_FLAGS "-x objective-c++")
 endif()
 
 qt_standard_project_setup(REQUIRES 6.8)
 
 # Menambahkan sumber daya (resources) dan file QML
 set(SOURCES
-    main.cpp
-    logger.cpp
-    idlechecker.cpp
+    src/app/main.cpp
+    src/app/Logger.cpp
+    src/features/tracking/IdleChecker.cpp
 )
 
 set(HEADERS
-    logger.h
-    idlechecker.h
+    src/app/Logger.h
+    src/features/tracking/IdleChecker.h
 )
 
 set(QML_FILES
-    Main.qml
+    qml/Main.qml
+    qml/views/Login_page.qml
+    qml/views/Profil_page.qml
+    qml/views/Productivty.qml
+    qml/views/Current_Task.qml
+    qml/views/Activity_Monitor.qml
+    qml/views/Monitored_Applications.qml
+    qml/views/DateRange.qml
+    qml/views/AddAplicatioRequest.qml
+    qml/views/RequstAppPending.qml
+    qml/views/ShowAplication.qml
+    qml/dialogs/Pop_up_waktuhabis.qml
+    qml/dialogs/DateRangeDialog.qml
+    qml/dialogs/TaskDetailsDialog.qml
+    qml/dialogs/TaskDetailPopup.qml
+    qml/dialogs/EarlyLeaveDialog.qml
+    qml/dialogs/EarlyLogoutDialog.qml
+    qml/dialogs/FailureDialog.qml
+    qml/dialogs/NeedReviewDialog.qml
+    qml/dialogs/ConfirmFinishDialog.qml
+    qml/dialogs/ConfirmSwitchDialog.qml
+    qml/dialogs/MainDialog.qml
+    qml/dialogs/RequestDialog.qml
+    qml/dialogs/ApplicationsDialog.qml
+    qml/dialogs/AddApplicationDialog.qml
+    qml/dialogs/SaveTombolCropImage.qml
 )
 
 # Konfigurasi Windows Resource file untuk icon
@@ -47,7 +72,7 @@ if(WIN32)
     set(WIN_RESOURCE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/app.rc)
 
     # Pastikan file icon.ico ada
-    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/icon.ico)
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/resources/images/icon.ico)
         # Buat konten app.rc dengan format yang benar
         file(WRITE ${WIN_RESOURCE_FILE}
             "// Microsoft Visual C++ generated resource script.\n"
@@ -58,7 +83,7 @@ if(WIN32)
             "#undef APSTUDIO_READONLY_SYMBOLS\n"
             "\n"
             "// Icon\n"
-            "IDI_ICON1 ICON \"icon.ico\"\n"
+            "IDI_ICON1 ICON \"resources/images/icon.ico\"\n"
             "\n"
             "// Version Information\n"
             "VS_VERSION_INFO VERSIONINFO\n"
@@ -110,17 +135,15 @@ if(WIN32)
             "#endif\n"
         )
 
-        # Tambahkan resource file ke sources
-        # windres has known issues with paths containing spaces under MinGW,
-        # so we disable it for debug/console log builds.
-        if(NOT CONSOLE_LOGS)
-            set(SOURCES ${SOURCES} ${WIN_RESOURCE_FILE})
-            message(STATUS "Windows resource file created and added: ${WIN_RESOURCE_FILE}")
-        else()
-            message(STATUS "Windows resource file bypassed for console logging.")
+        if(MINGW)
+            set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>")
         endif()
+
+        # Tambahkan resource file ke sources
+        set(SOURCES ${SOURCES} ${WIN_RESOURCE_FILE})
+        message(STATUS "Windows resource file created and added: ${WIN_RESOURCE_FILE}")
     else()
-        message(WARNING "icon.ico not found! Icon will not be embedded.")
+        message(WARNING "resources/images/icon.ico not found! Icon will not be embedded.")
     endif()
 endif()
 
@@ -130,56 +153,58 @@ qt_add_executable(Deskmon
     ${HEADERS}
 )
 
+# Menambahkan direktori include untuk compiler
+target_include_directories(Deskmon PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/app
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/features
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/features/tracking
+)
+
 # Menambahkan modul QML
 qt_add_qml_module(Deskmon
     URI window_logger
     VERSION 1.0
-    QML_FILES
-        Main.qml
-        Pop_up_waktuhabis.qml
-        Login_page.qml
-        Profil_page.qml
-        Productivty.qml
-        SaveTombolCropImage.qml
-        Current_Task.qml
-        Activity_Monitor.qml
-        Monitored_Applications.qml
-        AddAplicatioRequest.qml
-        RequstAppPending.qml
-        DateRange.qml
-        EarlyLeaveDialog.qml
-        TaskDetailsDialog.qml
-        FailureDialog.qml
-        NeedReviewDialog.qml
+    QML_FILES ${QML_FILES}
+    SOURCES
 )
 
-# Menambahkan resource file jika diperlukan
-qt_add_resources(Deskmon "resources"
+# Menambahkan resource file gambar dan icon
+qt_add_resources(Deskmon "images"
     PREFIX "/"
+    BASE "resources/images"
     FILES
-        icon.ico
-        icon.png
-        play_icon_app.png
-        pause_icon_app.png
-        profilImage.png
-        icons/dm.png
-        icons/arrow_back.svg
-        icons/camera.svg
-        icons/edit.svg
-        icons/visibility.svg
-        icons/visibility_off.svg
-        icons/dark_mode.svg
-        icons/light_mode.svg
-        icons/chevron-left.svg
-        icons/chevron-right.svg
-        icons/refresh.svg
-        icons/search.svg
-        icons/check.svg
-        icons/more-horiz.svg
-        icons/review.svg
-        icons/close.svg
-        icons/danger.svg
-        icons/website.svg
+        resources/images/icon.ico
+        resources/images/icon.png
+        resources/images/play_icon_app.png
+        resources/images/pause_icon_app.png
+        resources/images/profilImage.png
+        resources/images/default_app_icon.png
+)
+
+qt_add_resources(Deskmon "icons"
+    PREFIX "/icons"
+    BASE "resources/icons"
+    FILES
+        resources/icons/dm.png
+        resources/icons/arrow_back.svg
+        resources/icons/camera.svg
+        resources/icons/check.svg
+        resources/icons/chevron-left.svg
+        resources/icons/chevron-right.svg
+        resources/icons/close.svg
+        resources/icons/danger.svg
+        resources/icons/dark_mode.svg
+        resources/icons/edit.svg
+        resources/icons/light_mode.svg
+        resources/icons/more-horiz.svg
+        resources/icons/refresh.svg
+        resources/icons/review.svg
+        resources/icons/search.svg
+        resources/icons/visibility.svg
+        resources/icons/visibility_off.svg
+        resources/icons/website.svg
 )
 
 # Link library yang diperlukan

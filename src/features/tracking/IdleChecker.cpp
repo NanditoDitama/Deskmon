@@ -1,5 +1,5 @@
-#include "idlechecker.h"
-#include "logger.h"
+#include "IdleChecker.h"
+#include "app/Logger.h"
 #include <QDateTime>
 #include <QDebug>
 #include <QProcess>
