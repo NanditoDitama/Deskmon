@@ -48,12 +48,14 @@ class AppController : public QObject
 
     Q_PROPERTY(int workTimeElapsedSeconds READ workTimeElapsedSeconds NOTIFY workTimeElapsedSecondsChanged)
     Q_PROPERTY(QSqlQueryModel* logModel READ logModel CONSTANT)
+    Q_PROPERTY(QString appVersion READ appVersion CONSTANT)
 
 public:
     explicit AppController(QObject *parent = nullptr);
     ~AppController() override;
 
     // Property Getters
+    QString appVersion() const;
     QString currentAppName() const;
     QString currentWindowTitle() const;
     int logCount() const;

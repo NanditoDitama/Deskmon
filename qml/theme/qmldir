@@ -1,2 +1,3 @@
 module theme
 singleton Theme 1.0 Theme.qml
+singleton Lang 1.0 Lang.qml

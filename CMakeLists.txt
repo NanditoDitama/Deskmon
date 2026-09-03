@@ -75,6 +75,7 @@ set(HEADERS
 set(QML_FILES
     qml/Main.qml
     qml/theme/Theme.qml
+    qml/theme/Lang.qml
     qml/components/ToastNotification.qml
     qml/components/CustomButton.qml
     qml/components/StatusBadge.qml
@@ -107,6 +108,11 @@ set(QML_FILES
 
 # Konfigurasi Windows Resource file untuk icon
 if(WIN32)
+    set(VER_TWEAK 0)
+    if(PROJECT_VERSION_TWEAK)
+        set(VER_TWEAK ${PROJECT_VERSION_TWEAK})
+    endif()
+
     # Buat file resource Windows di binary/build dir agar root bersih
     set(WIN_RESOURCE_FILE ${CMAKE_CURRENT_BINARY_DIR}/app.rc)
 
@@ -145,8 +151,8 @@ if(WIN32)
             "\n"
             "// Version Information\n"
             "VS_VERSION_INFO VERSIONINFO\n"
-            " FILEVERSION 0,1,0,0\n"
-            " PRODUCTVERSION 0,1,0,0\n"
+            " FILEVERSION ${PROJECT_VERSION_MAJOR},${PROJECT_VERSION_MINOR},${PROJECT_VERSION_PATCH},${VER_TWEAK}\n"
+            " PRODUCTVERSION ${PROJECT_VERSION_MAJOR},${PROJECT_VERSION_MINOR},${PROJECT_VERSION_PATCH},${VER_TWEAK}\n"
             " FILEFLAGSMASK 0x3fL\n"
             " FILEFLAGS 0x0L\n"
             " FILEOS 0x40004L\n"
@@ -159,12 +165,12 @@ if(WIN32)
             "        BEGIN\n"
             "            VALUE \"CompanyName\", \"Pranala\"\n"
             "            VALUE \"FileDescription\", \"Deskmon Activity Monitor\"\n"
-            "            VALUE \"FileVersion\", \"1.0.3.4\"\n"
+            "            VALUE \"FileVersion\", \"${PROJECT_VERSION}\"\n"
             "            VALUE \"InternalName\", \"Deskmon\"\n"
             "            VALUE \"LegalCopyright\", \"Copyright (C) 2026 PT Pranala Digital Teknologi\"\n"
             "            VALUE \"OriginalFilename\", \"Deskmon.exe\"\n"
             "            VALUE \"ProductName\", \"Deskmon\"\n"
-            "            VALUE \"ProductVersion\", \"1.0.3.4\"\n"
+            "            VALUE \"ProductVersion\", \"${PROJECT_VERSION}\"\n"
             "        END\n"
             "    END\n"
             "    BLOCK \"VarFileInfo\"\n"
@@ -203,7 +209,7 @@ target_include_directories(Deskmon PRIVATE
 )
 
 # Declare QML Singleton types
-set_source_files_properties(qml/theme/Theme.qml
+set_source_files_properties(qml/theme/Theme.qml qml/theme/Lang.qml
     PROPERTIES
     QT_QML_SINGLETON_TYPE TRUE
 )
@@ -215,6 +221,17 @@ qt_add_qml_module(Deskmon
     QML_FILES ${QML_FILES}
     SOURCES
 )
+
+# Otomatisasi Sinkronisasi & Terjemahan i18n sebelum kompilasi
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+    add_custom_target(sync_i18n ALL
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sync_i18n.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Auto-syncing and translating i18n strings from QML..."
+    )
+    add_dependencies(Deskmon sync_i18n)
+endif()
 
 # Menambahkan resource file gambar dan icon
 qt_add_resources(Deskmon "images"
@@ -247,6 +264,7 @@ qt_add_resources(Deskmon "icons"
         resources/icons/refresh.svg
         resources/icons/review.svg
         resources/icons/search.svg
+        resources/icons/settings.svg
         resources/icons/visibility.svg
         resources/icons/visibility_off.svg
         resources/icons/website.svg
@@ -264,6 +282,9 @@ target_link_libraries(Deskmon
         Qt6::Widgets
         Qt6::QuickControls2
 )
+
+# Teruskan versi proyek ke compiler C++
+target_compile_definitions(Deskmon PRIVATE APP_VERSION="${PROJECT_VERSION}")
 
 # Link library spesifik platform
 if(WIN32)

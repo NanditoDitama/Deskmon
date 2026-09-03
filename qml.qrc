@@ -2,6 +2,7 @@
     <qresource prefix="/">
         <file>qml/Main.qml</file>
         <file>qml/theme/Theme.qml</file>
+        <file>qml/theme/Lang.qml</file>
         <file>qml/theme/qmldir</file>
         <file>qml/components/ToastNotification.qml</file>
         <file>qml/components/CustomButton.qml</file>

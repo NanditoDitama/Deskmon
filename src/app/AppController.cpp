@@ -8,6 +8,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QScopedPointer>
+#include <QVersionNumber>
 #include <QDebug>
 
 AppController::AppController(QObject *parent)
@@ -131,6 +132,13 @@ void AppController::setupConnections()
 }
 
 // Property Getters
+QString AppController::appVersion() const {
+#ifdef APP_VERSION
+    return QStringLiteral(APP_VERSION);
+#else
+    return QStringLiteral("1.0.3.4");
+#endif
+}
 QString AppController::currentAppName() const { return m_activityTracker->currentAppName(); }
 QString AppController::currentWindowTitle() const { return m_activityTracker->currentWindowTitle(); }
 int AppController::logCount() const { return m_workLogRepo->logCount(m_authManager->currentUserId()); }
@@ -327,7 +335,7 @@ void AppController::launchMaintenanceTool() {
 }
 
 void AppController::checkForUpdates() {
-    const QString currentVersion = "1.0.3.4";
+    const QString currentVersion = appVersion();
     QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");
     QNetworkReply *reply = m_apiClient->get(url, false);
 
@@ -348,7 +356,10 @@ void AppController::checkForUpdates() {
         QJsonObject obj = doc.object();
         QString serverVersion = obj.value("version").toString();
 
-        if (serverVersion > currentVersion) {
+        QVersionNumber serverVer = QVersionNumber::fromString(serverVersion);
+        QVersionNumber currentVer = QVersionNumber::fromString(currentVersion);
+
+        if (serverVer > currentVer) {
             QString notes = obj.value("releaseNotes").toString();
 #ifdef Q_OS_MAC
             emit showStatusMessage(QStringLiteral("Update %1 tersedia.").arg(serverVersion));

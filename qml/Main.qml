@@ -20,7 +20,7 @@ Window {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 700
-    property string appVersion: "1.0.3.4"
+    property string appVersion: (typeof logger !== "undefined" && logger.appVersion) ? logger.appVersion : (Qt.application.version || "")
     color: Theme.cardColor
 
     // Sinkronisasi tema Material dengan mode singleton Theme

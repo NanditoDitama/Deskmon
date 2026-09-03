@@ -89,6 +89,9 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setOrganizationName("Pranala");
     app.setApplicationName("Deskmon");
+#ifdef APP_VERSION
+    app.setApplicationVersion(APP_VERSION);
+#endif
     QQuickStyle::setStyle("Material");
     app.setWindowIcon(QIcon(":/icon.ico"));
     app.setQuitOnLastWindowClosed(false);
