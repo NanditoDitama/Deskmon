@@ -1,8 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Window 2.15
-import QtQuick.Controls.Material
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
@@ -365,18 +363,6 @@ Item {
                                     }
                                     color: "white"
                                     Layout.alignment: Qt.AlignHCenter
-
-                                    Component.onCompleted: {
-                                        console.log("Profile page - Username label:", text)
-                                        console.log("Logger currentUsername:", logger.currentUsername)
-                                    }
-
-                                    Connections {
-                                        target: logger
-                                        function onCurrentUsernameChanged() {
-                                            console.log("Username changed to:", logger.currentUsername)
-                                        }
-                                    }
                                 }
 
                                 Label {
@@ -387,18 +373,6 @@ Item {
                                     }
                                     color: Theme.isDarkMode ? Qt.alpha(Theme.textColor, 0.6) : Qt.rgba(1, 1, 1, 0.6)
                                     Layout.alignment: Qt.AlignHCenter
-
-                                    Component.onCompleted: {
-                                        console.log("Profile page - Email label:", text)
-                                        console.log("Logger currentUserEmail:", logger.currentUserEmail)
-                                    }
-
-                                    Connections {
-                                        target: logger
-                                        function onCurrentUserEmailChanged() {
-                                            console.log("Email changed to:", logger.currentUserEmail)
-                                        }
-                                    }
                                 }
                             }
                         }
@@ -569,8 +543,8 @@ Item {
                 return
             }
 
-            tempImagePath = fileUrl
-            console.log("Opening crop dialog with tempImagePath:", tempImagePath)
+            saveTombolCropImage_.imagePath = fileUrl
+            console.log("Opening crop dialog with imagePath:", fileUrl)
             saveTombolCropImage_.open()
         }
         onRejected: {

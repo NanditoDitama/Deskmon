@@ -50,11 +50,11 @@ Dialog {
                     border.width: 1
                     border.color: Qt.alpha(Theme.accentColor, 0.2)
 
-                    Text {
+                    Image {
                         anchors.centerIn: parent
-                        text: "⚠"
-                        font.pixelSize: 20
-                        color: Theme.accentColor
+                        source: "qrc:/icons/danger.svg"
+                        sourceSize.width: 20
+                        sourceSize.height: 20
                     }
                 }
 

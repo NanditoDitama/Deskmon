@@ -16,6 +16,9 @@ Dialog {
     padding: 0
     dim: true
 
+    property int currentMonth: new Date().getMonth()
+    property int currentYear: new Date().getFullYear()
+
     background: Rectangle {
         color: Theme.cardColor
         radius: Theme.radiusLarge

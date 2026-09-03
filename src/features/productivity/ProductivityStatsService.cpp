@@ -2,10 +2,11 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDate>
+#include <QDateTime>
+#include <QUrl>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
-#include <QUrl>
 #include <QDebug>
 
 ProductivityStatsService::ProductivityStatsService(ApiClient *apiClient,
@@ -19,11 +20,14 @@ ProductivityStatsService::ProductivityStatsService(ApiClient *apiClient,
     , m_prodRepo(prodRepo)
     , m_authManager(authManager)
 {
-    m_productivePingTimer.setInterval(180000); // 3 menit
+    m_productivePingTimer.setInterval(30000); // 30 detik
     connect(&m_productivePingTimer, &QTimer::timeout, this, &ProductivityStatsService::sendProductiveTimeToAPI);
 
     m_usageReportTimer.setInterval(300000); // 5 menit
     connect(&m_usageReportTimer, &QTimer::timeout, this, &ProductivityStatsService::sendDailyUsageReport);
+
+    connect(m_authManager, &AuthManager::loggedIn, this, &ProductivityStatsService::startTimers);
+    connect(m_authManager, &AuthManager::loggedOut, this, &ProductivityStatsService::stopTimers);
 }
 
 void ProductivityStatsService::startTimers()
@@ -50,19 +54,19 @@ int ProductivityStatsService::calculateTodayProductiveSeconds() const
 
     QSqlQuery query(m_workLogRepo->database());
     query.prepare(R"(
-        SELECT IFNULL(SUM(end_time - start_time), 0) AS productive_seconds
-        FROM log
-        JOIN aplikasi
+        SELECT IFNULL(SUM(a.end_time - a.start_time), 0) AS productive_seconds
+        FROM activity_logs a
+        JOIN productivity_apps p
         ON (
-            (log.url IS NOT NULL AND log.url != '' AND aplikasi.url IS NOT NULL AND aplikasi.url != ''
-             AND LOWER(log.url) LIKE '%' || LOWER(aplikasi.url) || '%')
+            (a.url IS NOT NULL AND a.url != '' AND p.url IS NOT NULL AND p.url != ''
+             AND LOWER(a.url) LIKE '%' || LOWER(p.url) || '%')
             OR
-            (log.app_name IS NOT NULL AND log.app_name != '' AND aplikasi.aplikasi IS NOT NULL AND aplikasi.aplikasi != ''
-             AND LOWER(log.app_name) LIKE '%' || LOWER(aplikasi.aplikasi) || '%')
+            (a.app_name IS NOT NULL AND a.app_name != '' AND p.app_name IS NOT NULL AND p.app_name != ''
+             AND LOWER(a.app_name) LIKE '%' || LOWER(p.app_name) || '%')
         )
-        WHERE log.id_user = :user_id
-          AND date(log.start_time, 'unixepoch', 'localtime') = :today
-          AND aplikasi.jenis = 1
+        WHERE a.user_id = :user_id
+          AND date(a.start_time, 'unixepoch', 'localtime') = :today
+          AND p.productivity_type = 1
     )");
 
     query.bindValue(":user_id", userId);
@@ -70,6 +74,8 @@ int ProductivityStatsService::calculateTodayProductiveSeconds() const
 
     if (query.exec() && query.next()) {
         totalProductiveSeconds = query.value(0).toInt();
+    } else {
+        qWarning() << "Failed to calculate productive seconds:" << query.lastError().text();
     }
 
     return totalProductiveSeconds;
@@ -89,8 +95,8 @@ QVariantMap ProductivityStatsService::productivityStats(const QString &startDate
     double idleTime = 0;
     double totalTime = 0;
 
-    QString queryStr = "SELECT start_time, end_time, app_name, title, url FROM log "
-                       "WHERE app_name IS NOT NULL AND id_user = :id_user ";
+    QString queryStr = "SELECT start_time, end_time, app_name, title, url FROM activity_logs "
+                       "WHERE app_name IS NOT NULL AND user_id = :user_id ";
 
     if (!startDateFilter.isEmpty()) {
         queryStr += QString("AND date(start_time, 'unixepoch', 'localtime') >= date('%1') ").arg(startDateFilter);
@@ -101,7 +107,7 @@ QVariantMap ProductivityStatsService::productivityStats(const QString &startDate
 
     QSqlQuery query(m_workLogRepo->database());
     query.prepare(queryStr);
-    query.bindValue(":id_user", userId);
+    query.bindValue(":user_id", userId);
 
     if (!query.exec()) {
         return stats;
@@ -173,8 +179,8 @@ void ProductivityStatsService::sendDailyUsageReport()
     QSqlQuery logQuery(m_workLogRepo->database());
     logQuery.prepare(R"(
         SELECT app_name, title, url, start_time, end_time
-        FROM log
-        WHERE id_user = :user_id
+        FROM activity_logs
+        WHERE user_id = :user_id
         AND date(start_time, 'unixepoch', 'localtime') = :today
         AND app_name != 'Idle'
     )");

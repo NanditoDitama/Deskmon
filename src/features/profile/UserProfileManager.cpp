@@ -1,7 +1,5 @@
 #include "UserProfileManager.h"
 #include <QCryptographicHash>
-#include <QSqlQuery>
-#include <QSqlError>
 #include <QFileInfo>
 #include <QImage>
 #include <QPainter>
@@ -11,9 +9,9 @@
 #include <QDateTime>
 #include <QDebug>
 
-UserProfileManager::UserProfileManager(WorkLogRepository *workLogRepo, AuthManager *authManager, QObject *parent)
+UserProfileManager::UserProfileManager(UserRepository *userRepo, AuthManager *authManager, QObject *parent)
     : QObject(parent)
-    , m_workLogRepo(workLogRepo)
+    , m_userRepo(userRepo)
     , m_authManager(authManager)
 {
 }
@@ -43,7 +41,7 @@ bool UserProfileManager::validateFilePath(const QString &filePath)
 
 QString UserProfileManager::updateUserProfile(const QString &currentUsername, const QString &newUsername, const QString &newPassword)
 {
-    if (!m_workLogRepo->ensureDatabaseOpen()) {
+    if (!m_userRepo) {
         return "Database is not accessible";
     }
 
@@ -55,18 +53,9 @@ QString UserProfileManager::updateUserProfile(const QString &currentUsername, co
         return "Username already taken";
     }
 
-    QSqlQuery query(m_workLogRepo->database());
-    if (newPassword.isEmpty()) {
-        query.prepare("UPDATE users SET username = :newUsername WHERE username = :currentUsername");
-    } else {
-        query.prepare("UPDATE users SET username = :newUsername, password = :newPassword WHERE username = :currentUsername");
-        query.bindValue(":newPassword", hashPassword(newPassword));
-    }
-    query.bindValue(":newUsername", newUsername);
-    query.bindValue(":currentUsername", currentUsername);
-
-    if (!query.exec()) {
-        return "Failed to update profile: " + query.lastError().text();
+    QString hashedPassword = newPassword.isEmpty() ? "" : hashPassword(newPassword);
+    if (!m_userRepo->updateProfile(currentUsername, newUsername, hashedPassword)) {
+        return "Failed to update profile";
     }
 
     if (currentUsername == m_authManager->currentUsername()) {
@@ -140,11 +129,11 @@ QString UserProfileManager::cropProfileImage(const QString &imagePath, qreal x, 
 
 bool UserProfileManager::updateProfileImage(const QString &username, const QString &imagePath)
 {
-    if (!m_workLogRepo->ensureDatabaseOpen() || username.isEmpty()) {
+    if (!m_userRepo || username.isEmpty()) {
         return false;
     }
 
-    // Delete old image
+    // Hapus foto profil lama
     QString oldImagePath = getProfileImagePath(username);
     if (!oldImagePath.isEmpty()) {
         QString localOldPath = oldImagePath;
@@ -157,12 +146,7 @@ bool UserProfileManager::updateProfileImage(const QString &username, const QStri
         if (oldFile.exists()) oldFile.remove();
     }
 
-    QSqlQuery query(m_workLogRepo->database());
-    query.prepare("UPDATE users SET profile_image = :imagePath WHERE username = :username");
-    query.bindValue(":imagePath", imagePath);
-    query.bindValue(":username", username);
-
-    if (query.exec() && query.numRowsAffected() > 0) {
+    if (m_userRepo->updateProfileImage(username, imagePath)) {
         emit profileImageChanged(username, imagePath);
         return true;
     }
@@ -171,16 +155,8 @@ bool UserProfileManager::updateProfileImage(const QString &username, const QStri
 
 QString UserProfileManager::getProfileImagePath(const QString &username)
 {
-    if (!m_workLogRepo->ensureDatabaseOpen() || username.isEmpty()) {
+    if (!m_userRepo || username.isEmpty()) {
         return "";
     }
-
-    QSqlQuery query(m_workLogRepo->database());
-    query.prepare("SELECT profile_image FROM users WHERE username = :username");
-    query.bindValue(":username", username);
-
-    if (query.exec() && query.next()) {
-        return query.value(0).toString();
-    }
-    return "";
+    return m_userRepo->getProfileImagePath(username);
 }

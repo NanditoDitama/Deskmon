@@ -1,4 +1,5 @@
 #include "WorkLogRepository.h"
+#include "DatabaseManager.h"
 #include <QSqlError>
 #include <QDateTime>
 #include <QDebug>
@@ -12,55 +13,14 @@ WorkLogRepository::WorkLogRepository(QObject *parent)
 
 bool WorkLogRepository::ensureDatabaseOpen() const
 {
-    if (!m_db.isValid()) {
-        m_db = QSqlDatabase::database("activity_db");
-    }
-    if (!m_db.isOpen()) {
-        if (!m_db.open()) {
-            qWarning() << "Failed to open activity database:" << m_db.lastError().text();
-            return false;
-        }
-    }
-    return true;
+    return DatabaseManager::instance().ensureOpen();
 }
 
 bool WorkLogRepository::initialize()
 {
-    m_db = QSqlDatabase::addDatabase("QSQLITE", "activity_db");
-    m_db.setDatabaseName("activity_logs.db");
-
-    if (!m_db.open()) {
-        qWarning() << "Failed to open activity database:" << m_db.lastError().text();
-        return false;
-    }
-
-    QSqlQuery query(m_db);
-    if (!query.exec("CREATE TABLE IF NOT EXISTS log ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "id_user INTEGER NOT NULL, "
-                    "start_time INTEGER NOT NULL, "
-                    "end_time INTEGER NOT NULL, "
-                    "app_name TEXT, "
-                    "title TEXT, "
-                    "url TEXT, "
-                    "FOREIGN KEY(id_user) REFERENCES users(id) ON DELETE CASCADE)")) {
-        qWarning() << "Failed to create log table:" << query.lastError().text();
-    }
-
-    if (!query.exec("CREATE TABLE IF NOT EXISTS users ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "username TEXT UNIQUE NOT NULL, "
-                    "password TEXT NOT NULL, "
-                    "department TEXT, "
-                    "profile_image TEXT, "
-                    "email TEXT, "
-                    "role TEXT, "
-                    "token TEXT)")) {
-        qWarning() << "Failed to create users table:" << query.lastError().text();
-    }
-
+    bool ok = DatabaseManager::instance().ensureOpen();
     emit logsChanged();
-    return true;
+    return ok;
 }
 
 void WorkLogRepository::logWindowChange(const WindowInfo &info, qint64 startTime, qint64 endTime, int userId)
@@ -84,10 +44,10 @@ void WorkLogRepository::logWindowChange(const WindowInfo &info, qint64 startTime
         urlToLog.clear();
     }
 
-    QSqlQuery query(m_db);
-    query.prepare("INSERT INTO log (id_user, start_time, end_time, app_name, title, url) "
-                  "VALUES (:id_user, :start, :end, :app, :title, :url)");
-    query.bindValue(":id_user", userId);
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("INSERT INTO activity_logs (user_id, start_time, end_time, app_name, title, url) "
+                  "VALUES (:user_id, :start, :end, :app, :title, :url)");
+    query.bindValue(":user_id", userId);
     query.bindValue(":start", startTime);
     query.bindValue(":end", endTime);
     query.bindValue(":app", info.appName);
@@ -107,7 +67,7 @@ int WorkLogRepository::logCount(int userId) const
         return 0;
     }
 
-    QString queryStr = "SELECT COUNT(*) FROM log WHERE app_name IS NOT NULL AND title IS NOT NULL AND id_user = :id_user";
+    QString queryStr = "SELECT COUNT(*) FROM activity_logs WHERE app_name IS NOT NULL AND title IS NOT NULL AND user_id = :user_id";
     if (!m_startDateFilter.isEmpty()) {
         queryStr += QString(" AND date(start_time, 'unixepoch', 'localtime') >= date('%1')").arg(m_startDateFilter);
     }
@@ -115,9 +75,9 @@ int WorkLogRepository::logCount(int userId) const
         queryStr += QString(" AND date(start_time, 'unixepoch', 'localtime') <= date('%1')").arg(m_endDateFilter);
     }
 
-    QSqlQuery query(m_db);
+    QSqlQuery query(DatabaseManager::instance().database());
     query.prepare(queryStr);
-    query.bindValue(":id_user", userId);
+    query.bindValue(":user_id", userId);
     if (!query.exec()) {
         qWarning() << "Failed to count logs:" << query.lastError().text();
         return 0;
@@ -135,8 +95,8 @@ QString WorkLogRepository::logContent(int userId) const
     }
 
     QString content;
-    QString queryStr = "SELECT start_time, end_time, app_name, title, url FROM log "
-                       "WHERE app_name IS NOT NULL AND title IS NOT NULL AND id_user = :id_user ";
+    QString queryStr = "SELECT start_time, end_time, app_name, title, url FROM activity_logs "
+                       "WHERE app_name IS NOT NULL AND title IS NOT NULL AND user_id = :user_id ";
 
     if (!m_startDateFilter.isEmpty()) {
         queryStr += QString("AND date(start_time, 'unixepoch', 'localtime') >= date('%1') ").arg(m_startDateFilter);
@@ -147,9 +107,9 @@ QString WorkLogRepository::logContent(int userId) const
 
     queryStr += "ORDER BY start_time DESC";
 
-    QSqlQuery query(m_db);
+    QSqlQuery query(DatabaseManager::instance().database());
     query.prepare(queryStr);
-    query.bindValue(":id_user", userId);
+    query.bindValue(":user_id", userId);
     if (!query.exec()) {
         qWarning() << "Failed to fetch log content:" << query.lastError().text();
         return content;
@@ -181,7 +141,7 @@ void WorkLogRepository::setLogFilter(const QString &startDate, const QString &en
         return;
     }
 
-    QString queryStr = "SELECT start_time, end_time, app_name, title, url FROM log WHERE id_user = :id_user ";
+    QString queryStr = "SELECT start_time, end_time, app_name, title, url FROM activity_logs WHERE user_id = :user_id ";
     if (!m_startDateFilter.isEmpty()) {
         queryStr += "AND date(start_time, 'unixepoch', 'localtime') >= :startDate ";
     }
@@ -190,9 +150,9 @@ void WorkLogRepository::setLogFilter(const QString &startDate, const QString &en
     }
     queryStr += "ORDER BY start_time DESC";
 
-    QSqlQuery query(m_db);
+    QSqlQuery query(DatabaseManager::instance().database());
     query.prepare(queryStr);
-    query.bindValue(":id_user", userId);
+    query.bindValue(":user_id", userId);
     if (!m_startDateFilter.isEmpty()) query.bindValue(":startDate", m_startDateFilter);
     if (!m_endDateFilter.isEmpty()) query.bindValue(":endDate", m_endDateFilter);
 
@@ -216,9 +176,9 @@ void WorkLogRepository::showLogs(int userId)
 QString WorkLogRepository::debugShowRawData(int userId) const
 {
     if (!ensureDatabaseOpen()) return "Database not open";
-    QSqlQuery query(m_db);
-    query.prepare("SELECT * FROM log WHERE id_user = :id_user ORDER BY start_time DESC LIMIT 50");
-    query.bindValue(":id_user", userId);
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("SELECT * FROM activity_logs WHERE user_id = :user_id ORDER BY start_time DESC LIMIT 50");
+    query.bindValue(":user_id", userId);
     if (!query.exec()) return "Query failed";
 
     QString result;

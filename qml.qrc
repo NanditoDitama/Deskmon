@@ -2,25 +2,27 @@
     <qresource prefix="/">
         <file>qml/Main.qml</file>
         <file>qml/theme/Theme.qml</file>
+        <file>qml/theme/qmldir</file>
         <file>qml/components/ToastNotification.qml</file>
         <file>qml/components/CustomButton.qml</file>
         <file>qml/components/StatusBadge.qml</file>
         <file>qml/components/WorkTimerCard.qml</file>
-        <file>qml/views/LoginPage.qml</file>
-        <file>qml/views/ProfilePage.qml</file>
-        <file>qml/views/ProductivityView.qml</file>
-        <file>qml/views/CurrentTaskView.qml</file>
-        <file>qml/views/ActivityMonitorView.qml</file>
-        <file>qml/views/MonitoredApplicationsView.qml</file>
-        <file>qml/views/DateRangeView.qml</file>
-        <file>qml/views/AddApplicationRequestView.qml</file>
-        <file>qml/views/PendingAppRequestsView.qml</file>
+        <file>qml/login/LoginPage.qml</file>
+        <file>qml/profile/ProfilePage.qml</file>
+        <file>qml/profile/CropImageDialog.qml</file>
+        <file>qml/dashboard/DashboardPage.qml</file>
+        <file>qml/dashboard/ProductivityView.qml</file>
+        <file>qml/dashboard/CurrentTaskView.qml</file>
+        <file>qml/dashboard/ActivityMonitorView.qml</file>
+        <file>qml/dashboard/DateRangeDialog.qml</file>
+        <file>qml/application_submission/MonitoredApplicationsDialog.qml</file>
+        <file>qml/application_submission/AddApplicationRequestDialog.qml</file>
+        <file>qml/application_submission/PendingAppRequestsDialog.qml</file>
         <file>qml/dialogs/TimeUpPopup.qml</file>
         <file>qml/dialogs/TaskDetailsDialog.qml</file>
         <file>qml/dialogs/EarlyLeaveDialog.qml</file>
         <file>qml/dialogs/FailureDialog.qml</file>
         <file>qml/dialogs/NeedReviewDialog.qml</file>
-        <file>qml/dialogs/CropImageDialog.qml</file>
         <file>qml/dialogs/IdleNotificationWindow.qml</file>
         <file>qml/dialogs/AuthErrorWindow.qml</file>
         <file>qml/dialogs/PingErrorDialog.qml</file>

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Deskmon VERSION 0.1 LANGUAGES CXX)
+project(Deskmon VERSION 1.0.3.4 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -30,6 +30,10 @@ set(SOURCES
     src/app/main.cpp
     src/app/AppController.cpp
     src/core/network/ApiClient.cpp
+    src/core/database/DatabaseManager.cpp
+    src/core/database/UserRepository.cpp
+    src/core/database/TaskRepository.cpp
+    src/core/database/WorkTimeRepository.cpp
     src/core/database/WorkLogRepository.cpp
     src/core/database/ProductivityAppRepository.cpp
     src/features/auth/AuthManager.cpp
@@ -53,6 +57,10 @@ set(HEADERS
     src/app/AppController.h
     src/core/platform/WindowInfoProvider.h
     src/core/network/ApiClient.h
+    src/core/database/DatabaseManager.h
+    src/core/database/UserRepository.h
+    src/core/database/TaskRepository.h
+    src/core/database/WorkTimeRepository.h
     src/core/database/WorkLogRepository.h
     src/core/database/ProductivityAppRepository.h
     src/features/auth/AuthManager.h
@@ -71,21 +79,22 @@ set(QML_FILES
     qml/components/CustomButton.qml
     qml/components/StatusBadge.qml
     qml/components/WorkTimerCard.qml
-    qml/views/LoginPage.qml
-    qml/views/ProfilePage.qml
-    qml/views/ProductivityView.qml
-    qml/views/CurrentTaskView.qml
-    qml/views/ActivityMonitorView.qml
-    qml/views/MonitoredApplicationsView.qml
-    qml/views/DateRangeView.qml
-    qml/views/AddApplicationRequestView.qml
-    qml/views/PendingAppRequestsView.qml
+    qml/login/LoginPage.qml
+    qml/profile/ProfilePage.qml
+    qml/profile/CropImageDialog.qml
+    qml/dashboard/DashboardPage.qml
+    qml/dashboard/ProductivityView.qml
+    qml/dashboard/CurrentTaskView.qml
+    qml/dashboard/ActivityMonitorView.qml
+    qml/dashboard/DateRangeDialog.qml
+    qml/application_submission/MonitoredApplicationsDialog.qml
+    qml/application_submission/AddApplicationRequestDialog.qml
+    qml/application_submission/PendingAppRequestsDialog.qml
     qml/dialogs/TimeUpPopup.qml
     qml/dialogs/TaskDetailsDialog.qml
     qml/dialogs/EarlyLeaveDialog.qml
     qml/dialogs/FailureDialog.qml
     qml/dialogs/NeedReviewDialog.qml
-    qml/dialogs/CropImageDialog.qml
     qml/dialogs/IdleNotificationWindow.qml
     qml/dialogs/AuthErrorWindow.qml
     qml/dialogs/PingErrorDialog.qml
@@ -148,14 +157,14 @@ if(WIN32)
             "    BEGIN\n"
             "        BLOCK \"040904b0\"\n"
             "        BEGIN\n"
-            "            VALUE \"CompanyName\", \"Your Company\"\n"
+            "            VALUE \"CompanyName\", \"Pranala\"\n"
             "            VALUE \"FileDescription\", \"Deskmon Activity Monitor\"\n"
-            "            VALUE \"FileVersion\", \"0.1.0.0\"\n"
+            "            VALUE \"FileVersion\", \"1.0.3.4\"\n"
             "            VALUE \"InternalName\", \"Deskmon\"\n"
-            "            VALUE \"LegalCopyright\", \"Copyright (C) 2025\"\n"
+            "            VALUE \"LegalCopyright\", \"Copyright (C) 2026 PT Pranala Digital Teknologi\"\n"
             "            VALUE \"OriginalFilename\", \"Deskmon.exe\"\n"
             "            VALUE \"ProductName\", \"Deskmon\"\n"
-            "            VALUE \"ProductVersion\", \"0.1.0.0\"\n"
+            "            VALUE \"ProductVersion\", \"1.0.3.4\"\n"
             "        END\n"
             "    END\n"
             "    BLOCK \"VarFileInfo\"\n"
@@ -284,12 +293,12 @@ endif()
 
 # Untuk macOS, tambahkan pengaturan bundle
 if(APPLE)
-    set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.yourcompany.deskmon")
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.pranala.deskmon")
     set(MACOSX_BUNDLE_BUNDLE_NAME "Deskmon")
     set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}")
     set(MACOSX_BUNDLE_LONG_VERSION_STRING "${PROJECT_VERSION}")
     set(MACOSX_BUNDLE_INFO_STRING "Deskmon Activity Monitor")
-    set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2025 Your Company")
+    set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2026 PT Pranala Digital Teknologi")
 endif()
 
 # Set properti target

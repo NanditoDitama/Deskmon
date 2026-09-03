@@ -1,6 +1,4 @@
 #include "WorkTimeTracker.h"
-#include <QSqlQuery>
-#include <QSqlError>
 #include <QDate>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -8,12 +6,12 @@
 #include <QDebug>
 
 WorkTimeTracker::WorkTimeTracker(ApiClient *apiClient,
-                                 ProductivityAppRepository *prodRepo,
+                                 WorkTimeRepository *workTimeRepo,
                                  AuthManager *authManager,
                                  QObject *parent)
     : QObject(parent)
     , m_apiClient(apiClient)
-    , m_prodRepo(prodRepo)
+    , m_workTimeRepo(workTimeRepo)
     , m_authManager(authManager)
 {
     m_apiWorkTimeTimer.setInterval(60000); // 1 menit
@@ -40,17 +38,10 @@ void WorkTimeTracker::stopSyncTimer()
 void WorkTimeTracker::checkAndCreateNewDayRecord()
 {
     int userId = m_authManager->currentUserId();
-    if (userId == -1 || !m_prodRepo->ensureDatabaseOpen()) return;
+    if (userId == -1 || !m_workTimeRepo) return;
 
     QString today = QDate::currentDate().toString("yyyy-MM-dd");
-    QSqlQuery query(m_prodRepo->database());
-    query.prepare("SELECT elapsed_seconds FROM work_time WHERE user_id = :user_id AND date = :date");
-    query.bindValue(":user_id", userId);
-    query.bindValue(":date", today);
-
-    if (query.exec() && query.next()) {
-        return; // Record already exists
-    } else {
+    if (!m_workTimeRepo->hasRecordForDate(userId, today)) {
         m_workTimeElapsedSeconds = 0;
         emit workTimeElapsedSecondsChanged();
         saveWorkTimeData();
@@ -61,24 +52,20 @@ void WorkTimeTracker::checkAndCreateNewDayRecord()
 void WorkTimeTracker::loadWorkTimeData()
 {
     int userId = m_authManager->currentUserId();
-    if (userId == -1 || !m_prodRepo->ensureDatabaseOpen()) {
+    if (userId == -1 || !m_workTimeRepo) {
         m_workTimeElapsedSeconds = 0;
         emit workTimeElapsedSecondsChanged();
         return;
     }
 
     QString today = QDate::currentDate().toString("yyyy-MM-dd");
-    QSqlQuery query(m_prodRepo->database());
-    query.prepare("SELECT elapsed_seconds FROM work_time WHERE user_id = :user_id AND date = :date");
-    query.bindValue(":user_id", userId);
-    query.bindValue(":date", today);
-
-    if (query.exec() && query.next()) {
-        m_workTimeElapsedSeconds = query.value(0).toInt();
+    if (m_workTimeRepo->hasRecordForDate(userId, today)) {
+        m_workTimeElapsedSeconds = m_workTimeRepo->getElapsedSeconds(userId, today);
     } else {
         m_workTimeElapsedSeconds = 0;
         saveWorkTimeData();
     }
+
     qDebug() << "Loaded work time for" << today << ":" << m_workTimeElapsedSeconds << "seconds";
     emit workTimeElapsedSecondsChanged();
 }
@@ -86,19 +73,10 @@ void WorkTimeTracker::loadWorkTimeData()
 void WorkTimeTracker::saveWorkTimeData()
 {
     int userId = m_authManager->currentUserId();
-    if (userId == -1 || !m_prodRepo->ensureDatabaseOpen()) return;
+    if (userId == -1 || !m_workTimeRepo) return;
 
     QString today = QDate::currentDate().toString("yyyy-MM-dd");
-    QSqlQuery query(m_prodRepo->database());
-    query.prepare("INSERT OR REPLACE INTO work_time (user_id, date, elapsed_seconds) "
-                  "VALUES (:user_id, :date, :seconds)");
-    query.bindValue(":user_id", userId);
-    query.bindValue(":date", today);
-    query.bindValue(":seconds", m_workTimeElapsedSeconds);
-
-    if (!query.exec()) {
-        qWarning() << "Failed to save work time:" << query.lastError().text();
-    }
+    m_workTimeRepo->saveElapsedSeconds(userId, today, m_workTimeElapsedSeconds);
 }
 
 void WorkTimeTracker::sendWorkTimeToAPI()
@@ -178,7 +156,6 @@ void WorkTimeTracker::submitEarlyLeaveReason(const QString &reason)
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         QByteArray responseData = reply->readAll();
-        QString responseText = QString::fromUtf8(responseData);
         bool shouldQuit = false;
         QString errorMessage;
 

@@ -1,12 +1,12 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Window 2.15
-import QtQuick.Controls.Material
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
 import "../theme"
+import "../dialogs"
+import "../components"
 
 Item {
     anchors.fill: parent
@@ -19,6 +19,27 @@ Item {
     TimeUpPopup {
         id: customWarningDialog
         titleText: "Peringatan"
+    }
+
+    property bool isTimeUpPopupOpen: false
+    property bool isTimeUpWarningOpen: false
+
+    function checkTaskTimeWarning(timeUsage, maxTime) {
+        if (!maxTime || maxTime <= 0) return;
+        var diffSeconds = maxTime - timeUsage;
+        if (diffSeconds <= 0) {
+            if (!isTimeUpPopupOpen) {
+                customWarningDialog.newText = "Waktu Task anda Sudah Habis";
+                isTimeUpPopupOpen = true;
+                customWarningDialog.show();
+            }
+        } else if (diffSeconds <= 600) {
+            if (!isTimeUpWarningOpen) {
+                customWarningDialog.newText = "Waktu Task anda tersisa kurang dari 10 menit!";
+                isTimeUpWarningOpen = true;
+                customWarningDialog.show();
+            }
+        }
     }
 
     ColumnLayout {
@@ -133,12 +154,12 @@ Item {
                                 text: {
                                     var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
                                     if (activeTask) {
+                                        checkTaskTimeWarning(activeTask.time_usage, activeTask.max_time)
                                         var hours = Math.floor(activeTask.time_usage / 3600)
                                         var minutes = Math.floor((activeTask.time_usage % 3600) / 60)
                                         var timeText = ""
                                         if (hours > 0) timeText += hours + "h "
                                         timeText += minutes + "m"
-                                        public_curent_time = timeText
                                         return timeText
                                     }
                                     return "0m"
@@ -243,7 +264,6 @@ Item {
                                         var timeText = ""
                                         if (hours > 0) timeText += hours + "h "
                                         timeText += minutes + "m"
-                                        public_max_time = timeText
                                         return timeText
                                     }
                                     return "0m"

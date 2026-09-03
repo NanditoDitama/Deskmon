@@ -1,36 +1,26 @@
 #include "AuthManager.h"
-#include <QSqlQuery>
-#include <QSqlError>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QEventLoop>
 #include <QTimer>
 #include <QDebug>
 
-AuthManager::AuthManager(ApiClient *apiClient, WorkLogRepository *workLogRepo, QObject *parent)
+AuthManager::AuthManager(ApiClient *apiClient, UserRepository *userRepo, QObject *parent)
     : QObject(parent)
     , m_apiClient(apiClient)
-    , m_workLogRepo(workLogRepo)
+    , m_userRepo(userRepo)
 {
 }
 
 bool AuthManager::tryAutoLogin()
 {
-    if (!m_workLogRepo->ensureDatabaseOpen()) return false;
-
-    QSqlQuery query(m_workLogRepo->database());
-    if (query.exec("SELECT id, username, email, token FROM users WHERE token IS NOT NULL AND token != '' LIMIT 1")) {
-        if (query.next()) {
-            int userId = query.value(0).toInt();
-            QString username = query.value(1).toString();
-            QString email = query.value(2).toString();
-            QString token = query.value(3).toString();
-
-            setCurrentUserInfo(userId, username, email, token);
-            qDebug() << "Auto login as user ID:" << userId << "Username:" << username;
-            emit loggedIn();
-            return true;
-        }
+    int userId = -1;
+    QString username, email, token;
+    if (m_userRepo && m_userRepo->findUserWithToken(userId, username, email, token)) {
+        setCurrentUserInfo(userId, username, email, token);
+        qDebug() << "Auto login as user ID:" << userId << "Username:" << username;
+        emit loggedIn();
+        return true;
     }
     return false;
 }
@@ -58,11 +48,6 @@ void AuthManager::setCurrentUserInfo(int userId, const QString &username, const 
 
 QString AuthManager::authenticate(const QString &loginInput, const QString &password)
 {
-    if (!m_workLogRepo->ensureDatabaseOpen()) {
-        qWarning() << "Cannot authenticate: Database is not open";
-        return "Database is not open";
-    }
-
     bool isEmail = loginInput.contains("@");
     QString loginType = isEmail ? "email" : "username";
     qDebug() << "Attempting login with" << loginType << ":" << loginInput;
@@ -71,14 +56,8 @@ QString AuthManager::authenticate(const QString &loginInput, const QString &pass
     if (isEmail) {
         jsonPayload["email"] = loginInput;
     } else {
-        QSqlQuery emailQuery(m_workLogRepo->database());
-        emailQuery.prepare("SELECT email FROM users WHERE username = :username");
-        emailQuery.bindValue(":username", loginInput);
-        if (emailQuery.exec() && emailQuery.next()) {
-            jsonPayload["email"] = emailQuery.value(0).toString();
-        } else {
-            jsonPayload["email"] = loginInput;
-        }
+        QString email = m_userRepo ? m_userRepo->getEmail(loginInput) : "";
+        jsonPayload["email"] = email.isEmpty() ? loginInput : email;
     }
     jsonPayload["password"] = password;
     QJsonDocument doc(jsonPayload);
@@ -121,24 +100,8 @@ QString AuthManager::authenticate(const QString &loginInput, const QString &pass
         QString department = userData["department"].toObject()["rolename"].toString();
         QString token = jsonObj["token"].toString();
 
-        QSqlQuery query(m_workLogRepo->database());
-        query.prepare(
-            "INSERT OR REPLACE INTO users "
-            "(id, username, password, email, department, role, token) "
-            "VALUES (:id, :username, :password, :email, :department, :role, :token)"
-        );
-        query.bindValue(":id", userId);
-        query.bindValue(":username", username);
-        query.bindValue(":password", password);
-        query.bindValue(":email", userEmail);
-        query.bindValue(":role", role);
-        query.bindValue(":department", department);
-        query.bindValue(":token", token);
-
-        if (!query.exec()) {
-            qWarning() << "Gagal menyimpan user ke database lokal:" << query.lastError();
-        } else {
-            qDebug() << "Data user tersimpan di database lokal. ID:" << userId;
+        if (m_userRepo) {
+            m_userRepo->saveUser(userId, username, password, userEmail, department, role, token);
         }
 
         setCurrentUserInfo(userId, username, userEmail, token);
@@ -157,11 +120,8 @@ void AuthManager::logout()
 {
     sendLogoutToAPI();
 
-    if (m_currentUserId != -1 && m_workLogRepo->ensureDatabaseOpen()) {
-        QSqlQuery clearTokenQuery(m_workLogRepo->database());
-        clearTokenQuery.prepare("UPDATE users SET token = '' WHERE id = :id");
-        clearTokenQuery.bindValue(":id", m_currentUserId);
-        clearTokenQuery.exec();
+    if (m_currentUserId != -1 && m_userRepo) {
+        m_userRepo->clearToken(m_currentUserId);
     }
 
     m_currentUserId = -1;
@@ -201,82 +161,47 @@ void AuthManager::sendLogoutToAPI()
 
 QString AuthManager::savedUsername() const
 {
-    if (!m_workLogRepo->ensureDatabaseOpen()) return "";
-    QSqlQuery query(m_workLogRepo->database());
-    if (query.exec("SELECT email FROM users WHERE token IS NOT NULL AND token != '' LIMIT 1") && query.next()) {
-        return query.value(0).toString();
+    int userId = -1;
+    QString username, email, token;
+    if (m_userRepo && m_userRepo->findUserWithToken(userId, username, email, token)) {
+        return email;
     }
     return "";
 }
 
 QString AuthManager::savedPassword() const
 {
-    if (!m_workLogRepo->ensureDatabaseOpen()) return "";
-    QSqlQuery query(m_workLogRepo->database());
-    if (query.exec("SELECT password FROM users WHERE token IS NOT NULL AND token != '' LIMIT 1") && query.next()) {
-        return query.value(0).toString();
+    int userId = -1;
+    QString username, email, token;
+    if (m_userRepo && m_userRepo->findUserWithToken(userId, username, email, token)) {
+        return m_userRepo->getPassword(username);
     }
     return "";
 }
 
 QString AuthManager::getUserEmail(const QString &username) const
 {
-    if (!m_workLogRepo->ensureDatabaseOpen()) return "";
-    QSqlQuery query(m_workLogRepo->database());
-    query.prepare("SELECT email FROM users WHERE username = :username");
-    query.bindValue(":username", username);
-    if (query.exec() && query.next()) {
-        return query.value(0).toString();
-    }
-    return "";
+    return m_userRepo ? m_userRepo->getEmail(username) : "";
 }
 
 QString AuthManager::getUserDepartment(const QString &username) const
 {
-    if (!m_workLogRepo->ensureDatabaseOpen()) return "";
-    QSqlQuery query(m_workLogRepo->database());
-    query.prepare("SELECT role FROM users WHERE username = :username");
-    query.bindValue(":username", username);
-    if (query.exec() && query.next()) {
-        return query.value(0).toString();
-    }
-    return "";
+    return m_userRepo ? m_userRepo->getDepartment(username) : "";
 }
 
 QString AuthManager::getUsernameById(int userId) const
 {
-    if (!m_workLogRepo->ensureDatabaseOpen()) return "";
-    QSqlQuery query(m_workLogRepo->database());
-    query.prepare("SELECT username FROM users WHERE id = :id");
-    query.bindValue(":id", userId);
-    if (query.exec() && query.next()) {
-        return query.value(0).toString();
-    }
-    return "";
+    return m_userRepo ? m_userRepo->getUsernameById(userId) : "";
 }
 
 QString AuthManager::getUserPassword(const QString &username) const
 {
-    if (!m_workLogRepo->ensureDatabaseOpen()) return "";
-    QSqlQuery query(m_workLogRepo->database());
-    query.prepare("SELECT password FROM users WHERE username = ?");
-    query.addBindValue(username);
-    if (query.exec() && query.next()) {
-        return query.value(0).toString();
-    }
-    return "";
+    return m_userRepo ? m_userRepo->getPassword(username) : "";
 }
 
 bool AuthManager::isUsernameTaken(const QString &username) const
 {
-    if (!m_workLogRepo->ensureDatabaseOpen()) return false;
-    QSqlQuery query(m_workLogRepo->database());
-    query.prepare("SELECT COUNT(*) FROM users WHERE username = :username");
-    query.bindValue(":username", username);
-    if (query.exec() && query.next()) {
-        return query.value(0).toInt() > 0;
-    }
-    return false;
+    return m_userRepo ? m_userRepo->isUsernameTaken(username) : false;
 }
 
 void AuthManager::showAuthTokenErrorMessage()
@@ -290,10 +215,7 @@ void AuthManager::clearToken()
 {
     m_authToken.clear();
     if (m_apiClient) m_apiClient->clearAuthToken();
-    if (m_currentUserId > 0 && m_workLogRepo->ensureDatabaseOpen()) {
-        QSqlQuery query(m_workLogRepo->database());
-        query.prepare("UPDATE users SET token = NULL WHERE id = ?");
-        query.addBindValue(m_currentUserId);
-        query.exec();
+    if (m_currentUserId > 0 && m_userRepo) {
+        m_userRepo->clearToken(m_currentUserId);
     }
 }

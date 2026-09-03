@@ -5,7 +5,6 @@ import QtQuick.Controls.Material
 import QtQuick.Dialogs
 import QtQuick.Effects
 import QtQuick.Window
-import QtQuick 2.15
 import "../theme"
 
 ApplicationWindow {

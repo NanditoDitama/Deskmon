@@ -6,7 +6,7 @@
 #include <QTimer>
 #include <QDateTime>
 #include "core/network/ApiClient.h"
-#include "core/database/ProductivityAppRepository.h"
+#include "core/database/TaskRepository.h"
 #include "features/auth/AuthManager.h"
 
 class TaskManager : public QObject
@@ -14,7 +14,7 @@ class TaskManager : public QObject
     Q_OBJECT
 public:
     explicit TaskManager(ApiClient *apiClient,
-                         ProductivityAppRepository *prodRepo,
+                         TaskRepository *taskRepo,
                          AuthManager *authManager,
                          QObject *parent = nullptr);
     ~TaskManager() override = default;
@@ -72,7 +72,7 @@ private:
     void sendTaskDetailsToAPI(int taskId, const QString &details, const QString &action, int nextTaskId);
 
     ApiClient *m_apiClient;
-    ProductivityAppRepository *m_prodRepo;
+    TaskRepository *m_taskRepo;
     AuthManager *m_authManager;
 
     int m_activeTaskId = -1;

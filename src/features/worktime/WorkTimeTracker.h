@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QTimer>
 #include "core/network/ApiClient.h"
-#include "core/database/ProductivityAppRepository.h"
+#include "core/database/WorkTimeRepository.h"
 #include "features/auth/AuthManager.h"
 
 class WorkTimeTracker : public QObject
@@ -12,7 +12,7 @@ class WorkTimeTracker : public QObject
     Q_OBJECT
 public:
     explicit WorkTimeTracker(ApiClient *apiClient,
-                             ProductivityAppRepository *prodRepo,
+                             WorkTimeRepository *workTimeRepo,
                              AuthManager *authManager,
                              QObject *parent = nullptr);
     ~WorkTimeTracker() override;
@@ -36,7 +36,7 @@ signals:
 
 private:
     ApiClient *m_apiClient;
-    ProductivityAppRepository *m_prodRepo;
+    WorkTimeRepository *m_workTimeRepo;
     AuthManager *m_authManager;
 
     int m_workTimeElapsedSeconds = 0;

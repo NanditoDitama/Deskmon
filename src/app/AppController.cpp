@@ -13,15 +13,19 @@
 AppController::AppController(QObject *parent)
     : QObject(parent)
     , m_apiClient(new ApiClient(this))
+    , m_userRepo(new UserRepository(this))
+    , m_taskRepo(new TaskRepository(this))
+    , m_workTimeRepo(new WorkTimeRepository(this))
     , m_workLogRepo(new WorkLogRepository(this))
     , m_prodRepo(new ProductivityAppRepository(this))
-    , m_authManager(new AuthManager(m_apiClient, m_workLogRepo, this))
-    , m_profileManager(new UserProfileManager(m_workLogRepo, m_authManager, this))
-    , m_workTimeTracker(new WorkTimeTracker(m_apiClient, m_prodRepo, m_authManager, this))
+    , m_authManager(new AuthManager(m_apiClient, m_userRepo, this))
+    , m_profileManager(new UserProfileManager(m_userRepo, m_authManager, this))
+    , m_workTimeTracker(new WorkTimeTracker(m_apiClient, m_workTimeRepo, m_authManager, this))
     , m_activityTracker(new ActivityTracker(m_workLogRepo, m_authManager, this))
-    , m_taskManager(new TaskManager(m_apiClient, m_prodRepo, m_authManager, this))
+    , m_taskManager(new TaskManager(m_apiClient, m_taskRepo, m_authManager, this))
     , m_prodStatsService(new ProductivityStatsService(m_apiClient, m_workLogRepo, m_prodRepo, m_authManager, this))
 {
+    DatabaseManager::instance().initialize();
     m_workLogRepo->initialize();
     m_prodRepo->initialize();
 
@@ -293,32 +297,7 @@ void AppController::fetchAndStoreProductivityApps() {
         if (!jsonObj["success"].toBool()) return;
 
         QJsonArray appsArray = jsonObj["data"].toArray();
-        QSqlQuery query(m_prodRepo->database());
-        m_prodRepo->database().transaction();
-
-        for (const QJsonValue &appValue : appsArray) {
-            if (!appValue.isObject()) continue;
-            QJsonObject appObj = appValue.toObject();
-            QString appName = appObj["application_name"].toString();
-            QString processName = appObj["process_name"].toString();
-            QString url = appObj["url"].toString();
-            QString status = appObj["productivity_status"].toString().toLower();
-            int jenis = (status == "productive") ? 1 : (status == "non-productive" ? 2 : 0);
-            QString forUsers = appObj.contains("for_user") ? appObj["for_user"].toString() : "0";
-
-            query.prepare("INSERT INTO aplikasi (aplikasi, window_title, url, jenis, for_user) "
-                          "VALUES (:app, :window, :url, :type, :forUsers)");
-            query.bindValue(":app", appName);
-            query.bindValue(":window", (processName.isEmpty() || processName == "N/A") ? QVariant() : processName);
-            query.bindValue(":url", (url.isEmpty() || url == "N/A") ? QVariant() : url);
-            query.bindValue(":type", jenis);
-            query.bindValue(":forUsers", forUsers);
-            query.exec();
-        }
-
-        m_prodRepo->database().commit();
-        m_prodRepo->refreshProductivityModels(userId);
-        m_prodRepo->updateProductivityCache(userId);
+        m_prodRepo->storeProductivityAppsFromApi(appsArray, userId);
     });
 }
 

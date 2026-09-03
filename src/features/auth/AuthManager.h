@@ -3,15 +3,14 @@
 
 #include <QObject>
 #include <QString>
-#include <QSqlDatabase>
 #include "core/network/ApiClient.h"
-#include "core/database/WorkLogRepository.h"
+#include "core/database/UserRepository.h"
 
 class AuthManager : public QObject
 {
     Q_OBJECT
 public:
-    explicit AuthManager(ApiClient *apiClient, WorkLogRepository *workLogRepo, QObject *parent = nullptr);
+    explicit AuthManager(ApiClient *apiClient, UserRepository *userRepo, QObject *parent = nullptr);
     ~AuthManager() override = default;
 
     int currentUserId() const { return m_currentUserId; }
@@ -51,7 +50,7 @@ signals:
 
 private:
     ApiClient *m_apiClient;
-    WorkLogRepository *m_workLogRepo;
+    UserRepository *m_userRepo;
 
     int m_currentUserId = -1;
     QString m_currentUsername;

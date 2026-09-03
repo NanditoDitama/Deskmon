@@ -1,13 +1,12 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Window 2.15
-import QtQuick.Controls.Material
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
 import "../theme"
 import "../components"
+import "../application_submission"
 
 Item {
     id: productivityRoot
@@ -15,8 +14,163 @@ Item {
 
     property string clockIn: "--:--"
     property string clockOut: "--:--"
+    property int userId: (typeof logger !== "undefined") ? logger.currentUserId : -1
 
-    property int userId: logger.currentUserId
+    // State Statistik Aplikasi & Domain
+    property var appDurations: ({})
+    property var sortedApps: []
+    property var sortedDomains: []
+    property bool showAllPercentages: false
+
+    // State Filter Tanggal
+    property date startSelectedDate: new Date(NaN)
+    property date endSelectedDate: new Date(NaN)
+    property bool isDateSelected: false
+
+    Component.onCompleted: {
+        var today = new Date();
+        startSelectedDate = today;
+        endSelectedDate = today;
+        isDateSelected = true;
+        updateAppDurations();
+        updateDomainDurations();
+    }
+
+    Connections {
+        target: (typeof logger !== "undefined") ? logger : null
+        function onLogContentChanged() {
+            updateAppDurations();
+            updateDomainDurations();
+        }
+    }
+
+    function formatDuration(seconds) {
+        if (seconds < 60) {
+            return seconds + "s";
+        } else if (seconds < 3600) {
+            var minutes = Math.floor(seconds / 60);
+            var secs = seconds % 60;
+            return minutes + "m " + secs + "s";
+        } else {
+            var hours = Math.floor(seconds / 3600);
+            var mins = Math.floor((seconds % 3600) / 60);
+            var secs = seconds % 60;
+            return hours + "h " + mins + "m " + secs + "s";
+        }
+    }
+
+    function extractDomain(urlString) {
+        if (!urlString || urlString.trim() === "") return "";
+        try {
+            var fullUrl = urlString.startsWith("http") ? urlString : "https://" + urlString;
+            var urlObj = new URL(fullUrl);
+            var hostname = urlObj.hostname;
+            if (hostname.startsWith("www.")) return hostname.substring(4);
+            return hostname;
+        } catch (e) {
+            var domain = urlString.split('/')[0];
+            if (domain.startsWith("www.")) return domain.substring(4);
+            return domain;
+        }
+    }
+
+    function getProductivityType(name, url) {
+        if (typeof logger === "undefined") return "neutral";
+        var typeInt = logger.getAppProductivityType(name, url);
+        switch(typeInt) {
+        case 1: return "productive";
+        case 2: return "non-productive";
+        default: return "neutral";
+        }
+    }
+
+    function updateAppDurations() {
+        if (typeof logger === "undefined" || !logger.logContent) return;
+        var durations = {};
+        var logs = logger.logContent.split('\n');
+        var totalDuration = 0;
+
+        for (var i = 0; i < logs.length; i++) {
+            var parts = logs[i].split(',');
+            if (parts.length >= 4 && parts[2].trim() !== '' && parts[3].trim() !== '') {
+                var appName = parts[2].trim();
+                if (appName === "Idle") continue;
+
+                var start = parts[0].trim();
+                var end = parts[1].trim();
+                var startTime = new Date("2000-01-01 " + start);
+                var endTime = new Date("2000-01-01 " + end);
+                var durationSec = (endTime - startTime) / 1000;
+
+                if (durationSec > 0) {
+                    if (durations[appName] === undefined) {
+                        durations[appName] = 0;
+                    }
+                    durations[appName] += durationSec;
+                    totalDuration += durationSec;
+                }
+            }
+        }
+
+        var appArray = [];
+        for (var app in durations) {
+            var percentage = totalDuration > 0 ? (durations[app] / totalDuration) * 100 : 0;
+            appArray.push({
+                name: app,
+                duration: durations[app],
+                percentage: percentage,
+                productivityType: getProductivityType(app, "")
+            });
+        }
+
+        appArray.sort((a, b) => b.duration - a.duration);
+        appDurations = durations;
+        sortedApps = appArray;
+    }
+
+    function updateDomainDurations() {
+        if (typeof logger === "undefined" || !logger.logContent) return;
+        var domainDurations = {};
+        var logs = logger.logContent.split('\n').filter(line => line.trim() !== '');
+        var totalDuration = 0;
+
+        for (var i = 0; i < logs.length; i++) {
+            var parts = logs[i].split(',');
+            if (parts.length >= 5 && parts[4] && parts[4].trim() !== '') {
+                var url = parts[4].trim();
+                var domain = extractDomain(url);
+                if (domain) {
+                    var start = parts[0].trim();
+                    var end = parts[1].trim();
+                    var startTime = new Date("2000-01-01 " + start);
+                    var endTime = new Date("2000-01-01 " + end);
+                    var durationSec = (endTime - startTime) / 1000;
+
+                    if (durationSec > 0) {
+                        if (domainDurations[domain] === undefined) {
+                            domainDurations[domain] = 0;
+                        }
+                        domainDurations[domain] += durationSec;
+                        totalDuration += durationSec;
+                    }
+                }
+            }
+        }
+
+        var domainArray = [];
+        for (var d in domainDurations) {
+            var percentage = totalDuration > 0 ? (domainDurations[d] / totalDuration) * 100 : 0;
+            domainArray.push({
+                name: d,
+                duration: domainDurations[d],
+                percentage: percentage,
+                productivityType: getProductivityType(d, d)
+            });
+        }
+
+        domainArray.sort((a, b) => b.duration - a.duration);
+        sortedDomains = domainArray;
+    }
 
     function fetchClockData() {
         // Cek pengaman (guard condition)
@@ -221,7 +375,7 @@ Item {
                         }
                     }
                 }
-                DateRangeView{
+                DateRangeDialog{
                     id: dateRangeDialog
                     parent: Overlay.overlay
                 }
@@ -675,7 +829,7 @@ Item {
                             applicationsDialog.open();
                         }
                     }
-                    MonitoredApplicationsView{
+                    MonitoredApplicationsDialog{
                         id:applicationsDialog
                         parent:Overlay.overlay
                     }

@@ -7,6 +7,7 @@
 #include <QSqlQueryModel>
 #include <QHash>
 #include <QVariantList>
+#include <QJsonArray>
 #include <QString>
 
 class ProductivityAppRepository : public QObject
@@ -18,9 +19,7 @@ public:
 
     bool initialize();
     bool ensureDatabaseOpen() const;
-    QSqlDatabase database() const { return m_productivityDb; }
-
-    void migrateDatabase();
+    QSqlDatabase database() const;
 
     QSqlQueryModel* productiveAppsModel() const { return m_productiveAppsModel; }
     QSqlQueryModel* nonProductiveAppsModel() const { return m_nonProductiveAppsModel; }
@@ -34,6 +33,7 @@ public:
     QVariantList getPendingApplicationRequests() const;
 
     bool addProductivityApp(const QString &appName, const QString &windowTitle, const QString &url, int productivityType);
+    bool storeProductivityAppsFromApi(const QJsonArray &appsArray, int userId);
 
     int getIdleThreshold() const;
     void setIdleThreshold(int seconds);
@@ -43,7 +43,6 @@ signals:
     void idleThresholdChanged();
 
 private:
-    mutable QSqlDatabase m_productivityDb;
     QSqlQueryModel *m_productiveAppsModel;
     QSqlQueryModel *m_nonProductiveAppsModel;
 

@@ -9,6 +9,10 @@
 #include <QTimer>
 
 #include "core/network/ApiClient.h"
+#include "core/database/DatabaseManager.h"
+#include "core/database/UserRepository.h"
+#include "core/database/TaskRepository.h"
+#include "core/database/WorkTimeRepository.h"
 #include "core/database/WorkLogRepository.h"
 #include "core/database/ProductivityAppRepository.h"
 #include "features/auth/AuthManager.h"
@@ -193,6 +197,9 @@ private:
     void setupConnections();
 
     ApiClient *m_apiClient;
+    UserRepository *m_userRepo;
+    TaskRepository *m_taskRepo;
+    WorkTimeRepository *m_workTimeRepo;
     WorkLogRepository *m_workLogRepo;
     ProductivityAppRepository *m_prodRepo;
     AuthManager *m_authManager;

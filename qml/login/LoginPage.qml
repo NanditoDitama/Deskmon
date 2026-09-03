@@ -1,8 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Window 2.15
-import QtQuick.Controls.Material
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
@@ -12,6 +10,9 @@ Item {
     id: loginPageRoot
     anchors.fill: parent
     property bool isLoading: false
+    property bool showPassword: false
+    readonly property string visibilityIcon: "qrc:/icons/visibility.svg"
+    readonly property string visibilityOffIcon: "qrc:/icons/visibility_off.svg"
 
     Component.onCompleted: {
         usernameField.text = logger.savedUsername()
@@ -529,21 +530,13 @@ Item {
                                 console.log("Current username from logger:", currentUsername)
                                 console.log("Current email from logger:", logger.currentUserEmail)
 
-                                tempUsername = currentUsername
-                                tempPassword = ""
-                                tempDepartment = logger.getUserDepartment(currentUsername)
-
+                                var dept = logger.getUserDepartment(currentUsername)
                                 console.log("Username:", currentUsername)
                                 console.log("Email:", logger.getUserEmail(currentUsername))
-                                console.log("Department:", tempDepartment)
+                                console.log("Department:", dept)
 
                                 var savedImagePath = logger.getProfileImagePath(currentUsername)
                                 profileImagePath = savedImagePath !== "" ? savedImagePath + "?t=" + new Date().getTime() : ":/profilImage.png"
-
-                                var today = new Date()
-                                startSelectedDate = today
-                                endSelectedDate = today
-                                isDateSelected = true
 
                                 usernameField.text = ""
                                 passwordField.text = ""

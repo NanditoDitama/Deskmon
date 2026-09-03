@@ -3,14 +3,14 @@
 
 #include <QObject>
 #include <QString>
-#include "core/database/WorkLogRepository.h"
+#include "core/database/UserRepository.h"
 #include "features/auth/AuthManager.h"
 
 class UserProfileManager : public QObject
 {
     Q_OBJECT
 public:
-    explicit UserProfileManager(WorkLogRepository *workLogRepo, AuthManager *authManager, QObject *parent = nullptr);
+    explicit UserProfileManager(UserRepository *userRepo, AuthManager *authManager, QObject *parent = nullptr);
     ~UserProfileManager() override = default;
 
     QString hashPassword(const QString &password);
@@ -24,7 +24,7 @@ signals:
     void profileImageChanged(const QString &username, const QString &newPath);
 
 private:
-    WorkLogRepository *m_workLogRepo;
+    UserRepository *m_userRepo;
     AuthManager *m_authManager;
 };
 

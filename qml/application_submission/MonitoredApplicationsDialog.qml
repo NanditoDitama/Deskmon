@@ -449,11 +449,11 @@ Dialog {
             }
         }
     }
-    AddApplicationRequestView{
+    AddApplicationRequestDialog{
         id:addAppDialog
         parent:Overlay.overlay
     }
-    PendingAppRequestsView{
+    PendingAppRequestsDialog{
         id: requestDialog
         parent: Overlay.overlay
     }

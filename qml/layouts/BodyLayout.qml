@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "../theme"
-import "../views"
+import "../dashboard"
 import "../dialogs"
 
 GridLayout {
@@ -56,6 +56,7 @@ GridLayout {
             }
 
             CurrentTaskView {
+                id: currentTaskView
                 anchors.fill: parent
             }
         }
@@ -109,8 +110,8 @@ GridLayout {
             if (typeof logger !== "undefined") {
                 logger.setActiveTask(targetTaskId)
             }
-            if (typeof isTimeUpPopupOpen !== "undefined") isTimeUpPopupOpen = false
-            if (typeof isTimeUpWarningOpen !== "undefined") isTimeUpWarningOpen = false
+            currentTaskView.isTimeUpPopupOpen = false
+            currentTaskView.isTimeUpWarningOpen = false
         }
     }
 }

@@ -1,8 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Window 2.15
-import QtQuick.Controls.Material
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
@@ -17,6 +15,7 @@ Dialog {
     height: Math.min(parent.height * 0.9, 800)
     padding: 0
 
+    property string imagePath: ""
     property real imageScale: 1.0
     property real imageX: 0
     property real imageY: 0
@@ -27,7 +26,6 @@ Dialog {
         border.color: Theme.dividerColor
         border.width: 1
         layer.enabled: true
-
     }
 
     contentItem: Rectangle {
@@ -85,7 +83,7 @@ Dialog {
 
                     Image {
                         id: cropImage
-                        source: tempImagePath
+                        source: cropDialog.imagePath
                         fillMode: Image.PreserveAspectFit
                         width: cropArea.width * cropDialog.imageScale
                         height: cropArea.height * cropDialog.imageScale
@@ -289,7 +287,7 @@ Dialog {
                     }
                     onClicked: {
                         var croppedPath = logger.cropProfileImage(
-                                    tempImagePath,
+                                    cropDialog.imagePath,
                                     cropDialog.imageX,
                                     cropDialog.imageY,
                                     cropImage.width,
