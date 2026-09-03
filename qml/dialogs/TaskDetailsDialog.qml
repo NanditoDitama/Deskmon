@@ -9,7 +9,7 @@ ApplicationWindow {
     id: root
     width: 510
     height: 490
-    title: "Detail Pekerjaan"
+    title: Lang.t("Task Details")
     modality: Qt.ApplicationModal
     flags: Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
@@ -81,7 +81,7 @@ ApplicationWindow {
                     spacing: 2
 
                     Label {
-                        text: "Detail Pekerjaan"
+                        text: Lang.t("Task Details")
                         font.pixelSize: 17
                         font.weight: Font.DemiBold
                         color: Theme.textColor
@@ -89,7 +89,7 @@ ApplicationWindow {
                     }
 
                     Label {
-                        text: "Tambahkan detail pekerjaan (Opsional)"
+                        text: Lang.t("Add task details (Optional)")
                         font.pixelSize: 13
                         color: Qt.alpha(Theme.textColor, 0.6)
                         Layout.fillWidth: true
@@ -118,7 +118,7 @@ ApplicationWindow {
                     }
 
                     Label {
-                        text: "Anda bisa menambahkan detail apa yang ada kerjakan pada task sebelumnya di sini (Opsional)"
+                        text: Lang.t("You can add details of what you worked on in the previous task here (Optional)")
                         wrapMode: Text.Wrap
                         Layout.fillWidth: true
                         color: Theme.textColor
@@ -135,7 +135,7 @@ ApplicationWindow {
                 spacing: 8
 
                 Label {
-                    text: "Detail Pekerjaan"
+                    text: Lang.t("Task Details")
                     font.pixelSize: 13
                     font.weight: Font.Medium
                     color: Theme.textColor
@@ -163,7 +163,7 @@ ApplicationWindow {
                         TextArea {
                             id: detailsInput
                             width: parent.width
-                            placeholderText: "Contoh: Menyelesaikan perbaikan bug pada suatu fitur..."
+                            placeholderText: Lang.t("Example: Finished fixing bugs on a feature...")
                             placeholderTextColor: Theme.lightTextColor
                             wrapMode: Text.Wrap
                             font.pixelSize: 13
@@ -196,7 +196,7 @@ ApplicationWindow {
 
                 Button {
                     id: cancelButton
-                    text: "Lewati"
+                    text: Lang.t("Skip")
                     enabled: true // Tombol Lewati selalu bisa diklik
                     leftPadding: 18
                     rightPadding: 18
@@ -232,7 +232,7 @@ ApplicationWindow {
 
                 Button {
                     id: submitButton
-                    text: root.isLoading ? "Mengirim..." : "Submit"
+                    text: root.isLoading ? Lang.t("Sending...") : Lang.t("Submit")
                     enabled: detailsInput.text.trim().length > 0 && !root.isLoading
 
                     leftPadding: 24

@@ -8,7 +8,7 @@ ApplicationWindow {
     id: root
     width: 340
     height: 180
-    title: "Idle Detected"
+    title: Lang.t("Idle Detected")
     modality: Qt.ApplicationModal
     flags: Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
@@ -72,7 +72,7 @@ ApplicationWindow {
                     spacing: 2
 
                     Label {
-                        text: "Idle Terdeteksi"
+                        text: Lang.t("Idle Detected")
                         font.pixelSize: 17
                         font.weight: Font.DemiBold
                         color: Theme.textColor
@@ -80,7 +80,7 @@ ApplicationWindow {
                     }
 
                     Label {
-                        text: "Aktivitas dihentikan sementara"
+                        text: Lang.t("Activity temporarily paused")
                         font.pixelSize: Theme.fontSizeSmall
                         color: Qt.alpha(Theme.textColor, 0.6)
                         Layout.fillWidth: true
@@ -99,7 +99,7 @@ ApplicationWindow {
 
                 Button {
                     id: btnDismiss
-                    text: "Dismiss"
+                    text: Lang.t("Dismiss")
                     leftPadding: 18
                     rightPadding: 18
                     topPadding: 10
@@ -129,7 +129,7 @@ ApplicationWindow {
 
                 Button {
                     id: btnResume
-                    text: "Resume"
+                    text: Lang.t("Resume")
                     leftPadding: 24
                     rightPadding: 24
                     topPadding: 10

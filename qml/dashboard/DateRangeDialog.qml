@@ -10,9 +10,10 @@ import "../theme"
 Dialog {
     id: dateRangeDialog
     modal: true
-    anchors.centerIn: parent
-    width: Math.min(600, parent.width * 0.9)
-    height: Math.min(600, parent.height * 0.8)
+    width: parent ? Math.min(600, parent.width * 0.9) : 600
+    height: parent ? Math.min(600, parent.height * 0.8) : 550
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: parent ? Math.round((parent.height - height) / 2) : 0
     padding: 0
     dim: true
 
@@ -48,7 +49,7 @@ Dialog {
 
             // Header
             Label {
-                text: "Select Date Range"
+                text: Lang.t("Select Date Range")
                 font {
                     bold: true;
                     pixelSize: Theme.fontSizeHeader;
@@ -69,7 +70,7 @@ Dialog {
                     spacing: 10
 
                     Label {
-                        text: "Quick Select"
+                        text: Lang.t("Quick Select")
                         font {
                             pixelSize: Theme.fontSizeBody;
                             bold: true
@@ -81,12 +82,12 @@ Dialog {
 
                     Repeater {
                         model: [
-                            { text: "Today", range: 0 },
-                            { text: "Yesterday", range: 1 },
-                            { text: "This Week", range: 2 },
-                            { text: "Last Week", range: 3 },
-                            { text: "This Month", range: 4 },
-                            { text: "Last Month", range: 5 }
+                            { text: Lang.t("Today"), range: 0 },
+                            { text: Lang.t("Yesterday"), range: 1 },
+                            { text: Lang.t("This Week"), range: 2 },
+                            { text: Lang.t("Last Week"), range: 3 },
+                            { text: Lang.t("This Month"), range: 4 },
+                            { text: Lang.t("Last Month"), range: 5 }
                         ]
 
                         Button {
@@ -350,7 +351,7 @@ Dialog {
 
                 Button {
                     id: clearBtn
-                    text: "Clear"
+                    text: Lang.t("Clear")
                     Layout.preferredWidth: 100
                     Layout.preferredHeight: 40
                     background: Rectangle {
@@ -375,7 +376,7 @@ Dialog {
 
                 Button {
                     id: cancelBtn
-                    text: "Cancel"
+                    text: Lang.t("Cancel")
                     Layout.preferredWidth: 100
                     Layout.preferredHeight: 40
                     background: Rectangle {
@@ -396,7 +397,7 @@ Dialog {
 
                 Button {
                     id: applyBtn
-                    text: "Apply"
+                    text: Lang.t("Apply")
                     Layout.preferredWidth: 100
                     Layout.preferredHeight: 40
                     enabled: !isNaN(startSelectedDate.getTime())

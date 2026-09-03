@@ -10,7 +10,7 @@ ApplicationWindow {
     height: 200
     visible: false
     color: "transparent"
-    title: "Sesi Berakhir"
+    title: Lang.t("Session Expired")
     modality: Qt.ApplicationModal
     flags: Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
 
@@ -73,7 +73,7 @@ ApplicationWindow {
                     spacing: 2
 
                     Label {
-                        text: "Sesi Berakhir"
+                        text: Lang.t("Session Expired")
                         font.pixelSize: 17
                         font.weight: Font.DemiBold
                         color: Theme.textColor
@@ -81,7 +81,7 @@ ApplicationWindow {
                     }
 
                     Label {
-                        text: "Silakan login kembali"
+                        text: Lang.t("Please sign in again")
                         font.pixelSize: Theme.fontSizeSmall
                         color: Qt.alpha(Theme.textColor, 0.6)
                         Layout.fillWidth: true
@@ -122,7 +122,7 @@ ApplicationWindow {
 
                 Button {
                     id: okButton
-                    text: "Kembali ke halaman Login"
+                    text: Lang.t("Back to Login Page")
                     leftPadding: 24
                     rightPadding: 24
                     topPadding: 10

@@ -58,7 +58,7 @@ Rectangle {
                 }
 
                 contentItem: Image {
-                    source: "qrc:/icons/settings.svg"
+                    source: "image://icon/settings.svg?" + (Theme.isDarkMode ? Theme.textColor : "#FFFFFF")
                     sourceSize.width: 22
                     sourceSize.height: 22
                     anchors.centerIn: parent
@@ -117,10 +117,10 @@ Rectangle {
                             anchors.rightMargin: 14
 
                             Image {
-                                source: "qrc:/icons/edit.svg"
+                                source: "image://icon/edit.svg?" + Theme.textColor
                                 sourceSize.width: 16
                                 sourceSize.height: 16
-                                opacity: 0.8
+                                opacity: 0.85
                             }
                             Text {
                                 text: Lang.t("My Profile")
@@ -156,10 +156,10 @@ Rectangle {
                             anchors.rightMargin: 14
 
                             Image {
-                                source: Theme.isDarkMode ? "qrc:/icons/light_mode.svg" : "qrc:/icons/dark_mode.svg"
+                                source: Theme.isDarkMode ? ("image://icon/light_mode.svg?" + Theme.textColor) : ("image://icon/dark_mode.svg?" + Theme.textColor)
                                 sourceSize.width: 16
                                 sourceSize.height: 16
-                                opacity: 0.8
+                                opacity: 0.85
                             }
                             Text {
                                 text: Theme.isDarkMode ? Lang.t("Light Mode") : Lang.t("Dark Mode")
@@ -262,7 +262,7 @@ Rectangle {
                                 verticalAlignment: Text.AlignVCenter
                             }
                             Image {
-                                source: "qrc:/icons/check.svg"
+                                source: "image://icon/check.svg?" + Theme.primaryColor
                                 sourceSize.width: 14
                                 sourceSize.height: 14
                                 visible: Lang.isIndonesian
@@ -286,7 +286,7 @@ Rectangle {
                 }
 
                 contentItem: Image {
-                    source: Theme.isDarkMode ? "qrc:/icons/light_mode.svg" : "qrc:/icons/dark_mode.svg"
+                    source: Theme.isDarkMode ? ("image://icon/light_mode.svg?" + Theme.textColor) : ("image://icon/dark_mode.svg?#FFFFFF")
                     sourceSize.width: 24
                     sourceSize.height: 24
                     anchors.centerIn: parent
@@ -325,7 +325,8 @@ Rectangle {
                 }
 
                 contentItem: Image {
-                    source: "qrc:/icons/refresh.svg"
+                    id: refreshIcon
+                    source: "image://icon/refresh.svg?" + (Theme.isDarkMode ? Theme.textColor : "#FFFFFF")
                     sourceSize.width: 24
                     sourceSize.height: 24
                     anchors.centerIn: parent
@@ -465,7 +466,7 @@ Rectangle {
                 contentItem: Item {
                     anchors.fill: parent
                     Image {
-                        source: "qrc:/icons/website.svg"
+                        source: "image://icon/website.svg?" + (Theme.isDarkMode ? Theme.textColor : "#FFFFFF")
                         sourceSize.width: 20
                         sourceSize.height: 20
                         anchors.centerIn: parent
@@ -473,7 +474,7 @@ Rectangle {
                 }
 
                 onClicked: Qt.openUrlExternally("https://deskmon.pranala-dt.co.id/")
-                ToolTip.text: "Deskmon Website"
+                ToolTip.text: Lang.t("Deskmon Website")
                 ToolTip.visible: hovered
                 ToolTip.delay: 500
             }
@@ -485,7 +486,7 @@ Rectangle {
         id: statusLabel
         anchors.centerIn: parent
         padding: 12
-        text: "Ini adalah pesan status"
+        text: Lang.t("This is a status message")
         visible: false
         z: 9999
 

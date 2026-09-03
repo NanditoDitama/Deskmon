@@ -6,6 +6,7 @@
 #include <QSqlQuery>
 #include <QSqlQueryModel>
 #include <QString>
+#include "DatabaseManager.h"
 #include "core/platform/WindowInfoProvider.h"
 
 class WorkLogRepository : public QObject
@@ -17,7 +18,7 @@ public:
 
     bool initialize();
     bool ensureDatabaseOpen() const;
-    QSqlDatabase database() const { return m_db; }
+    QSqlDatabase database() const { return DatabaseManager::instance().database(); }
 
     void logWindowChange(const WindowInfo &info, qint64 startTime, qint64 endTime, int userId);
 
@@ -34,7 +35,6 @@ signals:
     void logsChanged();
 
 private:
-    mutable QSqlDatabase m_db;
     QSqlQueryModel *m_logModel;
     QString m_startDateFilter;
     QString m_endDateFilter;

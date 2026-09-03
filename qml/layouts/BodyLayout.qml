@@ -86,7 +86,7 @@ GridLayout {
         property string authToken: ""
 
         MenuItem {
-            text: "Mark as Need Review"
+            text: Lang.t("Mark as Need Review")
             font.pixelSize: 13
 
             background: Rectangle {

@@ -9,12 +9,12 @@ import "../theme"
 
 Dialog {
     id: requestDialog
-    title: "Application Requests"
+    title: Lang.t("Application Requests")
     modal: true
-    width: Math.min(parent.width * 0.8, 800)
-    height: Math.min(parent.height * 0.8, 600)
-    x: (parent.width - width) / 2
-    y: (parent.height - height) / 2
+    width: parent ? Math.min(parent.width * 0.8, 800) : 800
+    height: parent ? Math.min(parent.height * 0.8, 600) : 600
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: parent ? Math.round((parent.height - height) / 2) : 0
     padding: 16
     dim: true
 
@@ -40,7 +40,7 @@ Dialog {
         spacing: 16
 
         Label {
-            text: "Pending Application Requests"
+            text: Lang.t("Pending Application Requests")
             font {
                 pixelSize: 18
                 bold: true
@@ -153,7 +153,7 @@ Dialog {
 
                             // URL display
                             Label {
-                                text: "URL: " + (modelData.url || "Not specified")
+                                text: Lang.t("URL") + ": " + (modelData.url || Lang.t("Not specified"))
                                 font {
                                     family: "Segoe UI"
                                     pixelSize: Theme.fontSizeSmall
@@ -165,7 +165,7 @@ Dialog {
 
                             // For users display
                             Label {
-                                text: "For: " + modelData.for_users
+                                text: Lang.t("For") + ": " + modelData.for_users
                                 font {
                                     family: "Segoe UI"
                                     pixelSize: 11
@@ -181,7 +181,7 @@ Dialog {
         }
 
         Button {
-            text: "Close"
+            text: Lang.t("Close")
             Layout.alignment: Qt.AlignRight
             Layout.preferredWidth: 120
             Layout.preferredHeight: 40

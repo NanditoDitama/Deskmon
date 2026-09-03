@@ -15,6 +15,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     Network
     Widgets
     QuickControls2
+    Svg
 )
 
 # For macOS, set WindowInfoProvider_Mac.cpp and IdleChecker.cpp to be compiled as Objective-C++
@@ -56,6 +57,7 @@ endif()
 set(HEADERS
     src/app/AppController.h
     src/core/platform/WindowInfoProvider.h
+    src/core/platform/ThemedIconProvider.h
     src/core/network/ApiClient.h
     src/core/database/DatabaseManager.h
     src/core/database/UserRepository.h
@@ -281,6 +283,7 @@ target_link_libraries(Deskmon
         Qt6::Network
         Qt6::Widgets
         Qt6::QuickControls2
+        Qt6::Svg
 )
 
 # Teruskan versi proyek ke compiler C++

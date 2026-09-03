@@ -200,7 +200,7 @@ Item {
                         Layout.preferredHeight: 40
                         Material.background: Qt.rgba(1,1,1,0.2)
                         Material.foreground: "white"
-                        icon.source: "qrc:/icons/arrow_back.svg"
+                        icon.source: "image://icon/arrow_back.svg?#FFFFFF"
                         icon.width: 24
                         icon.height: 24
                         onClicked: isProfileVisible = false
@@ -211,7 +211,7 @@ Item {
                     }
 
                     Label {
-                        text: "My Profile"
+                        text: Lang.t("My Profile")
                         font {
                             bold: true;
                             pixelSize: 22;
@@ -313,10 +313,10 @@ Item {
 
                                             Image {
                                                 anchors.centerIn: parent
-                                                source: "qrc:/icons/camera.svg"
+                                                source: "image://icon/camera.svg?#FFFFFF"
                                                 width: 60
                                                 height: 60
-                                                opacity: 0.7
+                                                opacity: 0.9
                                             }
                                         }
                                     }
@@ -331,7 +331,7 @@ Item {
                                     Material.background: Theme.cardColor
                                     opacity: 0.7
                                     Material.foreground: Theme.primaryColor
-                                    icon.source: "qrc:/icons/edit.svg"
+                                    icon.source: "image://icon/edit.svg?" + Theme.primaryColor
                                     icon.width: 28
                                     icon.height: 28
                                     onClicked: fileDialog.open()
@@ -390,7 +390,7 @@ Item {
                                 Layout.fillWidth: true
 
                                 Label {
-                                    text: "Username"
+                                    text: Lang.t("Username")
                                     font {
                                         pixelSize: 13;
                                         bold: true;
@@ -412,7 +412,7 @@ Item {
                                         anchors.leftMargin: 16
                                         anchors.rightMargin: 16
                                         verticalAlignment: Text.AlignVCenter
-                                        text: logger.currentUsername || "Username not set"
+                                        text: logger.currentUsername || Lang.t("Username not set")
                                         font.pixelSize: 15
                                         color: "white"
                                         elide: Text.ElideRight
@@ -426,7 +426,7 @@ Item {
                                 Layout.fillWidth: true
 
                                 Label {
-                                    text: "Email"
+                                    text: Lang.t("Email")
                                     font {
                                         pixelSize: 13;
                                         bold: true;
@@ -462,7 +462,7 @@ Item {
                                 Layout.fillWidth: true
 
                                 Label {
-                                    text: "Role"
+                                    text: Lang.t("Role")
                                     font {
                                         pixelSize: 13;
                                         bold: true;
@@ -484,7 +484,7 @@ Item {
                                         anchors.leftMargin: 16
                                         anchors.rightMargin: 16
                                         verticalAlignment: Text.AlignVCenter
-                                        text: logger.getUserDepartment(logger.currentUsername) || "Role not set"
+                                        text: logger.getUserDepartment(logger.currentUsername) || Lang.t("Role not set")
                                         font.pixelSize: 15
                                         color: "white"
                                         elide: Text.ElideRight
@@ -498,7 +498,7 @@ Item {
                                 Layout.fillWidth: true
 
                                 Label {
-                                    text: "Password"
+                                    text: Lang.t("Password")
                                     font { pixelSize: 13; bold: true; family: "Segoe UI" }
                                     color: Theme.isDarkMode ? Qt.alpha(Theme.textColor, 0.6) : Qt.rgba(1, 1, 1, 0.6)
                                 }
@@ -531,7 +531,7 @@ Item {
     // FileDialog for selecting image
     FileDialog {
         id: fileDialog
-        title: "Choose a profile picture"
+        title: Lang.t("Choose a profile picture")
         nameFilters: ["Image files (*.png *.jpg *.jpeg)"]
         onAccepted: {
             var fileUrl = fileDialog.selectedFile.toString()
@@ -539,7 +539,7 @@ Item {
 
             if (!logger.validateFilePath(fileUrl)) {
                 console.log("File validation failed: url=", fileUrl)
-                profileErrorLabel.text = "Selected file is invalid or cannot be accessed"
+                profileErrorLabel.text = Lang.t("Selected file is invalid or cannot be accessed")
                 return
             }
 

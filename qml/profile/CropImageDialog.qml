@@ -8,11 +8,12 @@ import "../theme"
 
 Dialog {
     id: cropDialog
-    title: "Crop Profile Picture"
+    title: Lang.t("Crop Profile Picture")
     modal: true
-    anchors.centerIn: parent
-    width: Math.min(parent.width * 0.9, 700)
-    height: Math.min(parent.height * 0.9, 800)
+    width: parent ? Math.min(parent.width * 0.9, 700) : 600
+    height: parent ? Math.min(parent.height * 0.9, 800) : 600
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: parent ? Math.round((parent.height - height) / 2) : 0
     padding: 0
 
     property string imagePath: ""
@@ -39,7 +40,7 @@ Dialog {
             spacing: 24
 
             Label {
-                text: "Adjust your profile picture"
+                text: Lang.t("Adjust your profile picture")
                 font {
                     pixelSize: Theme.fontSizeHeader
                     family: "Segoe UI"
@@ -50,7 +51,7 @@ Dialog {
             }
 
             Label {
-                text: "Move and zoom the image to fit the circular frame"
+                text: Lang.t("Move and zoom the image to fit the circular frame")
                 font.pixelSize: Theme.fontSizeBody
                 color: Qt.darker(Theme.textColor, 1.4)
                 Layout.alignment: Qt.AlignHCenter
@@ -175,7 +176,7 @@ Dialog {
                 spacing: 8
 
                 Label {
-                    text: "Zoom: " + Math.round(zoomSlider.value * 100) + "%"
+                    text: Lang.t("Zoom") + ": " + Math.round(zoomSlider.value * 100) + "%"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Qt.darker(Theme.textColor, 1.4)
                     Layout.alignment: Qt.AlignHCenter
@@ -260,7 +261,7 @@ Dialog {
                 spacing: 16
 
                 Button {
-                    text: "Cancel"
+                    text: Lang.t("Cancel")
                     Layout.preferredWidth: 120
                     Layout.preferredHeight: 48
                     Material.background: "transparent"
@@ -276,7 +277,7 @@ Dialog {
                 }
 
                 Button {
-                    text: "Save"
+                    text: Lang.t("Save")
                     Layout.preferredWidth: 120
                     Layout.preferredHeight: 48
                     Material.background: Theme.accentColor

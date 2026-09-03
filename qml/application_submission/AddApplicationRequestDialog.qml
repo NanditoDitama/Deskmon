@@ -9,12 +9,13 @@ import "../theme"
 
 Dialog {
     id: addAppDialog
-    title: "Tambah Aplikasi Produktivitas"
+    title: Lang.t("Add Productivity Application")
     property int selectedProductivityType: 1
     modal: true
-    anchors.centerIn: parent
-    width: Math.min(parent.width * 0.8, 1000)
-    height: Math.min(parent.height * 0.8, 600)
+    width: parent ? Math.min(parent.width * 0.8, 1000) : 800
+    height: parent ? Math.min(parent.height * 0.8, 600) : 600
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: parent ? Math.round((parent.height - height) / 2) : 0
     padding: 0
     background: Rectangle {
         color: Theme.cardColor
@@ -29,7 +30,7 @@ Dialog {
             radius: Theme.radiusSmall
         }
         Button {
-            text: "Batal"
+            text: Lang.t("Cancel")
             flat: true
             onClicked: {
                 addAppDialog.close()
@@ -52,7 +53,7 @@ Dialog {
         }
         Button {
             id: addButton
-            text: "Tambahkan"
+            text: Lang.t("Add")
             Layout.alignment: Qt.AlignRight
             font.pixelSize: Theme.fontSizeBody
             padding: 8
@@ -116,7 +117,7 @@ Dialog {
                 spacing: 0
 
                 Label {
-                    text: "Daftar Aplikasi:"
+                    text: Lang.t("Application List:")
                     font.pixelSize: Theme.fontSizeBody
                     font.bold: true
                     color: Theme.textColor
@@ -131,7 +132,7 @@ Dialog {
                     id: searchField
                     Layout.fillWidth: true
                     Layout.margins: 10
-                    placeholderText: "Cari aplikasi..."
+                    placeholderText: Lang.t("Search applications...")
                     font.pixelSize: Theme.fontSizeBody
                     background: Rectangle {
                         radius: 4
@@ -269,7 +270,7 @@ Dialog {
 
             // Nama Aplikasi Custom
             Label {
-                text: "Nama Aplikasi:"
+                text: Lang.t("Application Name:")
                 font.pixelSize: Theme.fontSizeBody
                 color: Theme.textColor
                 Layout.fillWidth: true
@@ -279,7 +280,7 @@ Dialog {
             TextField {
                 id: txtAppName
                 Layout.fillWidth: true
-                placeholderText: "Masukkan nama aplikasi, pastikan nama aplikasi nya benar"
+                placeholderText: Lang.t("Enter application name, make sure the name is correct")
                 font.pixelSize: Theme.fontSizeBody
                 visible: false
                 background: Rectangle {
@@ -293,7 +294,7 @@ Dialog {
 
             // URL/Domain
             Label {
-                text: "Domain Website:"
+                text: Lang.t("Website Domain:")
                 font.pixelSize: Theme.fontSizeBody
                 color: Theme.textColor
                 Layout.fillWidth: true
@@ -303,7 +304,7 @@ Dialog {
             TextField {
                 id: txtWebsite
                 Layout.fillWidth: true
-                placeholderText: "Masukkan Domain Website (contoh: youtube.com, google.com, dll)"
+                placeholderText: Lang.t("Enter website domain (example: youtube.com, google.com, etc)")
                 font.pixelSize: Theme.fontSizeBody
                 visible: false
                 background: Rectangle {
@@ -332,7 +333,7 @@ Dialog {
                 // Header with improved typography
                 Label {
                     id: headerLabel
-                    text: "Tipe Produktivitas"
+                    text: Lang.t("Productivity Type")
                     font.family: "Segoe UI, Arial, sans-serif"
                     font.pixelSize: 16
                     font.weight: Font.DemiBold
@@ -353,7 +354,7 @@ Dialog {
                     // Produktif option
                     RadioButton {
                         id: produktifRadio
-                        text: "Produktif"
+                        text: Lang.t("Productive")
                         checked: true
                         font.family: "Segoe UI, Arial, sans-serif"
                         font.pixelSize: 14
@@ -474,7 +475,7 @@ Dialog {
                     // Non-Produktif option
                     RadioButton {
                         id: nonProduktifRadio
-                        text: "Non-Produktif"
+                        text: Lang.t("Non-Productive")
                         font.family: "Segoe UI, Arial, sans-serif"
                         font.pixelSize: Theme.fontSizeBody
                         Layout.fillWidth: true
@@ -557,7 +558,7 @@ Dialog {
                     // Netral option
                     RadioButton {
                         id: netralRadio
-                        text: "Netral"
+                        text: Lang.t("Neutral")
                         font.family: "Segoe UI, Arial, sans-serif"
                         font.pixelSize: Theme.fontSizeBody
                         Layout.fillWidth: true

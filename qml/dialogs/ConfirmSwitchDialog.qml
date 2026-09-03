@@ -7,15 +7,19 @@ Dialog {
     id: root
     title: ""
     modal: true
-    anchors.centerIn: Overlay.overlay
     width: 380
     height: 240
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: parent ? Math.round((parent.height - height) / 2) : 0
     padding: 0
     property int taskId: -1
 
     signal confirmed(int targetTaskId)
 
-    background: Item {}
+    background: Rectangle {
+        color: "transparent"
+        radius: Theme.radiusMedium
+    }
 
     contentItem: Rectangle {
         color: Theme.cardColor
@@ -59,7 +63,7 @@ Dialog {
                 }
 
                 Label {
-                    text: "Beralih ke Proyek?"
+                    text: Lang.t("Switch to Project?")
                     font {
                         pixelSize: 18
                         family: "Segoe UI"
@@ -72,7 +76,7 @@ Dialog {
 
             // Message section
             Label {
-                text: "Anda akan segera beralih ke proyek lain. Kemajuan Anda saat ini akan disimpan secara otomatis."
+                text: Lang.t("You have an active task. Do you want to switch to this task?")
                 font {
                     pixelSize: 13
                     family: "Segoe UI"
@@ -92,7 +96,7 @@ Dialog {
 
                 Button {
                     id: cancelButton
-                    text: "Cancel"
+                    text: Lang.t("Cancel")
                     Layout.fillWidth: true
                     Layout.preferredHeight: 40
 
@@ -125,7 +129,7 @@ Dialog {
 
                 Button {
                     id: confirmButton
-                    text: "Beralih ke Proyek"
+                    text: Lang.t("Switch Project")
                     Layout.fillWidth: true
                     Layout.preferredHeight: 40
 

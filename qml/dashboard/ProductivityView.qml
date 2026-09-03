@@ -299,7 +299,7 @@ Item {
                     spacing: 8
 
                     Label {
-                        text: "Application Usage"
+                        text: Lang.t("Application Usage")
                         font {
                             family: "Segoe UI"
                             weight: Font.DemiBold
@@ -564,7 +564,7 @@ Item {
                 spacing: 20
 
                 Label {
-                    text: "Website Usage"
+                    text: Lang.t("Website Usage")
                     font {
                         family: "Segoe UI"
                         weight: Font.DemiBold
@@ -782,7 +782,7 @@ Item {
                     spacing: 8
 
                     Label {
-                        text: "Productivity"
+                        text: Lang.t("Productivity")
                         font {
                             family: "Segoe UI"
                             weight: Font.DemiBold
@@ -796,7 +796,7 @@ Item {
 
                     Button {
                         id: app
-                        text: "Show Applications"
+                        text: Lang.t("Show Applications")
                         font {
                             pixelSize: 10
                         }
@@ -1254,7 +1254,7 @@ Item {
                             }
                         }
                         Label {
-                            text: "Productive"
+                            text: Lang.t("Productive")
                             font {
                                 pixelSize: 13
                                 weight: Font.Medium
@@ -1286,7 +1286,7 @@ Item {
                             }
                         }
                         Label {
-                            text: "Non-Productive"
+                            text: Lang.t("Non-Productive")
                             font {
                                 pixelSize: 13
                                 weight: Font.Medium
@@ -1320,7 +1320,7 @@ Item {
                             }
                         }
                         Label {
-                            text: "Idle"
+                            text: Lang.t("Idle")
                             font {
                                 pixelSize: 13
                                 weight: Font.Medium
@@ -1352,7 +1352,7 @@ Item {
                             }
                         }
                         Label {
-                            text: "Neutral"
+                            text: Lang.t("Neutral")
                             font {
                                 pixelSize: 13
                                 weight: Font.Medium

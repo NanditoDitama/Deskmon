@@ -269,7 +269,7 @@ Item {
                 }
 
                 Label {
-                    text: "Sign in to track your activity"
+                    text: Lang.t("Sign in to track your activity")
                     font {
                         pixelSize: Theme.fontSizeTitle
                         family: "Segoe UI"
@@ -291,7 +291,7 @@ Item {
                     spacing: 8
 
                     Label {
-                        text: "Username"
+                        text: Lang.t("Username")
                         font {
                             pixelSize: Theme.fontSizeBody
                             family: "Segoe UI"
@@ -302,7 +302,7 @@ Item {
 
                     TextField {
                         id: usernameField
-                        placeholderText: "Enter your username"
+                        placeholderText: Lang.t("Enter your username")
                         text: logger.savedUsername
                         enabled: !loginPageRoot.isLoading
                         Layout.fillWidth: true
@@ -334,7 +334,7 @@ Item {
                     spacing: 8
 
                     Label {
-                        text: "Password"
+                        text: Lang.t("Password")
                         font {
                             pixelSize: Theme.fontSizeBody
                             family: "Segoe UI"
@@ -361,7 +361,7 @@ Item {
 
                             TextField {
                                 id: passwordField
-                                placeholderText: "Enter your password"
+                                placeholderText: Lang.t("Enter your password")
                                 enabled: !loginPageRoot.isLoading
                                 echoMode: showPassword ? TextInput.Normal : TextInput.Password
                                 Layout.fillWidth: true
@@ -412,7 +412,7 @@ Item {
                 // Login button
                 Button {
                     id: loginButton
-                    text: loginPageRoot.isLoading ? "" : "Sign In"
+                    text: loginPageRoot.isLoading ? "" : Lang.t("Sign In")
                     enabled: !loginPageRoot.isLoading
                     Layout.fillWidth: true
                     Layout.preferredHeight: 54
@@ -641,7 +641,7 @@ Item {
 
             Image {
                 id: themeIcon
-                source: Theme.isDarkMode ? "qrc:/icons/light_mode.svg" : "qrc:/icons/dark_mode.svg"
+                source: Theme.isDarkMode ? ("image://icon/light_mode.svg?" + Theme.textColor) : ("image://icon/dark_mode.svg?" + Theme.textColor)
                 sourceSize.width: 18
                 sourceSize.height: 18
                 anchors.centerIn: parent

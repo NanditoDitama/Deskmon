@@ -19,6 +19,7 @@
 #include <cstdio>
 #include "AppController.h"
 #include "features/tracking/IdleChecker.h"
+#include "core/platform/ThemedIconProvider.h"
 
 // ===================================================================
 // Sistem Logging ke File dan Terminal
@@ -133,6 +134,7 @@ int main(int argc, char *argv[])
     qmlRegisterSingletonType(QUrl("qrc:/qt/qml/window_logger/qml/theme/Theme.qml"), "theme", 1, 0, "Theme");
 
     QQmlApplicationEngine engine;
+    engine.addImageProvider("icon", new ThemedIconProvider);
     engine.rootContext()->setContextProperty("logger", &logger);
     engine.rootContext()->setContextProperty("idleChecker", &idleChecker);
     engine.loadFromModule("window_logger", "Main");

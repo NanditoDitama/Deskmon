@@ -69,7 +69,7 @@ Popup {
 
         Button {
             id: closeBtn
-            text: "Close"
+            text: Lang.t("Close")
             Layout.alignment: Qt.AlignRight
             leftPadding: 20
             rightPadding: 20

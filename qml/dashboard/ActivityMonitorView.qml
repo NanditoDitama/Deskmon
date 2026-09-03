@@ -13,7 +13,7 @@ Item {
         spacing: 12
 
         Label {
-            text: "Activity Monitor"
+            text: Lang.t("Activity Monitor")
             font { bold: true; pixelSize: Theme.fontSizeTitle; family: "Segoe UI" }
             color: Theme.primaryColor
         }
@@ -30,7 +30,7 @@ Item {
             spacing: 8
 
             Label {
-                text: "Current Window"
+                text: Lang.t("Current Window")
                 font { bold: true; pixelSize: Theme.fontSizeBody }
                 color: Theme.textColor
             }
@@ -42,30 +42,30 @@ Item {
                 Layout.fillWidth: true
 
                 Label {
-                    text: "Application:"
+                    text: Lang.t("Application") + ":"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.lightTextColor
                 }
                 Label {
-                    text: logger.currentAppName || "Unknown"
+                    text: logger.currentAppName || Lang.t("Unknown")
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.textColor
                     elide: Text.ElideRight
                 }
 
                 Label {
-                    text: "Window Title:"
+                    text: Lang.t("Window Title") + ":"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.lightTextColor
                 }
                 Label {
-                    text: logger.currentWindowTitle || "Unknown"
+                    text: logger.currentWindowTitle || Lang.t("Unknown")
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.textColor
                     elide: Text.ElideRight
                 }
                 Label {
-                    text: "Total Logs:"
+                    text: Lang.t("Total Logs") + ":"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.lightTextColor
                 }
@@ -90,7 +90,7 @@ Item {
             spacing: 8
 
             Label {
-                text: "Recent Activity"
+                text: Lang.t("Recent Activity")
                 font {
                     family: "Segoe UI"
                     weight: Font.Medium
@@ -115,7 +115,7 @@ Item {
                         spacing: 8
 
                         Label {
-                            text: "Time"
+                            text: Lang.t("Time")
                             font {
                                 family: "Segoe UI"
                                 weight: Font.DemiBold
@@ -126,7 +126,7 @@ Item {
                         }
 
                         Label {
-                            text: "Duration"
+                            text: Lang.t("Duration")
                             font {
                                 family: "Segoe UI"
                                 weight: Font.DemiBold
@@ -137,7 +137,7 @@ Item {
                         }
 
                         Label {
-                            text: "Application"
+                            text: Lang.t("Application")
                             font {
                                 family: "Segoe UI"
                                 weight: Font.DemiBold
@@ -148,7 +148,7 @@ Item {
                         }
 
                         Label {
-                            text: "Title"
+                            text: Lang.t("Title")
                             font {
                                 family: "Segoe UI"
                                 weight: Font.DemiBold

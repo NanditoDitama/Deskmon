@@ -66,7 +66,7 @@ Dialog {
                 spacing: 2
 
                 Label {
-                    text: "Keluar Lebih Awal"
+                    text: Lang.t("Early Clock Out")
                     font.pixelSize: 17
                     font.weight: Font.DemiBold
                     color: Theme.textColor
@@ -74,7 +74,7 @@ Dialog {
                 }
 
                 Label {
-                    text: "Mohon berikan alasan Anda"
+                    text: Lang.t("Please provide your reason")
                     font.pixelSize: 13
                     color: Qt.alpha(Theme.textColor, 0.6)
                     Layout.fillWidth: true
@@ -89,7 +89,7 @@ Dialog {
             spacing: 8
 
             Label {
-                text: "Alasan"
+                text: Lang.t("Reason")
                 font.pixelSize: 13
                 font.weight: Font.Medium
                 color: Theme.textColor
@@ -118,7 +118,7 @@ Dialog {
                     TextArea {
                         id: reasonInput
                         width: parent.width
-                        placeholderText: text.length > 0 ? "" : "Silahkan isi alasan di sini"
+                        placeholderText: text.length > 0 ? "" : Lang.t("Please enter your reason here")
                         placeholderTextColor: Theme.lightTextColor
                         wrapMode: Text.Wrap
                         font.pixelSize: 13
@@ -154,7 +154,7 @@ Dialog {
 
             Button {
                 id: cancelButton
-                text: "Batal"
+                text: Lang.t("Cancel")
                 enabled: buttonBox.enabled
 
                 leftPadding: 18
@@ -187,7 +187,7 @@ Dialog {
 
             Button {
                 id: submitButton
-                text: buttonBox.enabled ? "Submit" : "Mengirim..."
+                text: buttonBox.enabled ? Lang.t("Submit") : Lang.t("Sending...")
                 enabled: reasonInput.text.trim().length > 1 && buttonBox.enabled
 
                 leftPadding: 24
@@ -217,7 +217,7 @@ Dialog {
 
                 onClicked: {
                     buttonBox.enabled = false
-                    statusLabel.text = "Mengirim data..."
+                    statusLabel.text = Lang.t("Sending data...")
                     statusLabel.color = Theme.primaryColor
                     statusLabel.visible = true
                     logger.submitEarlyLeaveReason(reasonInput.text.trim())

@@ -7,9 +7,10 @@ Dialog {
     id: root
     modal: true
     visible: false
-    anchors.centerIn: Overlay.overlay
     width: Math.min(340, parent ? parent.width - 40 : 340)
     height: 240
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: parent ? Math.round((parent.height - height) / 2) : 0
 
     padding: 0
     margins: 0
@@ -74,7 +75,7 @@ Dialog {
                     spacing: 2
 
                     Label {
-                        text: "Kesalahan Koneksi"
+                        text: Lang.t("Connection Error")
                         font.pixelSize: 17
                         font.weight: Font.DemiBold
                         color: Theme.textColor
@@ -82,7 +83,7 @@ Dialog {
                     }
 
                     Label {
-                        text: "Terjadi masalah dengan koneksi"
+                        text: Lang.t("A connection problem occurred")
                         font.pixelSize: Theme.fontSizeSmall
                         color: Theme.secondaryColor
                         Layout.fillWidth: true
@@ -126,7 +127,7 @@ Dialog {
 
                 Button {
                     id: okButton1
-                    text: "OK"
+                    text: Lang.t("OK")
                     leftPadding: 32
                     rightPadding: 32
                     topPadding: 10

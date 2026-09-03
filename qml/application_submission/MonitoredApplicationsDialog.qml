@@ -9,7 +9,7 @@ import "../theme"
 
 Dialog {
     id: applicationsDialog
-    title: "<b>Monitored Applications</b>"
+    title: "<b>" + Lang.t("Monitored Applications") + "</b>"
     modal: true
 
     property alias productiveAppsModel: productiveAppsModel
@@ -73,7 +73,7 @@ Dialog {
             radius: Theme.radiusSmall
         }
         Button {
-            text: "Tambah Aplikasi"
+            text: Lang.t("Add Application")
             flat: true
             onClicked: {
                 applicationsDialog.close()
@@ -95,7 +95,7 @@ Dialog {
 
 
         Button {
-            text: "OK"
+            text: Lang.t("OK")
             flat: true
             onClicked: applicationsDialog.accept()
             background: Rectangle {
@@ -115,7 +115,8 @@ Dialog {
 
     width: 900
     height: 700
-    anchors.centerIn: parent
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: parent ? Math.round((parent.height - height) / 2) : 0
     background: Rectangle {
         color: Theme.cardColor
         radius: Theme.radiusSmall
@@ -137,7 +138,7 @@ Dialog {
                 id: search_Field
                 width: parent.width * 0.6
                 height: 40
-                placeholderText: "Search applications..."
+                placeholderText: Lang.t("Search applications...")
                 leftPadding: 40
 
                 // Trigger search on text change
@@ -159,7 +160,7 @@ Dialog {
                     border.width: 1
 
                     Image {
-                        source: "qrc:/icons/search.svg"
+                        source: "image://icon/search.svg?" + Theme.lightTextColor
                         width: 20
                         height: 20
                         anchors.left: parent.left
@@ -205,7 +206,7 @@ Dialog {
             // Request Button
             Button {
                 id: requestButton
-                text: "Request"
+                text: Lang.t("Request")
                 height: 40
                 leftPadding: 16
                 rightPadding: 16
@@ -246,7 +247,7 @@ Dialog {
                     radius: Theme.radiusSmall
 
                     Text {
-                        text: "Productive Apps"
+                        text: Lang.t("Productive Apps")
                         font.bold: true
                         font.pixelSize: Theme.fontSizeTitle
                         color: Theme.productiveColor
@@ -357,7 +358,7 @@ Dialog {
                     radius: Theme.radiusSmall
 
                     Text {
-                        text: "Non-Productive Apps"
+                        text: Lang.t("Non-Productive Apps")
                         font.bold: true
                         font.pixelSize: 15
                         color: Theme.nonProductiveColor

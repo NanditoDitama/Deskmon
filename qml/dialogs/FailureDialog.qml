@@ -9,7 +9,7 @@ ApplicationWindow {
     id: root
     width: 340
     height: 180
-    title: "Terjadi Kesalahan"
+    title: Lang.t("An Error Occurred")
     modality: Qt.ApplicationModal
     flags: Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
@@ -82,7 +82,7 @@ ApplicationWindow {
                     spacing: 2
 
                     Label {
-                        text: "Terjadi Kesalahan"
+                        text: Lang.t("An Error Occurred")
                         font.pixelSize: 17
                         font.weight: Font.DemiBold
                         color: Theme.textColor
@@ -91,7 +91,7 @@ ApplicationWindow {
 
                     Label {
                         id: errorMessageLabel
-                        text: "Gagal mengirim data ke server."
+                        text: Lang.t("Failed to send data to server.")
                         font.pixelSize: 13
                         color: Qt.alpha(Theme.textColor, 0.6)
                         Layout.fillWidth: true
@@ -114,7 +114,7 @@ ApplicationWindow {
 
                 Button {
                     id: cancelButton
-                    text: "Nanti"
+                    text: Lang.t("Later")
 
                     leftPadding: 18
                     rightPadding: 18
@@ -150,7 +150,7 @@ ApplicationWindow {
 
                 Button {
                     id: retryButton
-                    text: "Coba Lagi"
+                    text: Lang.t("Retry")
 
                     leftPadding: 24
                     rightPadding: 24

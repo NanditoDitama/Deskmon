@@ -12,13 +12,13 @@ Item {
     anchors.fill: parent
     MessageDialog {
         id: warningDialog
-        title: "Warning"
+        title: Lang.t("Warning")
         buttons: MessageDialog.Ok
     }
 
     TimeUpPopup {
         id: customWarningDialog
-        titleText: "Peringatan"
+        titleText: Lang.t("Warning")
     }
 
     property bool isTimeUpPopupOpen: false
@@ -134,8 +134,8 @@ Item {
                                     Label {
                                         text: {
                                             var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            if (activeTask && activeTask.status === "Review") return "Review"
-                                            return logger.isTaskPaused ? "Paused" : "Active"
+                                            if (activeTask && activeTask.status === "Review") return Lang.t("Review")
+                                            return logger.isTaskPaused ? Lang.t("Paused") : Lang.t("Active")
                                         }
                                         font.pixelSize: 13
                                         font.weight: Font.DemiBold
@@ -286,7 +286,7 @@ Item {
                                     return false
                                 }
 
-                                text: logger.isTaskPaused ? "Resume" : "Pause"
+                                text: logger.isTaskPaused ? Lang.t("Resume") : Lang.t("Pause")
                                 Layout.preferredWidth: 92
                                 Layout.preferredHeight: 40
                                 font.pixelSize: 13
@@ -328,7 +328,7 @@ Item {
                         Item { Layout.fillWidth: true }
 
                         Label {
-                            text: "No active task"
+                            text: Lang.t("No active task")
                             font.pixelSize: Theme.fontSizeBody
                             font.family: "Segoe UI"
                             color: Theme.lightTextColor
@@ -622,7 +622,7 @@ Item {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "View All"
+                                    text: Lang.t("View All")
                                     font.pixelSize: 9
                                     font.bold: true
                                     color: Theme.primaryColor

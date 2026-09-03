@@ -54,7 +54,7 @@ Rectangle {
             }
 
             Label {
-                text: "Time At Work"
+                text: Lang.t("Time At Work")
                 font {
                     pixelSize: 11
                     weight: Font.DemiBold
@@ -155,9 +155,9 @@ Rectangle {
                 ToolTip.visible: clockInArea.containsMouse
                 ToolTip.text: {
                     if (root.clockIn === "--:--") {
-                        return "Menunggu data jam masuk...";
+                        return Lang.t("Waiting for clock-in data...");
                     } else {
-                        return "Anda tercatat masuk pada jam " + root.clockIn;
+                        return Lang.t("Recorded clock-in at: ") + root.clockIn;
                     }
                 }
             }
@@ -165,7 +165,7 @@ Rectangle {
             Item { Layout.fillWidth: true }
 
             Label {
-                text: "Target: 9h"
+                text: Lang.t("Target") + ": 9h"
                 font {
                     pixelSize: 9
                     weight: Font.Medium

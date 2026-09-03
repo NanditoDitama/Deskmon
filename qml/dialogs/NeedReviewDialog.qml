@@ -8,7 +8,7 @@ ApplicationWindow {
     id: needReviewDialog
     width: 510
     height: 490
-    title: "Alasan Permintaan Review"
+    title: Lang.t("Review Request Reason")
     modality: Qt.ApplicationModal
     flags: Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
@@ -77,7 +77,7 @@ ApplicationWindow {
                     spacing: 2
 
                     Label {
-                        text: "Permintaan Review"
+                        text: Lang.t("Review Request")
                         font.pixelSize: 17
                         font.weight: Font.DemiBold
                         color: Theme.textColor
@@ -85,7 +85,7 @@ ApplicationWindow {
                     }
 
                     Label {
-                        text: "Berikan alasan yang jelas untuk review"
+                        text: Lang.t("Provide a clear reason for review")
                         font.pixelSize: 13
                         color: Qt.alpha(Theme.textColor, 0.6)
                         Layout.fillWidth: true
@@ -114,7 +114,7 @@ ApplicationWindow {
                     }
 
                     Label {
-                        text: "Tugas akan dipindahkan ke status 'Need Review'. Manajer akan menerima notifikasi untuk melakukan review."
+                        text: Lang.t("The task will be moved to 'Need Review' status. The manager will receive a notification to conduct a review.")
                         wrapMode: Text.Wrap
                         Layout.fillWidth: true
                         color: Theme.textColor
@@ -131,7 +131,7 @@ ApplicationWindow {
                 spacing: 8
 
                 Label {
-                    text: "Alasan Permintaan Review *"
+                    text: Lang.t("Review Request Reason") + " *"
                     font.pixelSize: 13
                     font.weight: Font.Medium
                     color: Theme.textColor
@@ -159,7 +159,7 @@ ApplicationWindow {
                         TextArea {
                             id: reasonInput
                             width: parent.width
-                            placeholderText: "Contoh: Butuh verifikasi dari manajer proyek, ada kendala teknis, dll."
+                            placeholderText: Lang.t("Example: Need verification from project manager, technical issues, etc.")
                             placeholderTextColor: Theme.lightTextColor
                             wrapMode: Text.Wrap
                             font.pixelSize: 13
@@ -211,7 +211,7 @@ ApplicationWindow {
 
                 Button {
                     id: cancelButton
-                    text: "Batal"
+                    text: Lang.t("Cancel")
 
                     leftPadding: 18
                     rightPadding: 18
@@ -243,7 +243,7 @@ ApplicationWindow {
 
                 Button {
                     id: submitButton
-                    text: enabled ? "Submit" : "Mengirim..."
+                    text: enabled ? Lang.t("Submit") : Lang.t("Sending...")
                     enabled: reasonInput.text.trim().length > 0
 
                     leftPadding: 24

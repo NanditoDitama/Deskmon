@@ -11,14 +11,14 @@ ApplicationWindow {
     id: warningWindowComponent
     width: 340
     height: 180
-    title: qsTr("Peringatan")
+    title: Lang.t("Warning")
     visible: false
     modality: Qt.ApplicationModal
     flags: Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
 
     property string newText: ""
-    property string titleText: "Peringatan Waktu Task"
+    property string titleText: Lang.t("Task Time Warning")
 
     // Animasi
     Behavior on opacity {
@@ -116,7 +116,7 @@ ApplicationWindow {
 
                 Button {
                     id: closeButton
-                    text: "Tutup"
+                    text: Lang.t("Close")
 
                     leftPadding: 24
                     rightPadding: 24

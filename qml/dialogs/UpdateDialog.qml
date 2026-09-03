@@ -9,7 +9,8 @@ Dialog {
     modal: true
     width: 480
     height: 520
-    anchors.centerIn: parent
+    x: parent ? Math.round((parent.width - width) / 2) : 0
+    y: parent ? Math.round((parent.height - height) / 2) : 0
 
     property string newVersion: ""
     property string newReleaseNotes: ""
@@ -86,14 +87,14 @@ Dialog {
                     spacing: 4
 
                     Label {
-                        text: "Pembaruan Tersedia"
+                        text: Lang.t("Update Available")
                         font.pixelSize: 20
                         font.weight: Font.DemiBold
                         color: Theme.textColor
                     }
 
                     Label {
-                        text: "Versi " + root.newVersion
+                        text: Lang.t("Version") + " " + root.newVersion
                         font.pixelSize: 14
                         color: Theme.accentColor
                         font.weight: Font.Medium
@@ -153,7 +154,7 @@ Dialog {
                     id: laterBtn
                     Layout.preferredWidth: 100
                     Layout.preferredHeight: 36
-                    text: "Nanti"
+                    text: Lang.t("Later")
 
                     background: Rectangle {
                         radius: Theme.radiusSmall
@@ -182,7 +183,7 @@ Dialog {
                     id: updateNowBtn
                     Layout.preferredWidth: 140
                     Layout.preferredHeight: 36
-                    text: "Update Sekarang"
+                    text: Lang.t("Update Now")
 
                     background: Rectangle {
                         radius: Theme.radiusSmall
