@@ -43,3 +43,11 @@ cmake_install.cmake
 
 # Thumbnails
 Thumbs.db
+
+# Graphify artifacts
+graphify-out/
+graph.html
+
+# Application logs and runtime databases
+logs/
+*.db

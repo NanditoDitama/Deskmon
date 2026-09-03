@@ -71,7 +71,6 @@ void WorkLogRepository::logWindowChange(const WindowInfo &info, qint64 startTime
     }
 
     if (endTime <= startTime) {
-        qWarning() << "Invalid window change period: endTime (" << endTime << ") <= startTime (" << startTime << ")";
         return;
     }
     if (userId == -1) {

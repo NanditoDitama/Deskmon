@@ -5,6 +5,7 @@ import QtQuick.Controls.Material
 import QtQuick.Dialogs
 import QtQuick.Effects
 import QtQuick.Window
+import "../theme"
 
 Dialog {
     id: addAppDialog
@@ -16,16 +17,16 @@ Dialog {
     height: Math.min(parent.height * 0.8, 600)
     padding: 0
     background: Rectangle {
-        color: cardColor
-        radius: 8
+        color: Theme.cardColor
+        radius: Theme.radiusSmall
     }
 
     footer: DialogButtonBox {
         alignment: Qt.AlignRight
         padding: 10
         background: Rectangle {
-            color: cardColor
-            radius: 8
+            color: Theme.cardColor
+            radius: Theme.radiusSmall
         }
         Button {
             text: "Batal"
@@ -38,13 +39,13 @@ Dialog {
 
             background: Rectangle {
                 radius: 14
-                color: parent.hovered ? Qt.lighter(cardColor, 1.5) : "transparent"
-                border.color: dividerColor
+                color: parent.hovered ? Qt.lighter(Theme.cardColor, 1.5) : "transparent"
+                border.color: Theme.dividerColor
                 border.width: 1
             }
             contentItem: Text {
                 text: parent.text
-                color: textColor
+                color: Theme.textColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
@@ -53,7 +54,7 @@ Dialog {
             id: addButton
             text: "Tambahkan"
             Layout.alignment: Qt.AlignRight
-            font.pixelSize: 14
+            font.pixelSize: Theme.fontSizeBody
             padding: 8
             enabled: {
                 if (appList.currentItem && appList.model[appList.currentIndex] === "Other") {
@@ -65,11 +66,11 @@ Dialog {
                 return appList.currentItem !== null
             }
             background: Rectangle {
-                color: addButton.enabled ? "#0078d4" : "#cccccc"
+                color: addButton.enabled ? Theme.primaryColor : "#cccccc"
                 radius: 4
                 Rectangle {
                     anchors.fill: parent
-                    color: "#005ea2"
+                    color: Qt.darker(Theme.primaryColor, 1.2)
                     radius: 4
                     visible: parent.parent.hovered && addButton.enabled
                 }
@@ -102,12 +103,12 @@ Dialog {
 
         // Left: App Selection List
         Rectangle {
-            color: cardColor
+            color: Theme.cardColor
             clip: true
             Layout.preferredWidth: parent.width * 0.45
             Layout.fillHeight: true
             radius: 4
-            border.color: dividerColor
+            border.color: Theme.dividerColor
             border.width: 1
 
             ColumnLayout {
@@ -116,13 +117,13 @@ Dialog {
 
                 Label {
                     text: "Daftar Aplikasi:"
-                    font.pixelSize: 14
+                    font.pixelSize: Theme.fontSizeBody
                     font.bold: true
-                    color: textColor
+                    color: Theme.textColor
                     padding: 10
                     Layout.fillWidth: true
                     background: Rectangle {
-                        color: Qt.lighter(cardColor, 1.1)
+                        color: Qt.lighter(Theme.cardColor, 1.1)
                     }
                 }
 
@@ -131,16 +132,16 @@ Dialog {
                     Layout.fillWidth: true
                     Layout.margins: 10
                     placeholderText: "Cari aplikasi..."
-                    font.pixelSize: 14
+                    font.pixelSize: Theme.fontSizeBody
                     background: Rectangle {
                         radius: 4
-                        border.color: dividerColor
+                        border.color: Theme.dividerColor
                         border.width: 1
-                        color: cardColor
+                        color: Theme.cardColor
                         implicitHeight: 36
                     }
                     onTextChanged: {
-                        appList.currentIndex = 0 // Reset indeks saat pencarian berubah
+                        appList.currentIndex = 0
                     }
                 }
 
@@ -161,9 +162,9 @@ Dialog {
                     }
 
                     delegate: Rectangle {
-                        width: parent.width
+                        width: appList.width
                         height: 50
-                        color: cardColor
+                        color: Theme.cardColor
 
                         property bool hover: false
                         property bool isSelected: ListView.isCurrentItem
@@ -171,7 +172,7 @@ Dialog {
                         Rectangle {
                             width: 2
                             height: parent.height
-                            color: hover ? Qt.lighter(primaryColor, 1.5) : "transparent"
+                            color: hover ? Qt.lighter(Theme.primaryColor, 1.5) : "transparent"
                             visible: hover && !isSelected
                         }
 
@@ -181,8 +182,8 @@ Dialog {
                             visible: isSelected
                             gradient: Gradient {
                                 orientation: Gradient.Vertical
-                                GradientStop { position: 0.0; color: primaryColor }
-                                GradientStop { position: 1.0; color: Qt.darker(primaryColor, 1.5) }
+                                GradientStop { position: 0.0; color: Theme.primaryColor }
+                                GradientStop { position: 1.0; color: Qt.darker(Theme.primaryColor, 1.5) }
                             }
                         }
 
@@ -206,14 +207,14 @@ Dialog {
                                 width: 32
                                 height: 32
                                 radius: 6
-                                color: Qt.lighter(primaryColor, 1.8)
+                                color: Qt.lighter(Theme.primaryColor, 1.8)
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
                                     text: modelData.charAt(0).toUpperCase()
                                     font.bold: true
-                                    font.pixelSize: 14
-                                    color: primaryColor
+                                    font.pixelSize: Theme.fontSizeBody
+                                    color: Theme.primaryColor
                                     anchors.centerIn: parent
                                 }
                             }
@@ -226,8 +227,8 @@ Dialog {
                                 Text {
                                     text: modelData
                                     font.bold: true
-                                    font.pixelSize: 12
-                                    color: hover || isSelected ? (hover ? primaryColor : textColor) : textColor
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    color: hover || isSelected ? (hover ? Theme.primaryColor : Theme.textColor) : Theme.textColor
                                     width: parent.width
                                     elide: Text.ElideRight
                                 }
@@ -236,11 +237,11 @@ Dialog {
                                     text: {
                                         if (modelData === "Other") return "Aplikasi Lain"
                                         if (["Chrome", "Firefox", "Edge", "Safari", "Opera"].includes(modelData))
-                                            return "Browser Web"
+                                             return "Browser Web"
                                         return "Aplikasi"
                                     }
                                     font.pixelSize: 10
-                                    color: hover || isSelected ? (hover ? primaryColor : "#757575") : "#757575"
+                                    color: hover || isSelected ? (hover ? Theme.primaryColor : Theme.lightTextColor) : Theme.lightTextColor
                                     width: parent.width
                                     elide: Text.ElideRight
                                 }
@@ -255,7 +256,7 @@ Dialog {
         Rectangle {
             width: 1
             Layout.fillHeight: true
-            color: dividerColor
+            color: Theme.dividerColor
         }
 
         // Right: Inputs and Controls
@@ -269,8 +270,8 @@ Dialog {
             // Nama Aplikasi Custom
             Label {
                 text: "Nama Aplikasi:"
-                font.pixelSize: 14
-                color: textColor
+                font.pixelSize: Theme.fontSizeBody
+                color: Theme.textColor
                 Layout.fillWidth: true
                 visible: txtAppName.visible
             }
@@ -279,24 +280,22 @@ Dialog {
                 id: txtAppName
                 Layout.fillWidth: true
                 placeholderText: "Masukkan nama aplikasi, pastikan nama aplikasi nya benar"
-                font.pixelSize: 14
+                font.pixelSize: Theme.fontSizeBody
                 visible: false
                 background: Rectangle {
                     radius: 4
-                    border.color: dividerColor
+                    border.color: Theme.dividerColor
                     border.width: 1
-                    color: cardColor
+                    color: Theme.cardColor
                     implicitHeight: 36
                 }
             }
 
-
-
             // URL/Domain
             Label {
                 text: "Domain Website:"
-                font.pixelSize: 14
-                color: textColor
+                font.pixelSize: Theme.fontSizeBody
+                color: Theme.textColor
                 Layout.fillWidth: true
                 visible: txtWebsite.visible
             }
@@ -305,24 +304,23 @@ Dialog {
                 id: txtWebsite
                 Layout.fillWidth: true
                 placeholderText: "Masukkan Domain Website (contoh: youtube.com, google.com, dll)"
-                font.pixelSize: 14
+                font.pixelSize: Theme.fontSizeBody
                 visible: false
                 background: Rectangle {
                     radius: 4
-                    border.color: dividerColor
+                    border.color: Theme.dividerColor
                     border.width: 1
-                    color: cardColor
+                    color: Theme.cardColor
                     implicitHeight: 36
                 }
                 validator: RegularExpressionValidator {
-                    // Validator sederhana untuk URL/domain
                     regularExpression: /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
                 }
             }
 
             Rectangle {
                 Layout.fillWidth: true
-                color: dividerColor
+                color: Theme.dividerColor
                 Layout.topMargin: 4
             }
 
@@ -331,21 +329,14 @@ Dialog {
                 spacing: 16
                 Layout.fillWidth: true
 
-                // Assuming these theme properties exist in parent context
-                property color textColor: isDarkMode ? "#f9fafb" : "#1f2937"
-                property color backgroundColor: isDarkMode ? "#374151" : "#f8fafc"
-                property color borderColor: isDarkMode ? "#4b5563" : "#e5e7eb"
-                property color accentColor: "#3b82f6"
-                property bool isDarkMode: false
-
                 // Header with improved typography
                 Label {
                     id: headerLabel
                     text: "Tipe Produktivitas"
                     font.family: "Segoe UI, Arial, sans-serif"
                     font.pixelSize: 16
-                    font.weight: Font.SemiBold
-                    color: textColor
+                    font.weight: Font.DemiBold
+                    color: Theme.textColor
                     leftPadding: 4
 
                     Behavior on color {
@@ -373,7 +364,7 @@ Dialog {
                         contentItem: Text {
                             text: produktifRadio.text
                             font: produktifRadio.font
-                            color: textColor
+                            color: Theme.textColor
                             verticalAlignment: Text.AlignVCenter
                             leftPadding: produktifRadio.indicator.width + produktifRadio.spacing
 
@@ -389,7 +380,7 @@ Dialog {
                             y: (produktifRadio.height - height) / 2
                             radius: 11
                             color: "transparent"
-                            border.color: produktifRadio.checked ? accentColor : borderColor
+                            border.color: produktifRadio.checked ? Theme.accentColor : Theme.borderColor
                             border.width: produktifRadio.checked ? 2 : 1
 
                             Behavior on border.color {
@@ -405,7 +396,7 @@ Dialog {
                                 width: 10
                                 height: 10
                                 radius: 5
-                                color: accentColor
+                                color: Theme.accentColor
                                 visible: produktifRadio.checked
 
                                 // Scale animation for dot
@@ -426,7 +417,7 @@ Dialog {
                                 width: 0
                                 height: 0
                                 radius: width / 2
-                                color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.3)
+                                color: Qt.alpha(Theme.accentColor, 0.3)
                                 visible: false
 
                                 PropertyAnimation {
@@ -450,7 +441,7 @@ Dialog {
                             width: 16
                             height: 16
                             radius: 3
-                            color: "#10b981"
+                            color: Theme.successColor
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.indicator.verticalCenter
                             anchors.rightMargin: 8
@@ -485,7 +476,7 @@ Dialog {
                         id: nonProduktifRadio
                         text: "Non-Produktif"
                         font.family: "Segoe UI, Arial, sans-serif"
-                        font.pixelSize: 14
+                        font.pixelSize: Theme.fontSizeBody
                         Layout.fillWidth: true
 
                         onCheckedChanged: if (checked) addAppDialog.selectedProductivityType = 2
@@ -493,7 +484,7 @@ Dialog {
                         contentItem: Text {
                             text: nonProduktifRadio.text
                             font: nonProduktifRadio.font
-                            color: textColor
+                            color: Theme.textColor
                             verticalAlignment: Text.AlignVCenter
                             leftPadding: nonProduktifRadio.indicator.width + nonProduktifRadio.spacing
 
@@ -509,7 +500,7 @@ Dialog {
                             y: (nonProduktifRadio.height - height) / 2
                             radius: 11
                             color: "transparent"
-                            border.color: nonProduktifRadio.checked ? accentColor : borderColor
+                            border.color: nonProduktifRadio.checked ? Theme.accentColor : Theme.borderColor
                             border.width: nonProduktifRadio.checked ? 2 : 1
 
                             Behavior on border.color {
@@ -521,7 +512,7 @@ Dialog {
                                 width: 10
                                 height: 10
                                 radius: 5
-                                color: accentColor
+                                color: Theme.accentColor
                                 visible: nonProduktifRadio.checked
 
                                 scale: nonProduktifRadio.checked ? 1.0 : 0.0
@@ -539,7 +530,7 @@ Dialog {
                             width: 16
                             height: 16
                             radius: 3
-                            color: "#ef4444"
+                            color: Theme.dangerColor
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.indicator.verticalCenter
                             anchors.rightMargin: 8
@@ -568,7 +559,7 @@ Dialog {
                         id: netralRadio
                         text: "Netral"
                         font.family: "Segoe UI, Arial, sans-serif"
-                        font.pixelSize: 14
+                        font.pixelSize: Theme.fontSizeBody
                         Layout.fillWidth: true
 
                         onCheckedChanged: if (checked) addAppDialog.selectedProductivityType = 0
@@ -576,7 +567,7 @@ Dialog {
                         contentItem: Text {
                             text: netralRadio.text
                             font: netralRadio.font
-                            color: textColor
+                            color: Theme.textColor
                             verticalAlignment: Text.AlignVCenter
                             leftPadding: netralRadio.indicator.width + netralRadio.spacing
 
@@ -592,7 +583,7 @@ Dialog {
                             y: (netralRadio.height - height) / 2
                             radius: 11
                             color: "transparent"
-                            border.color: netralRadio.checked ? accentColor : borderColor
+                            border.color: netralRadio.checked ? Theme.accentColor : Theme.borderColor
                             border.width: netralRadio.checked ? 2 : 1
 
                             Behavior on border.color {
@@ -604,7 +595,7 @@ Dialog {
                                 width: 10
                                 height: 10
                                 radius: 5
-                                color: accentColor
+                                color: Theme.accentColor
                                 visible: netralRadio.checked
 
                                 scale: netralRadio.checked ? 1.0 : 0.0
@@ -622,7 +613,7 @@ Dialog {
                             width: 16
                             height: 16
                             radius: 3
-                            color: "#6b7280"
+                            color: Theme.neutralColor
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.indicator.verticalCenter
                             anchors.rightMargin: 8

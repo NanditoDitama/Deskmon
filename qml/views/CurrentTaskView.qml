@@ -6,27 +6,24 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
-import QtQuick.Dialogs
+import "../theme"
 
 Item {
     anchors.fill: parent
     MessageDialog {
-            id: warningDialog
-            title: "Warning"
-            buttons: MessageDialog.Ok
-            // Icon warning standar
-        }
+        id: warningDialog
+        title: "Warning"
+        buttons: MessageDialog.Ok
+    }
 
-    Pop_up_waktuhabis {
-            id: customWarningDialog
-            // Judul default
-            titleText: "Peringatan"
-        }
+    TimeUpPopup {
+        id: customWarningDialog
+        titleText: "Peringatan"
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 8
-
-
 
         ColumnLayout {
             id: taskControlRow
@@ -38,7 +35,7 @@ Item {
             // Main Control Panel
             Rectangle {
                 Layout.fillWidth: true
-                height: logger.activeTaskId !== -1 ? 50 : 50
+                height: 50
                 color: "transparent"
 
                 Behavior on height {
@@ -98,8 +95,8 @@ Item {
                                         radius: 4
                                         color: {
                                             var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            if (activeTask && activeTask.status === "Review") return "#FF9800"
-                                            return logger.isTaskPaused ? accentColor : productiveColor
+                                            if (activeTask && activeTask.status === "Review") return Theme.warningColor
+                                            return logger.isTaskPaused ? Theme.accentColor : Theme.productiveColor
                                         }
 
                                         SequentialAnimation on opacity {
@@ -124,8 +121,8 @@ Item {
                                         font.family: "Segoe UI"
                                         color: {
                                             var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            if (activeTask && activeTask.status === "Review") return "#FF9800"
-                                            return logger.isTaskPaused ? accentColor : productiveColor
+                                            if (activeTask && activeTask.status === "Review") return Theme.warningColor
+                                            return logger.isTaskPaused ? Theme.accentColor : Theme.productiveColor
                                         }
                                     }
                                 }
@@ -146,15 +143,15 @@ Item {
                                     }
                                     return "0m"
                                 }
-                                font.pixelSize: 14
+                                font.pixelSize: Theme.fontSizeBody
                                 font.weight: Font.Bold
                                 font.family: "Segoe UI"
                                 color: {
                                     var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
                                     if (activeTask && activeTask.time_usage > activeTask.max_time) {
-                                        return nonProductiveColor
+                                        return Theme.nonProductiveColor
                                     }
-                                    return primaryColor
+                                    return Theme.primaryColor
                                 }
                             }
 
@@ -184,9 +181,9 @@ Item {
                                             color: {
                                                 var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
                                                 if (activeTask && activeTask.time_usage > activeTask.max_time) {
-                                                    return nonProductiveColor
+                                                    return Theme.nonProductiveColor
                                                 }
-                                                return secondaryColor
+                                                return Theme.secondaryColor
                                             }
                                         }
                                         GradientStop {
@@ -194,9 +191,9 @@ Item {
                                             color: {
                                                 var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
                                                 if (activeTask && activeTask.time_usage > activeTask.max_time) {
-                                                    return Qt.lighter(nonProductiveColor, 1.2)
+                                                    return Qt.lighter(Theme.nonProductiveColor, 1.2)
                                                 }
-                                                return Qt.lighter(secondaryColor, 1.2)
+                                                return Qt.lighter(Theme.secondaryColor, 1.2)
                                             }
                                         }
                                     }
@@ -232,7 +229,7 @@ Item {
                                 font.pixelSize: 13
                                 font.weight: Font.Medium
                                 font.family: "Segoe UI"
-                                color: primaryColor
+                                color: Theme.primaryColor
                                 opacity: 0.7
                             }
 
@@ -253,7 +250,7 @@ Item {
                                 }
                                 font.pixelSize: 13
                                 font.family: "Segoe UI"
-                                color: lightTextColor
+                                color: Theme.lightTextColor
                             }
 
                             // Pause/Resume Button
@@ -278,8 +275,8 @@ Item {
                                 background: Rectangle {
                                     radius: 17
                                     color: pauseResumeButton.hovered ?
-                                        (logger.isTaskPaused ? Qt.lighter(accentColor, 1.15) : Qt.lighter(productiveColor, 1.15)) :
-                                        (logger.isTaskPaused ? accentColor : productiveColor)
+                                        (logger.isTaskPaused ? Qt.lighter(Theme.accentColor, 1.15) : Qt.lighter(Theme.productiveColor, 1.15)) :
+                                        (logger.isTaskPaused ? Theme.accentColor : Theme.productiveColor)
 
                                     Behavior on color {
                                         ColorAnimation { duration: 150 }
@@ -300,8 +297,6 @@ Item {
                                 }
                             }
                         }
-
-
                     }
 
                     // No Active Task Message
@@ -314,9 +309,9 @@ Item {
 
                         Label {
                             text: "No active task"
-                            font.pixelSize: 14
+                            font.pixelSize: Theme.fontSizeBody
                             font.family: "Segoe UI"
-                            color: lightTextColor
+                            color: Theme.lightTextColor
                             opacity: 0.6
                         }
 
@@ -329,7 +324,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 height: 1
-                color: dividerColor
+                color: Theme.dividerColor
                 opacity: 0.5
                 visible: taskListView.count > 0
             }
@@ -366,13 +361,7 @@ Item {
                 property bool preservePosition: false
 
                 model: {
-                    if (!logger.taskList) return []
-
-                    // Simpan posisi sebelum update model
-                    if (taskListView.count > 0) {
-                        taskListView.savedContentY = taskListView.contentY
-                        taskListView.preservePosition = true
-                    }
+                    if (!logger || !logger.taskList) return []
 
                     var sorted = logger.taskList.slice() // Copy array
                     sorted.sort(function(a, b) {
@@ -451,26 +440,24 @@ Item {
                     readonly property bool isNeedRevise: modelData.status === "Need Revise"
                     readonly property bool isActive: modelData.active
                     readonly property bool isExpired: modelData.isExpired
-
                     color: {
-
-                        if (isExpired) return isDarkMode ? "#424242" : "#E0E0E0"
+                        if (isExpired) return Qt.alpha(Theme.neutralColor, 0.15)
                         if (isReview) {
-                            return Qt.rgba(255/255, 152/255, 0/255, 0.08) // Subtle orange for review
+                            return Qt.alpha(Theme.warningColor, 0.08)
                         }
-                        if (isNeedReview) return Qt.rgba(33/255, 150/255, 243/255, 0.15);
-                        if (isNeedRevise) return Qt.rgba(244/255, 67/255, 54/255, 0.15);
-                        return isActive ? Qt.lighter(cardColor, 1.6) : cardColor
+                        if (isNeedReview) return Qt.alpha(Theme.infoColor, 0.15);
+                        if (isNeedRevise) return Qt.alpha(Theme.dangerColor, 0.15);
+                        return isActive ? Qt.lighter(Theme.cardColor, 1.6) : Theme.cardColor
                     }
                     border.color: {
-                        if (isExpired) return isDarkMode ? "#616161" : "#BDBDBD"
+                        if (isExpired) return Qt.alpha(Theme.neutralColor, 0.4)
                         if (isReview) {
-                            return Qt.rgba(255/255, 152/255, 0/255, 0.3) // Soft orange border
+                            return Qt.alpha(Theme.warningColor, 0.3)
                         }
-                        if (isNeedReview) return Qt.rgba(33/255, 150/255, 243/255, 0.4);
-                        if (isNeedRevise) return Qt.rgba(244/255, 67/255, 54/255, 0.4);
+                        if (isNeedReview) return Qt.alpha(Theme.infoColor, 0.4);
+                        if (isNeedRevise) return Qt.alpha(Theme.dangerColor, 0.4);
 
-                        return isActive ? secondaryColor : Qt.rgba(dividerColor.r, dividerColor.g, dividerColor.b, 0.3)
+                        return isActive ? Theme.secondaryColor : Qt.alpha(Theme.dividerColor, 0.3)
                     }
                     border.width: 1
                     opacity: isReview ? 0.85 : 1 ||  isExpired ? 0.7 : (isReview ? 0.85 : 1)
@@ -486,44 +473,38 @@ Item {
                     }
 
                     MouseArea {
-                                    anchors.fill: parent
-                                    enabled: !(delegateRoot.isReview || delegateRoot.isNeedReview)
+                        anchors.fill: parent
+                        enabled: !(delegateRoot.isReview || delegateRoot.isNeedReview)
 
-                                    onClicked: {
-                                        // === LOGIKA 1: CEK TASK EXPIRED (Bulan Lalu) ===
-                                        if (logger.isTaskExpired(modelData.id)) {
-                                            // Set teks untuk popup custom
-                                            customWarningDialog.titleText = "Task Expired"
-                                            customWarningDialog.newText = "Task dari bulan lalu tidak dapat dijalankan. Silahkan Need Review."
+                        onClicked: {
+                            // === LOGIKA 1: CEK TASK EXPIRED (Bulan Lalu) ===
+                            if (logger.isTaskExpired(modelData.id)) {
+                                customWarningDialog.titleText = "Task Expired"
+                                customWarningDialog.newText = "Task dari bulan lalu tidak dapat dijalankan. Silahkan Need Review."
+                                customWarningDialog.showAnimated()
+                                return;
+                            }
 
-                                            // Tampilkan dengan animasi bawaan [cite: 595]
-                                            customWarningDialog.showAnimated()
-                                            return;
-                                        }
+                            // === LOGIKA 2: CEK WARNING TASK PENDING ===
+                            if (!delegateRoot.isActive) {
+                                var pendingStartedCount = logger.getPendingStartedTaskCount();
 
-                                        // === LOGIKA 2: CEK WARNING TASK PENDING ===
-                                        if (!delegateRoot.isActive) {
-                                             var pendingStartedCount = logger.getPendingStartedTaskCount();
-
-                                             if (pendingStartedCount >= 3) {
-                                                 // Set teks untuk popup custom
-                                                customWarningDialog.titleText = "Warning"
-                                                 customWarningDialog.newText = "Terdapat " + pendingStartedCount + " task pending yang sudah berjalan. Mohon segera di-review."
-
-                                                 customWarningDialog.showAnimated()
-                                                 // return; // Uncomment jika ingin memblokir
-                                             }
-                                        }
-
-                                        // === LOGIKA 3: JALANKAN TASK (Jika lolos validasi) ===
-                                        if (!delegateRoot.isActive && logger.activeTaskId !== -1) {
-                                            confirmSwitchDialog.taskId = modelData.id
-                                            confirmSwitchDialog.open()
-                                        } else if (!delegateRoot.isActive) {
-                                            logger.setActiveTask(modelData.id)
-                                        }
-                                    }
+                                if (pendingStartedCount >= 3) {
+                                    customWarningDialog.titleText = "Warning"
+                                    customWarningDialog.newText = "Terdapat " + pendingStartedCount + " task pending yang sudah berjalan. Mohon segera di-review."
+                                    customWarningDialog.showAnimated()
                                 }
+                            }
+
+                            // === LOGIKA 3: JALANKAN TASK (Jika lolos validasi) ===
+                            if (!delegateRoot.isActive && logger.activeTaskId !== -1) {
+                                confirmSwitchDialog.taskId = modelData.id
+                                confirmSwitchDialog.open()
+                            } else if (!delegateRoot.isActive) {
+                                logger.setActiveTask(modelData.id)
+                            }
+                        }
+                    }
                     ColumnLayout {
                         id: column
                         anchors.fill: parent
@@ -537,8 +518,8 @@ Item {
                             Label {
                                 id: projectLabel
                                 text: modelData.project_name
-                                font { bold: true; pixelSize: 14 }
-                                color: delegateRoot.isReview ? "#FF9800" : textColor
+                                font { bold: true; pixelSize: Theme.fontSizeBody }
+                                color: delegateRoot.isReview ? Theme.warningColor : Theme.textColor
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                                 maximumLineCount: 1
@@ -556,7 +537,7 @@ Item {
                                     height: 10
                                     radius: 10
                                     color: "transparent"
-                                    border.color: Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.6)
+                                    border.color: Qt.alpha(Theme.lightTextColor, 0.6)
                                     border.width: 1
 
                                     // Three dots
@@ -570,7 +551,7 @@ Item {
                                                 width: 2
                                                 height: 2
                                                 radius: 1
-                                                color: Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.8)
+                                                color: Qt.alpha(Theme.lightTextColor, 0.8)
                                             }
                                         }
                                     }
@@ -583,12 +564,9 @@ Item {
                                     cursorShape: Qt.PointingHandCursor
 
                                     onClicked: {
-                                        // Simpan data yang diperlukan
                                         stableTaskMenu.taskId = modelData.id
                                         stableTaskMenu.userId = logger.currentUserId
                                         stableTaskMenu.authToken = logger.authToken
-
-                                        // Popup menu (ini akan bekerja karena Menu memiliki method popup)
                                         stableTaskMenu.popup()
                                     }
                                 }
@@ -602,8 +580,8 @@ Item {
                             Label {
                                 id: taskLabel
                                 text: modelData.task
-                                font.pixelSize: 12
-                                color: delegateRoot.isReview ? Qt.rgba(255/255, 152/255, 0/255, 0.8) : lightTextColor
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: delegateRoot.isReview ? Qt.rgba(255/255, 152/255, 0/255, 0.8) : Theme.lightTextColor
                                 elide: Text.ElideRight
                                 maximumLineCount: 1
                                 Layout.fillWidth: true
@@ -615,11 +593,11 @@ Item {
                                 Layout.preferredWidth: 56
                                 Layout.preferredHeight: 20
                                 radius: 10
-                                color: viewAllArea.pressed ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.2) :
-                                                             viewAllArea.containsMouse ? Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.1) :
-                                                                                         Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.05)
+                                color: viewAllArea.pressed ? Qt.alpha(Theme.primaryColor, 0.2) :
+                                                             viewAllArea.containsMouse ? Qt.alpha(Theme.primaryColor, 0.1) :
+                                                                                         Qt.alpha(Theme.primaryColor, 0.05)
 
-                                border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.3)
+                                border.color: Qt.alpha(Theme.primaryColor, 0.3)
                                 border.width: 1
 
                                 Text {
@@ -627,7 +605,7 @@ Item {
                                     text: "View All"
                                     font.pixelSize: 9
                                     font.bold: true
-                                    color: primaryColor
+                                    color: Theme.primaryColor
                                 }
 
                                 MouseArea {
@@ -649,21 +627,21 @@ Item {
                                 Layout.preferredWidth: statusText.implicitWidth + 12
                                 radius: 9
                                 color: {
-                                    if (isExpired) return isDarkMode ? "#616161" : "#BDBDBD";
-                                    if (modelData.status === "Review") return Qt.rgba(255/255, 152/255, 0/255, 0.15);
-                                    if (modelData.status === "Need Review") return Qt.rgba(33/255, 150/255, 243/255, 0.15);
-                                    if (modelData.status === "Need Revise") return Qt.rgba(244/255, 67/255, 54/255, 0.15);
-                                    if (modelData.active) return modelData.isTaskPaused ? Qt.rgba(255/255, 152/255, 0/255, 0.15) : Qt.rgba(76/255, 175/255, 80/255, 0.15);
-                                    return Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.1);
+                                    if (isExpired) return Qt.alpha(Theme.neutralColor, 0.2);
+                                    if (modelData.status === "Review") return Qt.alpha(Theme.warningColor, 0.15);
+                                    if (modelData.status === "Need Review") return Qt.alpha(Theme.infoColor, 0.15);
+                                    if (modelData.status === "Need Revise") return Qt.alpha(Theme.dangerColor, 0.15);
+                                    if (modelData.active) return modelData.isTaskPaused ? Qt.alpha(Theme.warningColor, 0.15) : Qt.alpha(Theme.successColor, 0.15);
+                                    return Qt.alpha(Theme.lightTextColor, 0.1);
                                 }
 
                                 border.color: {
-                                    if (isExpired) return isDarkMode ? "#757575" : "#9E9E9E";
-                                    if (modelData.status === "Review") return Qt.rgba(255/255, 152/255, 0/255, 0.4);
-                                    if (modelData.status === "Need Review") return Qt.rgba(33/255, 150/255, 243/255, 0.4);
-                                    if (modelData.status === "Need Revise") return Qt.rgba(244/255, 67/255, 54/255, 0.4);
-                                    if (modelData.active) return modelData.isTaskPaused ? Qt.rgba(255/255, 152/255, 0/255, 0.4) : Qt.rgba(76/255, 175/255, 80/255, 0.4);
-                                    return Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.2);
+                                    if (isExpired) return Qt.alpha(Theme.neutralColor, 0.5);
+                                    if (modelData.status === "Review") return Qt.alpha(Theme.warningColor, 0.4);
+                                    if (modelData.status === "Need Review") return Qt.alpha(Theme.infoColor, 0.4);
+                                    if (modelData.status === "Need Revise") return Qt.alpha(Theme.dangerColor, 0.4);
+                                    if (modelData.active) return modelData.isTaskPaused ? Qt.alpha(Theme.warningColor, 0.4) : Qt.alpha(Theme.successColor, 0.4);
+                                    return Qt.alpha(Theme.lightTextColor, 0.2);
                                 }
                                 border.width: 1
 
@@ -680,11 +658,11 @@ Item {
                                     font.pixelSize: 10
                                     font.bold: true
                                     color: {
-                                        if (modelData.status === "Review") return "#FF9800";
-                                        if (modelData.status === "Need Review") return "#2196F3";
-                                        if (modelData.status === "Need Revise") return "#F44336";
-                                        if (modelData.active) return modelData.isTaskPaused ? "#FF9800" : "#4CAF50";
-                                        return lightTextColor;
+                                        if (modelData.status === "Review") return Theme.warningColor;
+                                        if (modelData.status === "Need Review") return Theme.infoColor;
+                                        if (modelData.status === "Need Revise") return Theme.dangerColor;
+                                        if (modelData.active) return modelData.isTaskPaused ? Theme.warningColor : Theme.successColor;
+                                        return Theme.lightTextColor;
                                     }
                                 }
                             }
@@ -696,7 +674,7 @@ Item {
                                 Layout.preferredWidth: timeLabel.implicitWidth + 8
                                 Layout.preferredHeight: 18
                                 radius: 4
-                                color: Qt.rgba(lightTextColor.r, lightTextColor.g, lightTextColor.b, 0.05)
+                                color: Qt.alpha(Theme.lightTextColor, 0.05)
 
                                 Label {
                                     id: timeLabel
@@ -704,7 +682,7 @@ Item {
                                     text: logger.formatDuration(modelData.time_usage)
                                     font.pixelSize: 11
                                     font.bold: true
-                                    color: delegateRoot.isReview ? "#FF9800" : lightTextColor
+                                    color: delegateRoot.isReview ? Theme.warningColor : Theme.lightTextColor
                                 }
                             }
                         }
@@ -713,5 +691,4 @@ Item {
             }
         }
     }
-
 }

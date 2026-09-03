@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
+import "../theme"
 
 Item {
     anchors.fill: parent
@@ -15,14 +16,14 @@ Item {
 
         Label {
             text: "Activity Monitor"
-            font { bold: true; pixelSize: 16; family: "Segoe UI" }
-            color: primaryColor
+            font { bold: true; pixelSize: Theme.fontSizeTitle; family: "Segoe UI" }
+            color: Theme.primaryColor
         }
 
         Rectangle {
             Layout.fillWidth: true
             height: 1
-            color: dividerColor
+            color: Theme.dividerColor
         }
 
         // Current Activity Section
@@ -32,8 +33,8 @@ Item {
 
             Label {
                 text: "Current Window"
-                font { bold: true; pixelSize: 14 }
-                color: textColor
+                font { bold: true; pixelSize: Theme.fontSizeBody }
+                color: Theme.textColor
             }
 
             GridLayout {
@@ -44,36 +45,36 @@ Item {
 
                 Label {
                     text: "Application:"
-                    font.pixelSize: 12
-                    color: lightTextColor
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.lightTextColor
                 }
                 Label {
                     text: logger.currentAppName || "Unknown"
-                    font.pixelSize: 12
-                    color: textColor
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.textColor
                     elide: Text.ElideRight
                 }
 
                 Label {
                     text: "Window Title:"
-                    font.pixelSize: 12
-                    color: lightTextColor
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.lightTextColor
                 }
                 Label {
                     text: logger.currentWindowTitle || "Unknown"
-                    font.pixelSize: 12
-                    color: textColor
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.textColor
                     elide: Text.ElideRight
                 }
                 Label {
                     text: "Total Logs:"
-                    font.pixelSize: 12
-                    color: lightTextColor
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.lightTextColor
                 }
                 Label {
                     text: logger.logCount
-                    color: lightTextColor
-                    font.pixelSize: 12
+                    color: Theme.lightTextColor
+                    font.pixelSize: Theme.fontSizeSmall
                 }
             }
         }
@@ -81,7 +82,7 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             height: 1
-            color: dividerColor
+            color: Theme.dividerColor
         }
 
         // Recent Activity Section
@@ -95,9 +96,9 @@ Item {
                 font {
                     family: "Segoe UI"
                     weight: Font.Medium
-                    pixelSize: 14
+                    pixelSize: Theme.fontSizeBody
                 }
-                color: textColor
+                color: Theme.textColor
             }
 
             ScrollView {
@@ -120,9 +121,9 @@ Item {
                             font {
                                 family: "Segoe UI"
                                 weight: Font.DemiBold
-                                pixelSize: 12
+                                pixelSize: Theme.fontSizeSmall
                             }
-                            color: textColor
+                            color: Theme.textColor
                             Layout.preferredWidth: 100
                         }
 
@@ -131,9 +132,9 @@ Item {
                             font {
                                 family: "Segoe UI"
                                 weight: Font.DemiBold
-                                pixelSize: 12
+                                pixelSize: Theme.fontSizeSmall
                             }
-                            color: textColor
+                            color: Theme.textColor
                             Layout.preferredWidth: 80
                         }
 
@@ -142,9 +143,9 @@ Item {
                             font {
                                 family: "Segoe UI"
                                 weight: Font.DemiBold
-                                pixelSize: 12
+                                pixelSize: Theme.fontSizeSmall
                             }
-                            color: textColor
+                            color: Theme.textColor
                             Layout.preferredWidth: 150
                         }
 
@@ -153,9 +154,9 @@ Item {
                             font {
                                 family: "Segoe UI"
                                 weight: Font.DemiBold
-                                pixelSize: 12
+                                pixelSize: Theme.fontSizeSmall
                             }
-                            color: textColor
+                            color: Theme.textColor
                             Layout.fillWidth: true
                         }
                     }
@@ -163,7 +164,7 @@ Item {
                     delegate: Rectangle {
                         width: activityListView.width
                         height: 36
-                        color: index % 2 === 0 ? cardColor : Qt.lighter(cardColor, 1.1)
+                        color: index % 2 === 0 ? Theme.cardColor : Qt.lighter(Theme.cardColor, 1.1)
                         radius: 4
 
                         RowLayout {
@@ -185,7 +186,7 @@ Item {
                                     family: "Segoe UI"
                                     pixelSize: 11
                                 }
-                                color: lightTextColor
+                                color: Theme.lightTextColor
                                 elide: Text.ElideRight
                             }
 
@@ -207,7 +208,7 @@ Item {
                                     family: "Segoe UI"
                                     pixelSize: 11
                                 }
-                                color: lightTextColor
+                                color: Theme.lightTextColor
                             }
 
                             Label {
@@ -223,7 +224,7 @@ Item {
                                     family: "Segoe UI"
                                     pixelSize: 11
                                 }
-                                color: lightTextColor
+                                color: Theme.lightTextColor
                                 elide: Text.ElideRight
                             }
 
@@ -239,7 +240,7 @@ Item {
                                     family: "Segoe UI"
                                     pixelSize: 11
                                 }
-                                color: lightTextColor
+                                color: Theme.lightTextColor
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }

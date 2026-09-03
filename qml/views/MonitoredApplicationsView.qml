@@ -5,11 +5,20 @@ import QtQuick.Controls.Material
 import QtQuick.Dialogs
 import QtQuick.Effects
 import QtQuick.Window
+import "../theme"
 
 Dialog {
     id: applicationsDialog
     title: "<b>Monitored Applications</b>"
     modal: true
+
+    property alias productiveAppsModel: productiveAppsModel
+    property alias nonProductiveAppsModel: nonProductiveAppsModel
+
+    ListModel { id: productiveAppsModel }
+    ListModel { id: nonProductiveAppsModel }
+    ListModel { id: filteredProductiveAppsModel }
+    ListModel { id: filteredNonProductiveAppsModel }
 
     // Search function
     function filterApps() {
@@ -57,26 +66,11 @@ Dialog {
         filterApps()
     }
 
-    // Re-filter when original models change
-    Connections {
-        target: productiveAppsModel
-        function onCountChanged() {
-            applicationsDialog.filterApps()
-        }
-    }
-
-    Connections {
-        target: nonProductiveAppsModel
-        function onCountChanged() {
-            applicationsDialog.filterApps()
-        }
-    }
-
     footer: DialogButtonBox {
         alignment: Qt.AlignRight
         background: Rectangle {
-            color: cardColor
-            radius: 8
+            color: Theme.cardColor
+            radius: Theme.radiusSmall
         }
         Button {
             text: "Tambah Aplikasi"
@@ -87,13 +81,13 @@ Dialog {
             }
             background: Rectangle {
                 radius: 14
-                color: parent.hovered ? Qt.lighter(cardColor, 1.5) : "transparent"
-                border.color: dividerColor
+                color: parent.hovered ? Qt.lighter(Theme.cardColor, 1.5) : "transparent"
+                border.color: Theme.dividerColor
                 border.width: 1
             }
             contentItem: Text {
                 text: parent.text
-                color: textColor
+                color: Theme.textColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
@@ -106,13 +100,13 @@ Dialog {
             onClicked: applicationsDialog.accept()
             background: Rectangle {
                 radius: 14
-                color: parent.hovered ? Qt.lighter(cardColor, 1.5) : "transparent"
-                border.color: dividerColor
+                color: parent.hovered ? Qt.lighter(Theme.cardColor, 1.5) : "transparent"
+                border.color: Theme.dividerColor
                 border.width: 1
             }
             contentItem: Text {
                 text: parent.text
-                color: textColor
+                color: Theme.textColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
@@ -123,8 +117,8 @@ Dialog {
     height: 700
     anchors.centerIn: parent
     background: Rectangle {
-        color: cardColor
-        radius: 8
+        color: Theme.cardColor
+        radius: Theme.radiusSmall
     }
 
     Column {
@@ -159,9 +153,9 @@ Dialog {
                 }
 
                 background: Rectangle {
-                    color: dividerColor
-                    radius: 8
-                    border.color: search_Field.activeFocus ? "#1976d2" : "#e0e0e0"
+                    color: Theme.dividerColor
+                    radius: Theme.radiusSmall
+                    border.color: search_Field.activeFocus ? Theme.infoColor : Theme.borderColor
                     border.width: 1
 
                     Image {
@@ -187,24 +181,24 @@ Dialog {
                 }
 
                 background: Rectangle {
-                    radius: 8
-                    color: parent.hovered ? Qt.lighter(cardColor, 1.2) : "transparent"
-                    border.color: dividerColor
+                    radius: Theme.radiusSmall
+                    color: parent.hovered ? Qt.lighter(Theme.cardColor, 1.2) : "transparent"
+                    border.color: Theme.dividerColor
                     border.width: 1
                 }
 
                 contentItem: Text {
                     text: "✕"
-                    color: lightTextColor
+                    color: Theme.lightTextColor
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
-                    font.pixelSize: 16
+                    font.pixelSize: Theme.fontSizeTitle
                 }
             }
             Rectangle {
                 Layout.fillWidth: true
                 height: 0
-                color: dividerColor
+                color: Theme.dividerColor
                 Layout.topMargin: 4
             }
 
@@ -215,18 +209,18 @@ Dialog {
                 height: 40
                 leftPadding: 16
                 rightPadding: 16
-                font.pixelSize: 14
+                font.pixelSize: Theme.fontSizeBody
                 onClicked: requestDialog.open()
 
                 background: Rectangle {
-                    radius: 8
-                    color: parent.hovered ? Qt.lighter(cardColor, 1.5) : "transparent"
+                    radius: Theme.radiusSmall
+                    color: parent.hovered ? Qt.lighter(Theme.cardColor, 1.5) : "transparent"
                 }
 
                 contentItem: Text {
                     text: parent.text
                     font: parent.font
-                    color: textColor
+                    color: Theme.textColor
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -249,13 +243,13 @@ Dialog {
                     width: parent.width
                     height: 40
                     color: "transparent"
-                    radius: 6
+                    radius: Theme.radiusSmall
 
                     Text {
                         text: "Productive Apps"
                         font.bold: true
-                        font.pixelSize: 16
-                        color: "#1976d2"
+                        font.pixelSize: Theme.fontSizeTitle
+                        color: Theme.productiveColor
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left
                         anchors.leftMargin: 15
@@ -272,12 +266,12 @@ Dialog {
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
                     delegate: Rectangle {
-                        width: parent.width
+                        width: productiveListView.width
                         height: 50
                         gradient: Gradient {
                             orientation: Gradient.Horizontal
-                            GradientStop { position: 0.1; color: hover ? "#1976d2" : cardColor }
-                            GradientStop { position: 1.0; color: cardColor }
+                            GradientStop { position: 0.1; color: hover ? Theme.productiveColor : Theme.cardColor }
+                            GradientStop { position: 1.0; color: Theme.cardColor }
                         }
 
                         property bool hover: false
@@ -297,21 +291,21 @@ Dialog {
                             Rectangle {
                                 width: 2
                                 height: parent.height
-                                color: "#1976d2"
+                                color: Theme.productiveColor
                             }
 
                             Rectangle {
                                 width: 32
                                 height: 32
                                 radius: 6
-                                color: "#e3f2fd"
+                                color: Qt.alpha(Theme.productiveColor, 0.15)
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
                                     text: model.appName.charAt(0).toUpperCase()
                                     font.bold: true
-                                    font.pixelSize: 14
-                                    color: "#1976d2"
+                                    font.pixelSize: Theme.fontSizeBody
+                                    color: Theme.productiveColor
                                     anchors.centerIn: parent
                                 }
                             }
@@ -324,8 +318,8 @@ Dialog {
                                 Text {
                                     text: model.appName
                                     font.bold: true
-                                    font.pixelSize: 12
-                                    color: hover ? "white" : textColor
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    color: hover ? "white" : Theme.textColor
                                     width: parent.width
                                     elide: Text.ElideRight
                                 }
@@ -333,7 +327,7 @@ Dialog {
                                 Text {
                                     text: extractDomain(model.url) || "Aplikasi"
                                     font.pixelSize: 10
-                                    color: hover ? "white" : "#757575"
+                                    color: hover ? "white" : Theme.lightTextColor
                                     width: parent.width
                                     elide: Text.ElideRight
                                 }
@@ -347,7 +341,7 @@ Dialog {
             Rectangle {
                 width: 1
                 height: parent.height
-                color: "#e0e0e0"
+                color: Theme.dividerColor
             }
 
             // Non-Productive Apps Column
@@ -360,13 +354,13 @@ Dialog {
                     width: parent.width
                     height: 40
                     color: "transparent"
-                    radius: 6
+                    radius: Theme.radiusSmall
 
                     Text {
                         text: "Non-Productive Apps"
                         font.bold: true
                         font.pixelSize: 15
-                        color: "#d32f2f"
+                        color: Theme.nonProductiveColor
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left
                         anchors.leftMargin: 15
@@ -383,12 +377,12 @@ Dialog {
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
                     delegate: Rectangle {
-                        width: parent.width
+                        width: nonProductiveListView.width
                         height: 50
                         gradient: Gradient {
                             orientation: Gradient.Horizontal
-                            GradientStop { position: 0.1; color: hover ? "#d32f2f" : cardColor }
-                            GradientStop { position: 1.0; color: cardColor }
+                            GradientStop { position: 0.1; color: hover ? Theme.nonProductiveColor : Theme.cardColor }
+                            GradientStop { position: 1.0; color: Theme.cardColor }
                         }
 
                         property bool hover: false
@@ -408,21 +402,21 @@ Dialog {
                             Rectangle {
                                 width: 2
                                 height: parent.height
-                                color: "#d32f2f"
+                                color: Theme.nonProductiveColor
                             }
 
                             Rectangle {
                                 width: 32
                                 height: 32
                                 radius: 6
-                                color: "#ffebee"
+                                color: Qt.alpha(Theme.nonProductiveColor, 0.15)
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
                                     text: model.appName.charAt(0).toUpperCase()
                                     font.bold: true
-                                    font.pixelSize: 14
-                                    color: "#d32f2f"
+                                    font.pixelSize: Theme.fontSizeBody
+                                    color: Theme.nonProductiveColor
                                     anchors.centerIn: parent
                                 }
                             }
@@ -435,8 +429,8 @@ Dialog {
                                 Text {
                                     text: model.appName
                                     font.bold: true
-                                    font.pixelSize: 12
-                                    color: hover ? "white" : textColor
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    color: hover ? "white" : Theme.textColor
                                     width: parent.width
                                     elide: Text.ElideRight
                                 }
@@ -444,7 +438,7 @@ Dialog {
                                 Text {
                                     text: model.url || "Aplikasi"
                                     font.pixelSize: 10
-                                    color: hover ? "white" : "#757575"
+                                    color: hover ? "white" : Theme.lightTextColor
                                     width: parent.width
                                     elide: Text.ElideRight
                                 }
@@ -455,11 +449,11 @@ Dialog {
             }
         }
     }
-    AddAplicatioRequest{
+    AddApplicationRequestView{
         id:addAppDialog
         parent:Overlay.overlay
     }
-    RequstAppPending{
+    PendingAppRequestsView{
         id: requestDialog
         parent: Overlay.overlay
     }

@@ -6,8 +6,11 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
+import "../theme"
+import "../components"
 
 Item {
+    id: productivityRoot
     anchors.fill: parent
 
     property string clockIn: "--:--"
@@ -29,11 +32,23 @@ Item {
                 if (xhr.status === 200) {
                     try {
                         var response = JSON.parse(xhr.responseText);
-                        if (response.success) {
-                            console.log("fetchClockData: Success.", response);
+                        console.log("fetchClockData: Success response text:", xhr.responseText);
+                        var rawIn = null;
+                        var rawOut = null;
+                        if (response.data) {
+                            rawIn = response.data.clock_in || response.data.check_in || response.data.clockIn || response.data.checkIn;
+                            rawOut = response.data.clock_out || response.data.check_out || response.data.clockOut || response.data.checkOut;
+                        }
+                        if (!rawIn && response.clock_in) rawIn = response.clock_in;
+                        if (!rawIn && response.check_in) rawIn = response.check_in;
+                        if (!rawOut && response.clock_out) rawOut = response.clock_out;
+                        if (!rawOut && response.check_out) rawOut = response.check_out;
+
+                        if (rawIn) {
+                            clockIn = rawIn;
+                            clockOut = rawOut || "Online";
+                        } else if (response.success) {
                             clockIn = response.clock_in || "--:--";
-                            // --- PERBAIKAN LOGIKA ---
-                            // Jika clock_out null/kosong, tampilkan "Online"
                             clockOut = response.clock_out || "Online";
                         } else {
                             console.log("fetchClockData: API Error:", response.message || "Unknown error");
@@ -137,7 +152,7 @@ Item {
                             pixelSize: 18
                             letterSpacing: 0.5
                         }
-                        color: primaryColor
+                        color: Theme.primaryColor
                         Layout.fillWidth: true
                     }
 
@@ -159,14 +174,14 @@ Item {
                             }
                             background: Rectangle {
                                 radius: 14
-                                color: parent.hovered ? Qt.lighter(cardColor, 1.5) : "transparent"
-                                border.color: dividerColor
+                                color: parent.hovered ? Qt.lighter(Theme.cardColor, 1.5) : "transparent"
+                                border.color: Theme.dividerColor
                                 border.width: 1
                             }
                             contentItem: Label {
                                 text: parent.text
                                 font: parent.font
-                                color: accentColor
+                                color: Theme.accentColor
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -191,14 +206,14 @@ Item {
                             }
                             background: Rectangle {
                                 radius: 14
-                                color: parent.hovered ? Qt.lighter(cardColor, 1.5) : "transparent"
-                                border.color: dividerColor
+                                color: parent.hovered ? Qt.lighter(Theme.cardColor, 1.5) : "transparent"
+                                border.color: Theme.dividerColor
                                 border.width: 1
                             }
                             contentItem: Label {
                                 text: parent.text
                                 font: parent.font
-                                color: accentColor
+                                color: Theme.accentColor
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -206,7 +221,7 @@ Item {
                         }
                     }
                 }
-                DateRange{
+                DateRangeView{
                     id: dateRangeDialog
                     parent: Overlay.overlay
                 }
@@ -216,7 +231,7 @@ Item {
                     Layout.fillWidth: true
                     height: 1
                     radius: 1
-                    color: dividerColor
+                    color: Theme.dividerColor
                 }
             }
 
@@ -275,7 +290,7 @@ Item {
                                         weight: Font.Bold
                                         pixelSize: 12
                                     }
-                                    color: primaryColor
+                                    color: Theme.primaryColor
                                 }
                             }
 
@@ -298,7 +313,7 @@ Item {
                                             pixelSize: 14
                                             weight: Font.Medium
                                         }
-                                        color: textColor
+                                        color: Theme.textColor
                                     }
 
                                     // Percentage
@@ -309,7 +324,7 @@ Item {
                                             pixelSize: 14
                                             weight: Font.DemiBold
                                         }
-                                        color: primaryColor
+                                        color: Theme.primaryColor
                                     }
 
                                     // Duration
@@ -319,7 +334,7 @@ Item {
                                             family: "Segoe UI"
                                             pixelSize: 14
                                         }
-                                        color: lightTextColor
+                                        color: Theme.lightTextColor
                                     }
                                 }
 
@@ -328,7 +343,7 @@ Item {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 6
                                     radius: 3
-                                    color: Qt.rgba(dividerColor.r, dividerColor.g, dividerColor.b, 0.3)
+                                    color: Qt.alpha(Theme.dividerColor, 0.3)
 
                                     Rectangle {
                                         width: parent.width * (currentPercentage / 100)
@@ -342,22 +357,22 @@ Item {
                                                 position: 0.0
                                                 color: {
                                                     var baseColor;
-                                                    if (modelData.productivityType === "productive") baseColor = primaryColor;
-                                                    else if (modelData.productivityType === "non-productive") baseColor = nonProductiveColor;
-                                                    else baseColor = neutralColor;
+                                                    if (modelData.productivityType === "productive") baseColor = Theme.primaryColor;
+                                                    else if (modelData.productivityType === "non-productive") baseColor = Theme.nonProductiveColor;
+                                                    else baseColor = Theme.neutralColor;
 
                                                     // Membuat warna transparan (alpha = 0)
-                                                    return Qt.rgba(baseColor.r, baseColor.g, baseColor.b, 0.0);
+                                                    return Qt.alpha(baseColor, 0.0);
                                                 }
                                             }
                                             GradientStop {
                                                 position: 1.0
                                                 color: {
                                                     // Warna terang penuh (alpha = 1)
-                                                    if (modelData.productivityType === "productive") return primaryColor;
-                                                    if (modelData.productivityType === "non-productive") return nonProductiveColor;
-                                                    if (modelData.productivityType === "neutral") return neutralColor;
-                                                    return neutralColor;
+                                                    if (modelData.productivityType === "productive") return Theme.primaryColor;
+                                                    if (modelData.productivityType === "non-productive") return Theme.nonProductiveColor;
+                                                    if (modelData.productivityType === "neutral") return Theme.neutralColor;
+                                                    return Theme.neutralColor;
                                                 }
                                             }
                                         }
@@ -380,7 +395,7 @@ Item {
         Rectangle {
             Layout.fillHeight: true
             width: 1
-            color: dividerColor
+            color: Theme.dividerColor
         }
 
         // --- KOLOM PENGGUNAAN DOMAIN ---
@@ -402,7 +417,7 @@ Item {
                         pixelSize: 18
                         letterSpacing: 0.5
                     }
-                    color: primaryColor
+                    color: Theme.primaryColor
                     Layout.fillWidth: true
                 }
 
@@ -410,7 +425,7 @@ Item {
                     Layout.fillWidth: true
                     height: 1
                     radius: 1
-                    color: dividerColor
+                    color: Theme.dividerColor
                 }
             }
 
@@ -477,7 +492,7 @@ Item {
                                             weight: Font.Bold
                                             pixelSize: 12
                                         }
-                                        color: primaryColor
+                                        color: Theme.primaryColor
                                     }
                                 }
 
@@ -485,11 +500,11 @@ Item {
                                 Image {
                                     id: webIcon
                                     anchors.fill: parent
-                                    // Use a favicon service to get the icon from the domain name
-                                    source: "https://www.google.com/s2/favicons?sz=32&domain=" + modelData.name
-                                    asynchronous: true // Load image in the background
+                                    source: modelData.name ? "https://www.google.com/s2/favicons?sz=32&domain=" + modelData.name : ""
+                                    asynchronous: true
                                     smooth: true
-                                    fillMode: Image.PreserveAspectFit // Ensure icon is not stretched
+                                    visible: status === Image.Ready
+                                    fillMode: Image.PreserveAspectFit
                                 }
                             }
                             ColumnLayout {
@@ -511,7 +526,7 @@ Item {
                                             pixelSize: 14
                                             weight: Font.Medium
                                         }
-                                        color: textColor
+                                        color: Theme.textColor
                                     }
 
                                     // Percentage
@@ -522,7 +537,7 @@ Item {
                                             pixelSize: 14
                                             weight: Font.DemiBold
                                         }
-                                        color: primaryColor
+                                        color: Theme.primaryColor
                                     }
 
                                     // Duration
@@ -532,7 +547,7 @@ Item {
                                             family: "Segoe UI"
                                             pixelSize: 14
                                         }
-                                        color: lightTextColor
+                                        color: Theme.lightTextColor
                                     }
                                 }
 
@@ -541,7 +556,7 @@ Item {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 6
                                     radius: 3
-                                    color: Qt.rgba(dividerColor.r, dividerColor.g, dividerColor.b, 0.3)
+                                    color: Qt.alpha(Theme.dividerColor, 0.3)
 
                                     Rectangle {
                                         width: parent.width * (currentPercentage / 100)
@@ -555,22 +570,22 @@ Item {
                                                 position: 0.0
                                                 color: {
                                                     var baseColor;
-                                                    if (modelData.productivityType === "productive") baseColor = primaryColor;
-                                                    else if (modelData.productivityType === "non-productive") baseColor = nonProductiveColor;
-                                                    else baseColor = neutralColor;
+                                                    if (modelData.productivityType === "productive") baseColor = Theme.primaryColor;
+                                                    else if (modelData.productivityType === "non-productive") baseColor = Theme.nonProductiveColor;
+                                                    else baseColor = Theme.neutralColor;
 
                                                     // Membuat warna transparan (alpha = 0)
-                                                    return Qt.rgba(baseColor.r, baseColor.g, baseColor.b, 0.0);
+                                                    return Qt.alpha(baseColor, 0.0);
                                                 }
                                             }
                                             GradientStop {
                                                 position: 1.0
                                                 color: {
                                                     // Warna terang penuh (alpha = 1)
-                                                    if (modelData.productivityType === "productive") return primaryColor;
-                                                    if (modelData.productivityType === "non-productive") return nonProductiveColor;
-                                                    if (modelData.productivityType === "neutral") return neutralColor;
-                                                    return neutralColor;
+                                                    if (modelData.productivityType === "productive") return Theme.primaryColor;
+                                                    if (modelData.productivityType === "non-productive") return Theme.nonProductiveColor;
+                                                    if (modelData.productivityType === "neutral") return Theme.neutralColor;
+                                                    return Theme.neutralColor;
                                                 }
                                             }
                                         }
@@ -594,7 +609,7 @@ Item {
         Rectangle {
             Layout.fillHeight: true
             width: 1
-            color: dividerColor
+            color: Theme.dividerColor
         }
 
         // Productivity Section (Right)
@@ -620,7 +635,7 @@ Item {
                             pixelSize: 18
                             letterSpacing: 0.5
                         }
-                        color: primaryColor
+                        color: Theme.primaryColor
                     }
 
                     Item { Layout.fillWidth: true }
@@ -638,29 +653,29 @@ Item {
                         contentItem: Text {
                             text: app.text
                             font: app.font
-                            color: accentColor
+                            color: Theme.accentColor
                         }
                         onClicked: {
                             var apps = logger.getProductivityApps();
-                            productiveAppsModel.clear();
-                            nonProductiveAppsModel.clear();
+                            applicationsDialog.productiveAppsModel.clear();
+                            applicationsDialog.nonProductiveAppsModel.clear();
                             for (var i = 0; i < apps.length; i++) {
                                 if (apps[i].type === 1) {
-                                    productiveAppsModel.append({
-                                                                   "appName": apps[i].appName,
-                                                                   "url": apps[i].url
-                                                               });
+                                    applicationsDialog.productiveAppsModel.append({
+                                        "appName": apps[i].appName,
+                                        "url": apps[i].url
+                                    });
                                 } else if (apps[i].type === 2) {
-                                    nonProductiveAppsModel.append({
-                                                                      "appName": apps[i].appName,
-                                                                      "url": apps[i].url
-                                                                  });
+                                    applicationsDialog.nonProductiveAppsModel.append({
+                                        "appName": apps[i].appName,
+                                        "url": apps[i].url
+                                    });
                                 }
                             }
                             applicationsDialog.open();
                         }
                     }
-                    Monitored_Applications{
+                    MonitoredApplicationsView{
                         id:applicationsDialog
                         parent:Overlay.overlay
                     }
@@ -670,7 +685,7 @@ Item {
                     Layout.fillWidth: true
                     height: 1
                     radius: 1
-                    color: dividerColor
+                    color: Theme.dividerColor
                 }
             }
 
@@ -767,8 +782,8 @@ Item {
                                         var gradientEndY = centerY + (outerRadius * 0.7) * Math.sin(endAngle)
 
                                         var gradient = ctx.createLinearGradient(gradientStartX, gradientStartY, gradientEndX, gradientEndY)
-                                        gradient.addColorStop(0, color)
-                                        gradient.addColorStop(1, Qt.lighter(color, 1.3))
+                                        gradient.addColorStop(0, "" + color)
+                                        gradient.addColorStop(1, "" + Qt.lighter(color, 1.3))
                                         ctx.fillStyle = gradient
                                     } else {
                                         ctx.fillStyle = color
@@ -794,28 +809,27 @@ Item {
                                 // Productive segment - always starts first
                                 if (productiveAngle > 0) {
                                     var scaledProductiveAngle = productiveAngle * scaleFactor
-                                    drawRingSegment(currentStartAngle, scaledProductiveAngle, productiveColor, true)
+                                    drawRingSegment(currentStartAngle, scaledProductiveAngle, Theme.productiveColor, true)
                                     currentStartAngle += scaledProductiveAngle + segmentGap
                                 }
 
                                 // Non-productive segment - starts after productive
                                 if (nonProductiveAngle > 0) {
                                     var scaledNonProductiveAngle = nonProductiveAngle * scaleFactor
-                                    drawRingSegment(currentStartAngle, scaledNonProductiveAngle, nonProductiveColor)
+                                    drawRingSegment(currentStartAngle, scaledNonProductiveAngle, Theme.nonProductiveColor)
                                     currentStartAngle += scaledNonProductiveAngle + segmentGap
                                 }
 
                                 if (idleAngle > 0) {
                                     var scaledIdleAngle = idleAngle * scaleFactor;
-                                    // Use a nice yellow color
-                                    drawRingSegment(currentStartAngle, scaledIdleAngle, "#f1c40f");
+                                    drawRingSegment(currentStartAngle, scaledIdleAngle, Theme.warningColor);
                                     currentStartAngle += scaledIdleAngle + segmentGap;
                                 }
 
                                 // Neutral segment - starts after non-productive
                                 if (neutralAngle > 0) {
                                     var scaledNeutralAngle = neutralAngle * scaleFactor
-                                    drawRingSegment(currentStartAngle, scaledNeutralAngle, neutralColor)
+                                    drawRingSegment(currentStartAngle, scaledNeutralAngle, Theme.neutralColor)
                                 }
 
                                 // Clear shadow for text
@@ -834,14 +848,14 @@ Item {
                                 ctx.translate(centerX, centerY - 8)
                                 ctx.scale(textScale, textScale)
 
-                                ctx.fillStyle = primaryColor
+                                ctx.fillStyle = Theme.primaryColor
                                 ctx.font = "bold 32px 'Segoe UI', system-ui, -apple-system"
                                 ctx.fillText(progressPercent + "%", 0, 0)
                                 ctx.restore()
 
                                 // Subtitle dengan fade-in effect
                                 ctx.font = "600 13px 'Segoe UI', system-ui, -apple-system"
-                                ctx.fillStyle = Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.8 * animationProgress)
+                                ctx.fillStyle = Qt.alpha(Theme.primaryColor, 0.8 * animationProgress)
                                 ctx.fillText("Productive", centerX, centerY + 18)
 
                                 // Decorative center dot
@@ -849,7 +863,7 @@ Item {
                                     var dotOpacity = (animationProgress - 0.7) / 0.3
                                     ctx.beginPath()
                                     ctx.arc(centerX, centerY + 35, 2, 0, 2 * Math.PI)
-                                    ctx.fillStyle = Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.4 * dotOpacity)
+                                    ctx.fillStyle = Qt.alpha(Theme.primaryColor, 0.4 * dotOpacity)
                                     ctx.fill()
                                 }
                             }
@@ -1079,10 +1093,10 @@ Item {
                             implicitWidth: 16
                             implicitHeight: 16
                             radius: 4
-                            color: productiveColor
+                            color: Theme.productiveColor
                             border {
                                 width: 1
-                                color: Qt.darker(productiveColor, 1.2)
+                                color: Qt.darker(Theme.productiveColor, 1.2)
                             }
                         }
                         Label {
@@ -1091,7 +1105,7 @@ Item {
                                 pixelSize: 13
                                 weight: Font.Medium
                             }
-                            color: textColor
+                            color: Theme.textColor
                             Layout.fillWidth: true
                         }
                         Label {
@@ -1100,7 +1114,7 @@ Item {
                                 pixelSize: 13
                                 weight: Font.DemiBold
                             }
-                            color: productiveColor
+                            color: Theme.productiveColor
                         }
                     }
 
@@ -1111,10 +1125,10 @@ Item {
                             implicitWidth: 16
                             implicitHeight: 16
                             radius: 4
-                            color: nonProductiveColor
+                            color: Theme.nonProductiveColor
                             border {
                                 width: 1
-                                color: Qt.darker(nonProductiveColor, 1.2)
+                                color: Qt.darker(Theme.nonProductiveColor, 1.2)
                             }
                         }
                         Label {
@@ -1123,7 +1137,7 @@ Item {
                                 pixelSize: 13
                                 weight: Font.Medium
                             }
-                            color: textColor
+                            color: Theme.textColor
                             Layout.fillWidth: true
                         }
                         Label {
@@ -1132,23 +1146,23 @@ Item {
                                 pixelSize: 13
                                 weight: Font.DemiBold
                             }
-                            color: nonProductiveColor
+                            color: Theme.nonProductiveColor
                         }
                     }
 
 
-                    // ** NEW: Idle Legend Item **
+                    // Idle Legend Item
                     RowLayout {
                         visible: idlePercent.value > 0
                         spacing: 10
                         Rectangle {
                             implicitWidth: 16
                             implicitHeight: 16
-                            radius: 4
-                            color: "#f1c40f"
+                            radius: Theme.radiusSmall
+                            color: Theme.warningColor
                             border {
                                 width: 1
-                                color: Qt.darker("#f1c40f", 1.2)
+                                color: Qt.darker(Theme.warningColor, 1.2)
                             }
                         }
                         Label {
@@ -1157,7 +1171,7 @@ Item {
                                 pixelSize: 13
                                 weight: Font.Medium
                             }
-                            color: textColor
+                            color: Theme.textColor
                             Layout.fillWidth: true
                         }
                         Label {
@@ -1166,7 +1180,7 @@ Item {
                                 pixelSize: 13
                                 weight: Font.DemiBold
                             }
-                            color: "#f1c40f"
+                            color: Theme.warningColor
                         }
                     }
 
@@ -1177,10 +1191,10 @@ Item {
                             implicitWidth: 16
                             implicitHeight: 16
                             radius: 4
-                            color: neutralColor
+                            color: Theme.neutralColor
                             border {
                                 width: 1
-                                color: Qt.darker(neutralColor, 1.2)
+                                color: Qt.darker(Theme.neutralColor, 1.2)
                             }
                         }
                         Label {
@@ -1189,7 +1203,7 @@ Item {
                                 pixelSize: 13
                                 weight: Font.Medium
                             }
-                            color: textColor
+                            color: Theme.textColor
                             Layout.fillWidth: true
                         }
                         Label {
@@ -1198,7 +1212,7 @@ Item {
                                 pixelSize: 13
                                 weight: Font.DemiBold
                             }
-                            color: neutralColor
+                            color: Theme.neutralColor
                         }
                     }
 
@@ -1207,295 +1221,15 @@ Item {
                         Layout.topMargin: 8
                         Layout.fillWidth: true
                         implicitHeight: 1
-                        color: dividerColor
+                        color: Theme.dividerColor
                     }
 
-                    // Ultra Modern Compact Work Timer
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 90
-                        radius: 10
-                        color: Qt.rgba(cardColor.r, cardColor.g, cardColor.b, 0.03)
-
-                        ColumnLayout {
-                            anchors.fill: parent
-
-                            // Header dengan elapsed time
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 5
-
-                                Rectangle {
-                                    width: 3
-                                    height: 14
-                                    radius: 1.5
-                                    color: primaryColor
-                                }
-
-                                Label {
-                                    text: "Time At Work"
-                                    font {
-                                        pixelSize: 11
-                                        weight: Font.DemiBold
-                                        letterSpacing: 0.3
-                                    }
-                                    color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.9)
-                                }
-
-                            }
-
-
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 8
-
-                                    // Elapsed Time (prominent) - dipindahkan ke sini
-                                    Label {
-                                        text: workTimer.getFormattedElapsed()
-                                        font {
-                                            pixelSize: 15
-                                            weight: Font.Bold
-                                            letterSpacing: 1
-                                            family: "Consolas, Monaco, monospace"
-                                        }
-                                        color: workTimer.elapsedSeconds >= 33120 ? "#27ae60" : Qt.rgba(textColor.r, textColor.g, textColor.b, 0.9)
-                                        Layout.alignment: Qt.AlignVCenter
-                                    }
-
-
-                                    // Percentage badge - dipindahkan ke sini
-                                    Rectangle {
-                                        Layout.preferredWidth: 50
-                                        Layout.preferredHeight: 18
-                                        radius: 6
-                                        color: workTimer.elapsedSeconds >= 32400 ?
-                                                   Qt.rgba(0.15, 0.68, 0.38, 0.12) :
-                                                   Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.08)
-                                        border.width: 1
-                                        border.color: workTimer.elapsedSeconds >= 32400 ?
-                                                          Qt.rgba(0.15, 0.68, 0.38, 0.25) :
-                                                          Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.2)
-
-                                        Label {
-                                            anchors.centerIn: parent
-                                            text: Math.round(workTimer.getProgress() * 100) + "%"
-                                            font {
-                                                pixelSize: 10
-                                                weight: Font.Bold
-                                            }
-                                            color: workTimer.elapsedSeconds >= 32400 ? "#27ae60" : primaryColor
-                                        }
-                                        Layout.alignment: Qt.AlignVCenter
-                                    }
-                                }
-
-
-                            // Clock In/Out row di bawah
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 8
-
-                                // Clock In
-                                Rectangle {
-                                    Layout.preferredWidth: 60
-                                    Layout.preferredHeight: 24
-                                    radius: 6
-                                    color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.06)
-                                    border.width: 1
-                                    border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.15)
-
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: 8
-                                        anchors.rightMargin: 8
-                                        spacing: 4
-
-                                        // Icon
-                                        Label {
-                                            text: "↓"
-                                            font.pixelSize: 10
-                                            color: primaryColor
-                                            rotation: 45
-                                        }
-
-                                        Label {
-                                            text: clockIn
-                                            font {
-                                                pixelSize: 10
-                                                weight: Font.Bold
-                                                family: "Consolas, Monaco, monospace"
-                                            }
-                                            color: primaryColor
-                                            Layout.fillWidth: true
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: clockInArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                    }
-
-                                    ToolTip.visible: clockInArea.containsMouse
-                                    ToolTip.text: {
-                                        if (clockIn === "--:--") {
-                                            return "Menunggu data jam masuk...";
-                                        } else {
-                                            return "Anda tercatat masuk pada jam " + clockIn;
-                                        }
-                                    }
-                                }
-
-
-                                Item { Layout.fillWidth: true }
-
-                                // Target label
-                                Label {
-                                    text: "Target: 9h"
-                                    font {
-                                        pixelSize: 9
-                                        weight: Font.Medium
-                                        letterSpacing: 0.1
-                                    }
-                                    color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.5)
-                                    visible: window.width >= 1300  // Sembunyikan saat window width < 950
-                                }
-
-                                Item { Layout.fillWidth: true }
-
-                                // Clock Out
-                                Rectangle {
-                                    Layout.preferredWidth: clockOut === "Online" ? 65 : 60
-                                    Layout.preferredHeight: 24
-                                    radius: 6
-                                    color: clockOut === "Online" ?
-                                               Qt.rgba(0.15, 0.68, 0.38, 0.08) :
-                                               Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.06)
-                                    border.width: 1
-                                    border.color: clockOut === "Online" ?
-                                                      Qt.rgba(0.15, 0.68, 0.38, 0.2) :
-                                                      Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.15)
-
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: 8
-                                        anchors.rightMargin: 8
-                                        spacing: 4
-
-                                        // Pulse indicator untuk online
-                                        Rectangle {
-                                            visible: clockOut === "Online"
-                                            width: 5
-                                            height: 5
-                                            radius: 2.5
-                                            color: "#27ae60"
-
-                                            SequentialAnimation on opacity {
-                                                running: clockOut === "Online"
-                                                loops: Animation.Infinite
-                                                NumberAnimation { from: 1; to: 0.3; duration: 800; easing.type: Easing.InOutSine }
-                                                NumberAnimation { from: 0.3; to: 1; duration: 800; easing.type: Easing.InOutSine }
-                                            }
-
-                                            // Ring effect
-                                            Rectangle {
-                                                anchors.centerIn: parent
-                                                width: parent.width + 4
-                                                height: parent.height + 4
-                                                radius: width/2
-                                                color: "transparent"
-                                                border.width: 1
-                                                border.color: "#27ae60"
-                                                opacity: 0
-
-                                                SequentialAnimation on opacity {
-                                                    running: clockOut === "Online"
-                                                    loops: Animation.Infinite
-                                                    NumberAnimation { from: 0.6; to: 0; duration: 1200; easing.type: Easing.OutCubic }
-                                                }
-
-                                                SequentialAnimation on scale {
-                                                    running: clockOut === "Online"
-                                                    loops: Animation.Infinite
-                                                    NumberAnimation { from: 0.8; to: 1.4; duration: 1200; easing.type: Easing.OutCubic }
-                                                }
-                                            }
-                                        }
-
-                                        Label {
-                                            text: clockOut === "Online" ? "Online" : clockOut
-                                            font {
-                                                pixelSize: 10
-                                                weight: Font.Bold
-                                                family: clockOut === "Online" ? "Segoe UI" : "Consolas, Monaco, monospace"
-                                            }
-                                            color: clockOut === "Online" ? "#27ae60" : primaryColor
-                                            Layout.fillWidth: true
-                                        }
-
-                                        // Icon untuk clock out
-                                        Label {
-                                            visible: clockOut !== "Online" && clockOut !== "--:--" && clockOut !== "Error"
-                                            text: "↑"
-                                            font.pixelSize: 10
-                                            color: primaryColor
-                                            rotation: 45
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: clockOutArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                    }
-
-                                    ToolTip.visible: clockOutArea.containsMouse
-                                    ToolTip.text: {
-                                        if (clockOut === "Online") {
-                                            return "Anda sedang dalam jam kerja";
-                                        } else if (clockOut === "Error") {
-                                            return "Koneksi gagal, tidak bisa mengambil data";
-                                        } else if (clockOut === "--:--") {
-                                            return "Menunggu data jam keluar...";
-                                        } else {
-                                            return "Anda tercatat keluar pada jam " + clockOut;
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    // Modular Work Timer Card
+                    WorkTimerCard {
+                        clockIn: productivityRoot.clockIn
+                        clockOut: productivityRoot.clockOut
                     }
                 }
-
-                // Ganti QtObject dengan id workTimer yang ada
-                QtObject {
-                    id: workTimer
-
-                    property int elapsedSeconds: logger.workTimeElapsedSeconds
-                    property int totalWorkSeconds: 33120 // 9 jam dalam detik (9 * 3600)
-
-                    // Fungsi yang diubah untuk format "jam dan menit"
-                    function getFormattedElapsed() {
-                        if (elapsedSeconds < 0) return "0h 0m";
-                        var hours = Math.floor(elapsedSeconds / 3600);
-                        var minutes = Math.floor((elapsedSeconds % 3600) / 60);
-                        return hours + "h " + minutes + "m";
-                    }
-
-                    function getProgress() {
-                        return Math.min(1.0, elapsedSeconds / totalWorkSeconds)
-                    }
-                }
-
-                Connections {
-                    target: logger
-                    function onWorkTimeElapsedSecondsChanged() {
-                        workTimer.elapsedSeconds = logger.workTimeElapsedSeconds
-                    }
-                }
-
-
             }
         }
 

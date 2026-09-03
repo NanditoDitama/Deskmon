@@ -6,7 +6,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
-
+import "../theme"
 
 Dialog {
     id: cropDialog
@@ -22,16 +22,16 @@ Dialog {
     property real imageY: 0
 
     background: Rectangle {
-        color: cardColor
+        color: Theme.cardColor
         radius: 12
-        border.color: dividerColor
+        border.color: Theme.dividerColor
         border.width: 1
         layer.enabled: true
 
     }
 
     contentItem: Rectangle {
-        color: cardColor
+        color: Theme.cardColor
         radius: 12
         anchors.fill: parent
 
@@ -43,18 +43,18 @@ Dialog {
             Label {
                 text: "Adjust your profile picture"
                 font {
-                    pixelSize: 20
+                    pixelSize: Theme.fontSizeHeader
                     family: "Segoe UI"
                     weight: Font.Medium
                 }
-                color: textColor
+                color: Theme.textColor
                 Layout.alignment: Qt.AlignHCenter
             }
 
             Label {
                 text: "Move and zoom the image to fit the circular frame"
-                font.pixelSize: 14
-                color: Qt.darker(textColor, 1.4)
+                font.pixelSize: Theme.fontSizeBody
+                color: Qt.darker(Theme.textColor, 1.4)
                 Layout.alignment: Qt.AlignHCenter
             }
 
@@ -71,7 +71,7 @@ Dialog {
                     height: width
                     radius: width/2
                     color: "transparent"
-                    border.color: Qt.lighter(dividerColor, 1.2)
+                    border.color: Qt.lighter(Theme.dividerColor, 1.2)
                     border.width: 2
                     clip: true
 
@@ -98,94 +98,75 @@ Dialog {
 
                         onStatusChanged: {
                             if (status === Image.Ready) {
-                                console.log("Image loaded successfully:", tempImagePath)
-                                cropDialog.imageScale = Math.min(1.0, cropArea.width / implicitWidth)
-                                cropDialog.imageX = (cropArea.width - width) / 2
-                                cropDialog.imageY = (cropArea.height - height) / 2
-                                zoomSlider.value = cropDialog.imageScale
-                            } else if (status === Image.Error) {
-                                console.log("Failed to load image:", tempImagePath)
-                                profileErrorLabel.text = "Failed to load image for cropping"
-                                cropDialog.close()
+                                // Center the image initially
+                                cropDialog.imageX = (cropArea.width - cropImage.width) / 2
+                                cropDialog.imageY = (cropArea.height - cropImage.height) / 2
                             }
                         }
                     }
 
-                    // Circular mask (visible only during editing)
+                    // Circular mask overlay
                     Rectangle {
                         id: cropMask
                         anchors.fill: parent
-                        radius: parent.radius
+                        radius: width/2
                         color: "transparent"
-                        border.color: "white"
+                        border.color: Theme.primaryColor
                         border.width: 2
-                        visible: true
-                    }
-                }
-
-                MouseArea {
-                    anchors.fill: cropArea
-                    acceptedButtons: Qt.LeftButton
-                    cursorShape: Qt.OpenHandCursor
-
-                    property real lastX: 0
-                    property real lastY: 0
-
-                    onPressed: {
-                        lastX = mouse.x
-                        lastY = mouse.y
-                        cursorShape = Qt.ClosedHandCursor
                     }
 
-                    onReleased: {
-                        cursorShape = Qt.OpenHandCursor
-                    }
+                    // Drag area for moving image
+                    MouseArea {
+                        anchors.fill: parent
+                        drag.target: null // Disable default drag behavior
 
-                    onPositionChanged: {
-                        if (pressed) {
-                            var deltaX = mouse.x - lastX
-                            var deltaY = mouse.y - lastY
+                        property real lastX: 0
+                        property real lastY: 0
 
-                            // Calculate new position
-                            var newX = cropDialog.imageX + deltaX
-                            var newY = cropDialog.imageY + deltaY
-
-                            // Get image dimensions after scaling
-                            var scaledWidth = cropImage.width
-                            var scaledHeight = cropImage.height
-
-                            // Calculate maximum allowed movement
-                            var maxX = (scaledWidth - cropArea.width) / 2
-                            var maxY = (scaledHeight - cropArea.height) / 2
-
-                            // Limit movement to keep image within crop area
-                            if (scaledWidth > cropArea.width) {
-                                newX = Math.min(maxX, Math.max(-maxX, newX))
-                            } else {
-                                newX = (cropArea.width - scaledWidth) / 2
-                            }
-
-                            if (scaledHeight > cropArea.height) {
-                                newY = Math.min(maxY, Math.max(-maxY, newY))
-                            } else {
-                                newY = (cropArea.height - scaledHeight) / 2
-                            }
-
-                            cropDialog.imageX = newX
-                            cropDialog.imageY = newY
-
+                        onPressed: function(mouse) {
                             lastX = mouse.x
                             lastY = mouse.y
                         }
 
-                    }
+                        onPositionChanged: function(mouse) {
+                            if (pressed) {
+                                var deltaX = mouse.x - lastX
+                                var deltaY = mouse.y - lastY
 
+                                var newX = cropDialog.imageX + deltaX
+                                var newY = cropDialog.imageY + deltaY
 
+                                // Constrain image within bounds
+                                var scaledWidth = cropImage.width
+                                var scaledHeight = cropImage.height
+                                var maxX = (scaledWidth - cropArea.width) / 2
+                                var maxY = (scaledHeight - cropArea.height) / 2
 
-                    onWheel: {
-                        var delta = wheel.angleDelta.y / 1200
-                        var newScale = cropDialog.imageScale + delta
-                        zoomSlider.value = Math.min(Math.max(newScale, zoomSlider.from), zoomSlider.to)
+                                if (scaledWidth > cropArea.width) {
+                                    cropDialog.imageX = Math.min(maxX, Math.max(-maxX, newX))
+                                } else {
+                                    cropDialog.imageX = (cropArea.width - scaledWidth) / 2
+                                }
+
+                                if (scaledHeight > cropArea.height) {
+                                    cropDialog.imageY = Math.min(maxY, Math.max(-maxY, newY))
+                                } else {
+                                    cropDialog.imageY = (cropArea.height - scaledHeight) / 2
+                                }
+
+                                lastX = mouse.x
+                                lastY = mouse.y
+                            }
+                        }
+
+                        // Wheel zoom support
+                        onWheel: function(wheel) {
+                            if (wheel.angleDelta.y > 0) {
+                                zoomSlider.value = Math.min(zoomSlider.to, zoomSlider.value + 0.1)
+                            } else {
+                                zoomSlider.value = Math.max(zoomSlider.from, zoomSlider.value - 0.1)
+                            }
+                        }
                     }
                 }
             }
@@ -197,8 +178,8 @@ Dialog {
 
                 Label {
                     text: "Zoom: " + Math.round(zoomSlider.value * 100) + "%"
-                    font.pixelSize: 12
-                    color: Qt.darker(textColor, 1.4)
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Qt.darker(Theme.textColor, 1.4)
                     Layout.alignment: Qt.AlignHCenter
                 }
 
@@ -210,10 +191,10 @@ Dialog {
                         text: "−"
                         Layout.preferredWidth: 48
                         Layout.preferredHeight: 48
-                        Material.background: secondaryColor
+                        Material.background: Theme.secondaryColor
                         Material.foreground: "white"
                         font {
-                            pixelSize: 24
+                            pixelSize: Theme.fontSizeLargeHeader
                             family: "Segoe UI Symbol"
                             weight: Font.Bold
                         }
@@ -263,10 +244,10 @@ Dialog {
                         text: "+"
                         Layout.preferredWidth: 48
                         Layout.preferredHeight: 48
-                        Material.background: secondaryColor
+                        Material.background: Theme.secondaryColor
                         Material.foreground: "white"
                         font {
-                            pixelSize: 24
+                            pixelSize: Theme.fontSizeLargeHeader
                             family: "Segoe UI Symbol"
                             weight: Font.Bold
                         }
@@ -285,9 +266,9 @@ Dialog {
                     Layout.preferredWidth: 120
                     Layout.preferredHeight: 48
                     Material.background: "transparent"
-                    Material.foreground: textColor
+                    Material.foreground: Theme.textColor
                     font {
-                        pixelSize: 14
+                        pixelSize: Theme.fontSizeBody
                         weight: Font.Medium
                     }
                     onClicked: {
@@ -300,10 +281,10 @@ Dialog {
                     text: "Save"
                     Layout.preferredWidth: 120
                     Layout.preferredHeight: 48
-                    Material.background: accentColor
+                    Material.background: Theme.accentColor
                     Material.foreground: "white"
                     font {
-                        pixelSize: 14
+                        pixelSize: Theme.fontSizeBody
                         weight: Font.Medium
                     }
                     onClicked: {
@@ -324,16 +305,16 @@ Dialog {
                                 profileImage.source = profileImagePath
                                 cropDialog.accept()
                                 profileErrorLabel.text = "Profile picture updated successfully"
-                                profileErrorLabel.color = "#4CAF50" // Green
+                                profileErrorLabel.color = Theme.successColor
                             } else {
                                 console.log("Failed to update profile image in database")
                                 profileErrorLabel.text = "Failed to update profile image"
-                                profileErrorLabel.color = "#F44336" // Red
+                                profileErrorLabel.color = Theme.dangerColor
                             }
                         } else {
                             console.log("Failed to crop image")
                             profileErrorLabel.text = "Failed to crop image"
-                            profileErrorLabel.color = "#F44336" // Red
+                            profileErrorLabel.color = Theme.dangerColor
                         }
                     }
                 }
@@ -341,4 +322,3 @@ Dialog {
         }
     }
 }
-

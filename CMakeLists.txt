@@ -66,31 +66,34 @@ set(HEADERS
 
 set(QML_FILES
     qml/Main.qml
-    qml/views/Login_page.qml
-    qml/views/Profil_page.qml
-    qml/views/Productivty.qml
-    qml/views/Current_Task.qml
-    qml/views/Activity_Monitor.qml
-    qml/views/Monitored_Applications.qml
-    qml/views/DateRange.qml
-    qml/views/AddAplicatioRequest.qml
-    qml/views/RequstAppPending.qml
-    qml/views/ShowAplication.qml
-    qml/dialogs/Pop_up_waktuhabis.qml
-    qml/dialogs/DateRangeDialog.qml
+    qml/theme/Theme.qml
+    qml/components/ToastNotification.qml
+    qml/components/CustomButton.qml
+    qml/components/StatusBadge.qml
+    qml/components/WorkTimerCard.qml
+    qml/views/LoginPage.qml
+    qml/views/ProfilePage.qml
+    qml/views/ProductivityView.qml
+    qml/views/CurrentTaskView.qml
+    qml/views/ActivityMonitorView.qml
+    qml/views/MonitoredApplicationsView.qml
+    qml/views/DateRangeView.qml
+    qml/views/AddApplicationRequestView.qml
+    qml/views/PendingAppRequestsView.qml
+    qml/dialogs/TimeUpPopup.qml
     qml/dialogs/TaskDetailsDialog.qml
-    qml/dialogs/TaskDetailPopup.qml
     qml/dialogs/EarlyLeaveDialog.qml
-    qml/dialogs/EarlyLogoutDialog.qml
     qml/dialogs/FailureDialog.qml
     qml/dialogs/NeedReviewDialog.qml
-    qml/dialogs/ConfirmFinishDialog.qml
+    qml/dialogs/CropImageDialog.qml
+    qml/dialogs/IdleNotificationWindow.qml
+    qml/dialogs/AuthErrorWindow.qml
+    qml/dialogs/PingErrorDialog.qml
+    qml/dialogs/TaskDetailPopup.qml
     qml/dialogs/ConfirmSwitchDialog.qml
-    qml/dialogs/MainDialog.qml
-    qml/dialogs/RequestDialog.qml
-    qml/dialogs/ApplicationsDialog.qml
-    qml/dialogs/AddApplicationDialog.qml
-    qml/dialogs/SaveTombolCropImage.qml
+    qml/dialogs/UpdateDialog.qml
+    qml/layouts/HeaderLayout.qml
+    qml/layouts/BodyLayout.qml
 )
 
 # Konfigurasi Windows Resource file untuk icon
@@ -190,6 +193,12 @@ target_include_directories(Deskmon PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/features/tracking
 )
 
+# Declare QML Singleton types
+set_source_files_properties(qml/theme/Theme.qml
+    PROPERTIES
+    QT_QML_SINGLETON_TYPE TRUE
+)
+
 # Menambahkan modul QML
 qt_add_qml_module(Deskmon
     URI window_logger
@@ -215,7 +224,6 @@ qt_add_resources(Deskmon "icons"
     PREFIX "/icons"
     BASE "resources/icons"
     FILES
-        resources/icons/dm.png
         resources/icons/arrow_back.svg
         resources/icons/camera.svg
         resources/icons/check.svg

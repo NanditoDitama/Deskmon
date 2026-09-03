@@ -6,6 +6,7 @@ import QtQuick.Dialogs
 import QtQuick.Effects
 import QtQuick.Window
 import QtQuick 2.15
+import "../theme"
 
 ApplicationWindow {
     id: warningWindowComponent
@@ -17,11 +18,7 @@ ApplicationWindow {
     flags: Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
 
-    // Sistem theme aware
-    readonly property bool isDarkMode: Qt.application.styleHints.colorScheme === Qt.Dark
-    property color warningColor: isDarkMode ? "#00e0a8" : "#00e0a8"
     property string newText: ""
-
     property string titleText: "Peringatan Waktu Task"
 
     // Animasi
@@ -34,8 +31,8 @@ ApplicationWindow {
         id: card
         anchors.fill: parent
         radius: 16
-        color: cardColor
-        border.color: Qt.rgba(warningColor.r, warningColor.g, warningColor.b, 0.15)
+        color: Theme.cardColor
+        border.color: Qt.alpha(Theme.primaryColor, 0.15)
         border.width: 1
         opacity: warningWindowComponent.visible ? 1 : 0
         scale: warningWindowComponent.visible ? 1 : 0.96
@@ -59,7 +56,7 @@ ApplicationWindow {
                     width: 40
                     height: 40
                     radius: 20
-                    color: Qt.rgba(warningColor.r, warningColor.g, warningColor.b, 0.12)
+                    color: Qt.alpha(Theme.primaryColor, 0.12)
                     anchors.verticalCenter: parent.verticalCenter
 
                     // animasi pulse halus
@@ -89,14 +86,14 @@ ApplicationWindow {
                         text: warningWindowComponent.titleText
                         font.pixelSize: 17
                         font.weight: Font.DemiBold
-                        color: textColor
+                        color: Theme.textColor
                         width: parent.width
                     }
 
                     Label {
                         text: newText
                         font.pixelSize: 13
-                        color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6)
+                        color: Qt.alpha(Theme.textColor, 0.6)
                         width: parent.width
                         wrapMode: Text.Wrap
                         maximumLineCount: 2
@@ -129,8 +126,8 @@ ApplicationWindow {
 
                     background: Rectangle {
                         radius: 8
-                        color: closeButton.pressed ? Qt.darker(warningColor, 1.1) :
-                               closeButton.hovered ? Qt.lighter(warningColor, 1.05) : warningColor
+                        color: closeButton.pressed ? Qt.darker(Theme.primaryColor, 1.1) :
+                               closeButton.hovered ? Qt.lighter(Theme.primaryColor, 1.05) : Theme.primaryColor
                         border.width: 0
 
                         Behavior on color { ColorAnimation { duration: 150 } }

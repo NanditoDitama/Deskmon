@@ -2,26 +2,25 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
+import "../theme"
 
 Dialog {
     id: earlyLeaveReasonDialog
     modal: true
     width: 400
     height: 300
-    anchors.centerIn: parent
+    x: parent ? (parent.width - width) / 2 : 0
+    y: parent ? (parent.height - height) / 2 : 0
     padding: 0
     closePolicy: Popup.NoAutoClose
-
-    // Theme aware colors
-    readonly property bool isDarkMode: Material.theme === Material.Dark
 
     // Signal untuk memberitahu main.cpp bahwa dialog ditutup tanpa submit
     signal dialogClosed()
 
     background: Rectangle {
-        color: cardColor
+        color: Theme.cardColor
         radius: 16
-        border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.15)
+        border.color: Qt.alpha(Theme.primaryColor, 0.15)
         border.width: 1
     }
 
@@ -41,12 +40,12 @@ Dialog {
                 width: 40
                 height: 40
                 radius: 20
-                color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.12)
+                color: Qt.alpha(Theme.primaryColor, 0.12)
                 Layout.alignment: Qt.AlignVCenter
 
                 // animasi pulse halus
                 SequentialAnimation on scale {
-                    running: dialog.visible
+                    running: earlyLeaveReasonDialog.visible
                     loops: Animation.Infinite
                     NumberAnimation { from: 1.0; to: 1.08; duration: 1200; easing.type: Easing.InOutQuad }
                     NumberAnimation { from: 1.08; to: 1.0; duration: 1200; easing.type: Easing.InOutQuad }
@@ -70,14 +69,14 @@ Dialog {
                     text: "Keluar Lebih Awal"
                     font.pixelSize: 17
                     font.weight: Font.DemiBold
-                    color: textColor
+                    color: Theme.textColor
                     Layout.fillWidth: true
                 }
 
                 Label {
                     text: "Mohon berikan alasan Anda"
                     font.pixelSize: 13
-                    color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6)
+                    color: Qt.alpha(Theme.textColor, 0.6)
                     Layout.fillWidth: true
                 }
             }
@@ -93,7 +92,7 @@ Dialog {
                 text: "Alasan"
                 font.pixelSize: 13
                 font.weight: Font.Medium
-                color: textColor
+                color: Theme.textColor
             }
 
             Rectangle {
@@ -101,8 +100,8 @@ Dialog {
                 Layout.fillHeight: true
                 Layout.minimumHeight: 100
                 radius: 10
-                color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.03)
-                border.color: reasonInput.activeFocus ? primaryColor : dividerColor
+                color: Qt.alpha(Theme.textColor, 0.03)
+                border.color: reasonInput.activeFocus ? Theme.primaryColor : Theme.dividerColor
                 border.width: reasonInput.activeFocus ? 2 : 1
 
                 Behavior on border.color { ColorAnimation { duration: 200 } }
@@ -120,10 +119,10 @@ Dialog {
                         id: reasonInput
                         width: parent.width
                         placeholderText: text.length > 0 ? "" : "Silahkan isi alasan di sini"
-                        placeholderTextColor: lightTextColor
+                        placeholderTextColor: Theme.lightTextColor
                         wrapMode: Text.Wrap
                         font.pixelSize: 13
-                        color: textColor
+                        color: Theme.textColor
                         selectByMouse: true
                         leftPadding: 10
                         rightPadding: 10
@@ -165,7 +164,7 @@ Dialog {
 
                 background: Rectangle {
                     radius: 8
-                    color: cancelButton.hovered ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.08) : "transparent"
+                    color: cancelButton.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
                     border.width: 0
 
                     Behavior on color { ColorAnimation { duration: 150 } }
@@ -177,7 +176,7 @@ Dialog {
                     font.weight: Font.Medium
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
-                    color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.7)
+                    color: Qt.alpha(Theme.textColor, 0.7)
                 }
 
                 onClicked: {
@@ -199,9 +198,9 @@ Dialog {
                 background: Rectangle {
                     radius: 8
                     color: submitButton.enabled ?
-                               (submitButton.pressed ? Qt.darker(primaryColor, 1.1) :
-                                                       submitButton.hovered ? Qt.lighter(primaryColor, 1.05) : primaryColor) :
-                               Qt.rgba(textColor.r, textColor.g, textColor.b, 0.2)
+                               (submitButton.pressed ? Qt.darker(Theme.primaryColor, 1.1) :
+                                                       submitButton.hovered ? Qt.lighter(Theme.primaryColor, 1.05) : Theme.primaryColor) :
+                               Qt.alpha(Theme.textColor, 0.2)
                     border.width: 0
 
                     Behavior on color { ColorAnimation { duration: 150 } }
@@ -213,13 +212,13 @@ Dialog {
                     font.weight: Font.DemiBold
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
-                    color: submitButton.enabled ? "white" : Qt.rgba(textColor.r, textColor.g, textColor.b, 0.4)
+                    color: submitButton.enabled ? "white" : Qt.alpha(Theme.textColor, 0.4)
                 }
 
                 onClicked: {
                     buttonBox.enabled = false
                     statusLabel.text = "Mengirim data..."
-                    statusLabel.color = primaryColor
+                    statusLabel.color = Theme.primaryColor
                     statusLabel.visible = true
                     logger.submitEarlyLeaveReason(reasonInput.text.trim())
                 }
@@ -253,39 +252,26 @@ Dialog {
         resetDialog()
     }
 
-    // Connect ke logger untuk handle berbagai kondisi
+    // Connect ke logger untuk handle status submit
     Connections {
         target: logger
 
         function onEarlyLeaveReasonSubmitted() {
             statusLabel.text = "Berhasil! Aplikasi akan ditutup..."
-            statusLabel.color = Material.color(Material.Green)
-            statusLabel.visible = true
-            // optional: dialog.close()
-        }
-
-        function onEarlyLeaveSubmitFailed(errorMessage) {
-            resetDialog()
-            statusLabel.text = "Gagal: " + errorMessage
-            statusLabel.color = primaryColor
+            statusLabel.color = Theme.successColor
             statusLabel.visible = true
         }
     }
 
 
     // Keyboard shortcuts
-    Keys.onPressed: function(event) {
-        if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
-            if (event.modifiers & Qt.ControlModifier) {
-                if (submitButton.enabled) {
-                    submitButton.clicked()
-                }
-            }
-        } else if (event.key === Qt.Key_Escape) {
-            if (cancelButton.enabled) {
-                cancelButton.clicked()
-            }
-        }
+    Shortcut {
+        sequences: [ "Ctrl+Return", "Ctrl+Enter" ]
+        onActivated: if (submitButton.enabled) submitButton.clicked()
+    }
+    Shortcut {
+        sequences: [ StandardKey.Close, "Escape" ]
+        onActivated: if (cancelButton.enabled) cancelButton.clicked()
     }
 
     // Animasi entrance

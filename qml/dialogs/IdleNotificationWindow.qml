@@ -1,4 +1,3 @@
-// FailureDialog.qml (Modern Version)
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -9,31 +8,24 @@ ApplicationWindow {
     id: root
     width: 340
     height: 180
-    title: "Terjadi Kesalahan"
+    title: "Idle Detected"
     modality: Qt.ApplicationModal
     flags: Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
 
     // Pusatkan window
-    x: (Screen.width - width) / 2
+    x: (Screen.width  - width)  / 2
     y: (Screen.height - height) / 2
 
-    visible: false
+    signal resumeRequested()
+    signal dismissRequested()
 
-    // Properti untuk menyimpan data yang akan dikirim ulang
-    property int failedTaskId: -1
-    property string failedDetails: ""
-    property string failedAction: ""
-    property int failedNextTaskId: -1
-    property var logger: null
-
-    // Modern background
     Rectangle {
         id: card
         anchors.fill: parent
-        radius: 16
+        radius: Theme.radiusLarge
         color: Theme.cardColor
-        border.color: Qt.alpha(Theme.dangerColor, 0.15)
+        border.color: Qt.alpha(Theme.primaryColor, 0.15)
         border.width: 1
         opacity: root.visible ? 1 : 0
         scale: root.visible ? 1 : 0.96
@@ -51,15 +43,13 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 spacing: 14
 
-                // Icon error
                 Rectangle {
                     width: 40
                     height: 40
                     radius: 20
-                    color: Qt.alpha(Theme.dangerColor, 0.12)
+                    color: Qt.alpha(Theme.primaryColor, 0.12)
                     Layout.alignment: Qt.AlignVCenter
 
-                    // Pulse animation
                     SequentialAnimation on scale {
                         running: root.visible
                         loops: Animation.Infinite
@@ -82,7 +72,7 @@ ApplicationWindow {
                     spacing: 2
 
                     Label {
-                        text: "Terjadi Kesalahan"
+                        text: "Idle Terdeteksi"
                         font.pixelSize: 17
                         font.weight: Font.DemiBold
                         color: Theme.textColor
@@ -90,19 +80,14 @@ ApplicationWindow {
                     }
 
                     Label {
-                        id: errorMessageLabel
-                        text: "Gagal mengirim data ke server."
-                        font.pixelSize: 13
+                        text: "Aktivitas dihentikan sementara"
+                        font.pixelSize: Theme.fontSizeSmall
                         color: Qt.alpha(Theme.textColor, 0.6)
                         Layout.fillWidth: true
-                        wrapMode: Text.Wrap
-                        maximumLineCount: 2
-                        elide: Text.ElideRight
                     }
                 }
             }
 
-            // SPACER
             Item { Layout.fillHeight: true }
 
             // TOMBOL AKSI
@@ -113,25 +98,22 @@ ApplicationWindow {
                 Item { Layout.fillWidth: true }
 
                 Button {
-                    id: cancelButton
-                    text: "Nanti"
-
+                    id: btnDismiss
+                    text: "Dismiss"
                     leftPadding: 18
                     rightPadding: 18
                     topPadding: 10
                     bottomPadding: 10
 
                     background: Rectangle {
-                        radius: 8
-                        color: cancelButton.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
-                        border.width: 1
-                        border.color: Theme.dividerColor
-
+                        radius: Theme.radiusSmall
+                        color: btnDismiss.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
+                        border.width: 0
                         Behavior on color { ColorAnimation { duration: 150 } }
                     }
 
                     contentItem: Text {
-                        text: cancelButton.text
+                        text: btnDismiss.text
                         font.pixelSize: 13
                         font.weight: Font.Medium
                         horizontalAlignment: Text.AlignHCenter
@@ -140,34 +122,29 @@ ApplicationWindow {
                     }
 
                     onClicked: {
-                        console.log("Pengiriman ulang dibatalkan oleh pengguna.");
-                        if (failedAction === "quit" && logger) {
-                            logger.taskDetailsDialogClosed("quit");
-                        }
-                        root.close();
+                        root.dismissRequested()
+                        root.close()
                     }
                 }
 
                 Button {
-                    id: retryButton
-                    text: "Coba Lagi"
-
+                    id: btnResume
+                    text: "Resume"
                     leftPadding: 24
                     rightPadding: 24
                     topPadding: 10
                     bottomPadding: 10
 
                     background: Rectangle {
-                        radius: 8
-                        color: retryButton.pressed ? Qt.darker(Theme.dangerColor, 1.1) :
-                               retryButton.hovered ? Qt.lighter(Theme.dangerColor, 1.05) : Theme.dangerColor
+                        radius: Theme.radiusSmall
+                        color: btnResume.pressed ? Qt.darker(Theme.primaryColor, 1.1) :
+                                                   btnResume.hovered ? Qt.lighter(Theme.primaryColor, 1.05) : Theme.primaryColor
                         border.width: 0
-
                         Behavior on color { ColorAnimation { duration: 150 } }
                     }
 
                     contentItem: Text {
-                        text: retryButton.text
+                        text: btnResume.text
                         font.pixelSize: 13
                         font.weight: Font.DemiBold
                         horizontalAlignment: Text.AlignHCenter
@@ -176,38 +153,26 @@ ApplicationWindow {
                     }
 
                     onClicked: {
-                        console.log("Mencoba lagi untuk mengirim detail task...");
-                        if (logger) {
-                            logger.submitTaskDetails(failedTaskId, failedDetails, failedAction, failedNextTaskId);
-                        }
-                        root.close();
+                        root.resumeRequested()
+                        root.close()
                     }
                 }
             }
         }
     }
 
-    // Fungsi untuk menampilkan dialog
-    function show(message, taskId, details, action, nextTaskId) {
-        errorMessageLabel.text = message;
-        failedTaskId = taskId;
-        failedDetails = details;
-        failedAction = action;
-        failedNextTaskId = nextTaskId;
-        root.visible = true;
-    }
-
-    // Keyboard shortcuts
     Shortcut {
-        sequences: ["Escape"]
-        onActivated: cancelButton.clicked()
+        sequences: [ StandardKey.Close, "Escape" ]
+        onActivated: {
+            root.dismissRequested()
+            root.close()
+        }
     }
 
     Shortcut {
-        sequences: ["Return", "Enter"]
-        onActivated: retryButton.clicked()
+        sequences: [ StandardKey.Accept, "Return", "Enter" ]
+        onActivated: btnResume.clicked()
     }
 
-    // Fokus awal
-    Component.onCompleted: retryButton.forceActiveFocus()
+    Component.onCompleted: btnResume.forceActiveFocus()
 }

@@ -1,32 +1,29 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Controls.Material
+import QtQuick.Dialogs
+import QtQuick.Effects
+import QtQuick.Window
+import "../theme"
 
 Dialog {
     id: requestDialog
     title: "Application Requests"
     modal: true
-    width: Math.min(parent ? parent.width * 0.8 : 800, 800)
-    height: Math.min(parent ? parent.height * 0.8 : 600, 600)
-    x: parent ? (parent.width - width) / 2 : 0
-    y: parent ? (parent.height - height) / 2 : 0
+    width: Math.min(parent.width * 0.8, 800)
+    height: Math.min(parent.height * 0.8, 600)
+    x: (parent.width - width) / 2
+    y: (parent.height - height) / 2
     padding: 16
     dim: true
 
-    // Properties that need to be set from Main.qml
-    property var pendingRequests: []
-    property var logger
-    property color cardColor: "#FFFFFF"
-    property color textColor: "#1F2937"
-    property color lightTextColor: "#6B7280"
-    property color dividerColor: "#E5E7EB"
-    property color primaryColor: "#00e0a8"
-    property color secondaryColor: "#3B82F6"
+    property var pendingRequests: logger.getPendingApplicationRequests()
 
     background: Rectangle {
-        color: cardColor
-        radius: 12
-        border.color: dividerColor
+        color: Theme.cardColor
+        radius: Theme.radiusLarge
+        border.color: Theme.dividerColor
         border.width: 1
 
         Rectangle {
@@ -49,14 +46,14 @@ Dialog {
                 bold: true
                 family: "Segoe UI"
             }
-            color: primaryColor
+            color: Theme.primaryColor
             Layout.alignment: Qt.AlignHCenter
         }
 
         Rectangle {
             Layout.fillWidth: true
             height: 1
-            color: dividerColor
+            color: Theme.dividerColor
         }
 
         ScrollView {
@@ -72,10 +69,10 @@ Dialog {
 
                 delegate: Rectangle {
                     width: requestListView.width
-                    height: 100  // Increased height to accommodate more info
-                    radius: 8
-                    color: index % 2 === 0 ? Qt.lighter(cardColor, 1.1) : cardColor
-                    border.color: dividerColor
+                    height: 100
+                    radius: Theme.radiusSmall
+                    color: index % 2 === 0 ? Qt.lighter(Theme.cardColor, 1.1) : Theme.cardColor
+                    border.color: Theme.dividerColor
                     border.width: 1
 
                     RowLayout {
@@ -87,7 +84,7 @@ Dialog {
                         Rectangle {
                             Layout.preferredWidth: 48
                             Layout.preferredHeight: 48
-                            radius: 8
+                            radius: Theme.radiusSmall
                             color: Qt.rgba(
                                        Math.random() * 0.5 + 0.3,
                                        Math.random() * 0.5 + 0.3,
@@ -103,7 +100,7 @@ Dialog {
                                     weight: Font.Bold
                                     pixelSize: 18
                                 }
-                                color: primaryColor
+                                color: Theme.primaryColor
                             }
                         }
 
@@ -120,10 +117,10 @@ Dialog {
                                     text: modelData.app_name
                                     font {
                                         family: "Segoe UI"
-                                        pixelSize: 16
+                                        pixelSize: Theme.fontSizeTitle
                                         weight: Font.Medium
                                     }
-                                    color: textColor
+                                    color: Theme.textColor
                                     elide: Text.ElideRight
                                 }
 
@@ -132,9 +129,9 @@ Dialog {
                                     visible: modelData.productivity_text
                                     radius: 4
                                     color: {
-                                        if (modelData.productivity === 1) return "#4CAF50"; // Green for productive
-                                        if (modelData.productivity === 2) return "#F44336"; // Red for non-productive
-                                        return "#9E9E9E"; // Gray for neutral
+                                        if (modelData.productivity === 1) return Theme.productiveColor;
+                                        if (modelData.productivity === 2) return Theme.nonProductiveColor;
+                                        return Theme.neutralColor;
                                     }
                                     Layout.preferredHeight: 20
                                     Layout.preferredWidth: productivityText.width + 12
@@ -159,9 +156,9 @@ Dialog {
                                 text: "URL: " + (modelData.url || "Not specified")
                                 font {
                                     family: "Segoe UI"
-                                    pixelSize: 12
+                                    pixelSize: Theme.fontSizeSmall
                                 }
-                                color: lightTextColor
+                                color: Theme.lightTextColor
                                 elide: Text.ElideMiddle
                                 Layout.fillWidth: true
                             }
@@ -173,7 +170,7 @@ Dialog {
                                     family: "Segoe UI"
                                     pixelSize: 11
                                 }
-                                color: Qt.lighter(lightTextColor, 1.2)
+                                color: Qt.lighter(Theme.lightTextColor, 1.2)
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -191,13 +188,13 @@ Dialog {
             onClicked: requestDialog.close()
 
             background: Rectangle {
-                radius: 8
-                color: parent.hovered ? Qt.lighter(secondaryColor, 1.1) : secondaryColor
+                radius: Theme.radiusSmall
+                color: parent.hovered ? Qt.lighter(Theme.secondaryColor, 1.1) : Theme.secondaryColor
             }
 
             contentItem: Text {
                 text: parent.text
-                font.pixelSize: 14
+                font.pixelSize: Theme.fontSizeBody
                 color: "white"
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -206,8 +203,6 @@ Dialog {
     }
 
     onOpened: {
-        if (logger) {
-            pendingRequests = logger.getPendingApplicationRequests()
-        }
+        pendingRequests = logger.getPendingApplicationRequests()
     }
 }

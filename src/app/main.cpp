@@ -10,19 +10,101 @@
 #include <QDebug>
 #include <QSharedMemory>
 #include <QMessageBox>
+#include <QFile>
+#include <QDir>
+#include <QDateTime>
+#include <QTextStream>
+#include <QMutex>
+#include <QQuickStyle>
+#include <cstdio>
 #include "AppController.h"
 #include "features/tracking/IdleChecker.h"
+
+// ===================================================================
+// Sistem Logging ke File dan Terminal
+// ===================================================================
+static QFile *g_logFile = nullptr;
+static QMutex g_logMutex;
+
+void customMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    QMutexLocker locker(&g_logMutex);
+
+    QString levelStr;
+    switch (type) {
+    case QtDebugMsg:    levelStr = "[DEBUG]"; break;
+    case QtInfoMsg:     levelStr = "[INFO ]"; break;
+    case QtWarningMsg:  levelStr = "[WARN ]"; break;
+    case QtCriticalMsg: levelStr = "[ERROR]"; break;
+    case QtFatalMsg:    levelStr = "[FATAL]"; break;
+    }
+
+    QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
+    QString logLine = QString("%1 %2 %3\n").arg(timestamp, levelStr, msg);
+
+    // Tampilkan di terminal (stdout/stderr)
+    fprintf(stderr, "%s", logLine.toLocal8Bit().constData());
+    fflush(stderr);
+
+    // Simpan ke file log
+    if (g_logFile && g_logFile->isOpen()) {
+        QTextStream stream(g_logFile);
+        stream << logLine;
+        stream.flush();
+    }
+}
+
+void initLogging()
+{
+    QString logsDirPath = QDir::current().filePath("logs");
+    QDir logsDir(logsDirPath);
+    if (!logsDir.exists()) {
+        logsDir.mkpath(".");
+    }
+
+    QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd_hh-mm-ss");
+    QString logFilePath = logsDir.filePath(QString("deskmon_%1.log").arg(timestamp));
+
+    g_logFile = new QFile(logFilePath);
+    if (g_logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+        qInstallMessageHandler(customMessageHandler);
+        qInfo() << "=== Deskmon Started - Log File:" << logFilePath << "===";
+    } else {
+        qWarning() << "Failed to create log file at:" << logFilePath;
+    }
+}
+
+void closeLogging()
+{
+    if (g_logFile) {
+        qInfo() << "=== Deskmon Closed ===";
+        g_logFile->close();
+        delete g_logFile;
+        g_logFile = nullptr;
+    }
+}
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    QQuickStyle::setStyle("Material");
     app.setWindowIcon(QIcon(":/icon.ico"));
     app.setQuitOnLastWindowClosed(false);
 
+    // Inisialisasi logging ke folder logs/
+    initLogging();
+
     QSharedMemory sharedMemory("DeskmonAppInstance");
     if (!sharedMemory.create(1)) {
-        QMessageBox::warning(nullptr, "Warning", "Application is already running!");
-        return 1;
+        // Coba detach jika ada stale shared memory dari proses yang crash
+        sharedMemory.attach();
+        sharedMemory.detach();
+        if (!sharedMemory.create(1)) {
+            qWarning() << "Application is already running (single instance lock active).";
+            QMessageBox::warning(nullptr, "Warning", "Application is already running!");
+            closeLogging();
+            return 1;
+        }
     }
 
     AppController logger;
@@ -35,6 +117,7 @@ int main(int argc, char *argv[])
         logger.saveWorkTimeData();
         logger.sendWorkTimeToAPI();
         logger.logout();
+        closeLogging();
     });
 
     bool isEarlyLeaveDialogShown = false;
@@ -42,19 +125,23 @@ int main(int argc, char *argv[])
     // ===================================================================
     // 1. Inisialisasi QML Engine dan Window di awal
     // ===================================================================
+    qmlRegisterSingletonType(QUrl("qrc:/qt/qml/window_logger/qml/theme/Theme.qml"), "theme", 1, 0, "Theme");
+
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("logger", &logger);
     engine.rootContext()->setContextProperty("idleChecker", &idleChecker);
     engine.loadFromModule("window_logger", "Main");
 
     if (engine.rootObjects().isEmpty()) {
-        qWarning() << "Failed to load QML module: window_logger, Main. Aborting.";
+        qCritical() << "Failed to load QML module: window_logger, Main. Aborting.";
+        closeLogging();
         return -1;
     }
 
     QQuickWindow *qmlWindow = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
     if (!qmlWindow) {
-        qWarning() << "Failed to cast root object to QQuickWindow. Aborting.";
+        qCritical() << "Failed to cast root object to QQuickWindow. Aborting.";
+        closeLogging();
         return -1;
     }
 
@@ -198,5 +285,7 @@ int main(int argc, char *argv[])
     });
     dayChangeTimer.start(60000);
 
-    return app.exec();
+    int result = app.exec();
+    closeLogging();
+    return result;
 }

@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import "../theme"
 
 ApplicationWindow {
     id: root
@@ -22,7 +23,6 @@ ApplicationWindow {
     property int currentTaskId: -1
     property string action: ""
     property int nextTaskId: -1
-    // Baris 'property var logger: null' yang bermasalah sudah dihapus
     property bool isLoading: false
 
 
@@ -30,9 +30,9 @@ ApplicationWindow {
     Rectangle {
         id: card
         anchors.fill: parent
-        radius: 16
-        color: cardColor
-        border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.15)
+        radius: Theme.radiusLarge
+        color: Theme.cardColor
+        border.color: Qt.alpha(Theme.primaryColor, 0.15)
         border.width: 1
         opacity: root.visible ? 1 : 0
         scale: root.visible ? 1 : 0.96
@@ -55,7 +55,7 @@ ApplicationWindow {
                     width: 40
                     height: 40
                     radius: 20
-                    color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.12)
+                    color: Qt.alpha(Theme.primaryColor, 0.12)
                     Layout.alignment: Qt.AlignTop
 
                     // Pulse animation
@@ -84,14 +84,14 @@ ApplicationWindow {
                         text: "Detail Pekerjaan"
                         font.pixelSize: 17
                         font.weight: Font.DemiBold
-                        color: textColor
+                        color: Theme.textColor
                         Layout.fillWidth: true
                     }
 
                     Label {
                         text: "Tambahkan detail pekerjaan (Opsional)"
                         font.pixelSize: 13
-                        color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6)
+                        color: Qt.alpha(Theme.textColor, 0.6)
                         Layout.fillWidth: true
                     }
                 }
@@ -101,9 +101,9 @@ ApplicationWindow {
             Rectangle {
                 Layout.fillWidth: true
                 height: 52
-                radius: 10
-                color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.08)
-                border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.2)
+                radius: Theme.radiusMedium
+                color: Qt.alpha(Theme.primaryColor, 0.08)
+                border.color: Qt.alpha(Theme.primaryColor, 0.2)
                 border.width: 1
 
                 RowLayout {
@@ -121,7 +121,7 @@ ApplicationWindow {
                         text: "Anda bisa menambahkan detail apa yang ada kerjakan pada task sebelumnya di sini (Opsional)"
                         wrapMode: Text.Wrap
                         Layout.fillWidth: true
-                        color: textColor
+                        color: Theme.textColor
                         font.pixelSize: 12
                         lineHeight: 1.2
                     }
@@ -138,17 +138,17 @@ ApplicationWindow {
                     text: "Detail Pekerjaan"
                     font.pixelSize: 13
                     font.weight: Font.Medium
-                    color: textColor
+                    color: Theme.textColor
                 }
 
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.minimumHeight: 120
-                    radius: 10
-                    color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.03)
-                    border.color: reasonInput.activeFocus ? primaryColor : dividerColor
-                    border.width: reasonInput.activeFocus ? 2 : 1
+                    radius: Theme.radiusMedium
+                    color: Qt.alpha(Theme.textColor, 0.03)
+                    border.color: detailsInput.activeFocus ? Theme.primaryColor : Theme.dividerColor
+                    border.width: detailsInput.activeFocus ? 2 : 1
                     Behavior on border.color { ColorAnimation { duration: 200 } }
                     Behavior on border.width { NumberAnimation { duration: 200 } }
 
@@ -164,10 +164,10 @@ ApplicationWindow {
                             id: detailsInput
                             width: parent.width
                             placeholderText: "Contoh: Menyelesaikan perbaikan bug pada suatu fitur..."
-                            placeholderTextColor: lightTextColor
+                            placeholderTextColor: Theme.lightTextColor
                             wrapMode: Text.Wrap
                             font.pixelSize: 13
-                            color: textColor
+                            color: Theme.textColor
                             selectByMouse: true
                             leftPadding: 10
                             rightPadding: 10
@@ -204,10 +204,10 @@ ApplicationWindow {
                     bottomPadding: 10
 
                     background: Rectangle {
-                        radius: 8
-                        color: cancelButton.hovered ? dividerColor : "transparent"
+                        radius: Theme.radiusSmall
+                        color: cancelButton.hovered ? Theme.dividerColor : "transparent"
                         border.width: 1
-                        border.color: dividerColor
+                        border.color: Theme.dividerColor
 
                         Behavior on color { ColorAnimation { duration: 150 } }
                     }
@@ -218,7 +218,7 @@ ApplicationWindow {
                         font.weight: Font.Medium
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.7)
+                        color: Qt.alpha(Theme.textColor, 0.7)
                     }
 
                     onClicked: {
@@ -241,8 +241,8 @@ ApplicationWindow {
                     bottomPadding: 10
 
                     background: Rectangle {
-                        radius: 8
-                        color: primaryColor
+                        radius: Theme.radiusSmall
+                        color: Theme.primaryColor
                         border.width: 0
 
                         Behavior on color { ColorAnimation { duration: 150 } }

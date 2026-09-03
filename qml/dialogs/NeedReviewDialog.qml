@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
+import "../theme"
 
 ApplicationWindow {
     id: needReviewDialog
@@ -21,18 +22,13 @@ ApplicationWindow {
     property int taskId: -1
     property var logger: null
 
-    // Theme colors
-    readonly property bool isDarkMode: Qt.application.styleHints.colorScheme === Qt.Dark
-    property color lightTextColor: isDarkMode ? "#b0b0b0" : "#666666"
-    property color dividerColor: isDarkMode ? "#444444" : "#e0e0e0"
-
     // Modern background without shadow
     Rectangle {
         id: card
         anchors.fill: parent
         radius: 16
-        color: cardColor
-        border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.15)
+        color: Theme.cardColor
+        border.color: Qt.alpha(Theme.primaryColor, 0.15)
         border.width: 1
         opacity: needReviewDialog.visible ? 1 : 0
         scale: needReviewDialog.visible ? 1 : 0.96
@@ -55,7 +51,7 @@ ApplicationWindow {
                     width: 40
                     height: 40
                     radius: 20
-                    color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.12)
+                    color: Qt.alpha(Theme.primaryColor, 0.12)
                     Layout.alignment: Qt.AlignTop
 
                     // Animasi pulse halus
@@ -84,14 +80,14 @@ ApplicationWindow {
                         text: "Permintaan Review"
                         font.pixelSize: 17
                         font.weight: Font.DemiBold
-                        color: textColor
+                        color: Theme.textColor
                         Layout.fillWidth: true
                     }
 
                     Label {
                         text: "Berikan alasan yang jelas untuk review"
                         font.pixelSize: 13
-                        color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.6)
+                        color: Qt.alpha(Theme.textColor, 0.6)
                         Layout.fillWidth: true
                     }
                 }
@@ -102,8 +98,8 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 height: 64
                 radius: 10
-                color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.08)
-                border.color: Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.2)
+                color: Qt.alpha(Theme.primaryColor, 0.08)
+                border.color: Qt.alpha(Theme.primaryColor, 0.2)
                 border.width: 1
 
                 RowLayout {
@@ -121,7 +117,7 @@ ApplicationWindow {
                         text: "Tugas akan dipindahkan ke status 'Need Review'. Manajer akan menerima notifikasi untuk melakukan review."
                         wrapMode: Text.Wrap
                         Layout.fillWidth: true
-                        color: textColor
+                        color: Theme.textColor
                         font.pixelSize: 12
                         lineHeight: 1.2
                     }
@@ -138,7 +134,7 @@ ApplicationWindow {
                     text: "Alasan Permintaan Review *"
                     font.pixelSize: 13
                     font.weight: Font.Medium
-                    color: textColor
+                    color: Theme.textColor
                 }
 
                 Rectangle {
@@ -146,8 +142,8 @@ ApplicationWindow {
                     Layout.fillHeight: true
                     Layout.minimumHeight: 120
                     radius: 10
-                    color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.03)
-                    border.color: reasonInput.activeFocus ? primaryColor : dividerColor
+                    color: Qt.alpha(Theme.textColor, 0.03)
+                    border.color: reasonInput.activeFocus ? Theme.primaryColor : Theme.dividerColor
                     border.width: reasonInput.activeFocus ? 2 : 1
                     Behavior on border.color { ColorAnimation { duration: 200 } }
                     Behavior on border.width { NumberAnimation { duration: 200 } }
@@ -164,10 +160,10 @@ ApplicationWindow {
                             id: reasonInput
                             width: parent.width
                             placeholderText: "Contoh: Butuh verifikasi dari manajer proyek, ada kendala teknis, dll."
-                            placeholderTextColor: lightTextColor
+                            placeholderTextColor: Theme.lightTextColor
                             wrapMode: Text.Wrap
                             font.pixelSize: 13
-                            color: textColor
+                            color: Theme.textColor
                             selectByMouse: true
                             leftPadding: 10
                             rightPadding: 10
@@ -199,7 +195,7 @@ ApplicationWindow {
                         anchors.margins: 8
                         text: reasonInput.text.length + "/" + reasonInput.maxLength
                         font.pixelSize: 10
-                        color: reasonInput.text.length > reasonInput.maxLength * 0.9 ? "#ff6b6b" : lightTextColor
+                        color: reasonInput.text.length > reasonInput.maxLength * 0.9 ? Theme.dangerColor : Theme.lightTextColor
                         opacity: 0.6
                         z: 1  // Pastikan label di atas scrollbar
                     }
@@ -224,9 +220,9 @@ ApplicationWindow {
 
                     background: Rectangle {
                         radius: 8
-                        color: cancelButton.hovered ? Qt.rgba(textColor.r, textColor.g, textColor.b, 0.08) : "transparent"
+                        color: cancelButton.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
                         border.width: 1
-                        border.color: dividerColor
+                        border.color: Theme.dividerColor
 
                         Behavior on color { ColorAnimation { duration: 150 } }
                     }
@@ -237,7 +233,7 @@ ApplicationWindow {
                         font.weight: Font.Medium
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        color: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.7)
+                        color: Qt.alpha(Theme.textColor, 0.7)
                     }
 
                     onClicked: {
@@ -260,9 +256,9 @@ ApplicationWindow {
                     background: Rectangle {
                         radius: 8
                         color: submitButton.enabled ?
-                                   (submitButton.pressed ? Qt.darker(primaryColor, 1.1) :
-                                    submitButton.hovered ? Qt.lighter(primaryColor, 1.05) : primaryColor) :
-                                   Qt.rgba(primaryColor.r, primaryColor.g, primaryColor.b, 0.4)
+                                   (submitButton.pressed ? Qt.darker(Theme.primaryColor, 1.1) :
+                                    submitButton.hovered ? Qt.lighter(Theme.primaryColor, 1.05) : Theme.primaryColor) :
+                                   Qt.alpha(Theme.primaryColor, 0.4)
                         border.width: 0
 
                         Behavior on color { ColorAnimation { duration: 150 } }
@@ -341,7 +337,7 @@ ApplicationWindow {
                                     needReviewDialog.close();
                                     if (logger && logger.notify) {
                                         logger.notify("success", "Berhasil mengajukan Need Review");
-                                        logger.refreshAll()
+                                        logger.refreshTasks()
                                     }
                                 } else {
                                     console.error("Failed to update task status:", request.status, request.responseText);

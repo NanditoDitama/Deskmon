@@ -1,30 +1,33 @@
 <RCC>
     <qresource prefix="/">
         <file>qml/Main.qml</file>
-        <file>qml/views/Activity_Monitor.qml</file>
-        <file>qml/views/AddAplicatioRequest.qml</file>
-        <file>qml/views/Current_Task.qml</file>
-        <file>qml/views/DateRange.qml</file>
-        <file>qml/views/Login_page.qml</file>
-        <file>qml/views/Monitored_Applications.qml</file>
-        <file>qml/views/Productivty.qml</file>
-        <file>qml/views/Profil_page.qml</file>
-        <file>qml/views/RequstAppPending.qml</file>
-        <file>qml/views/ShowAplication.qml</file>
-        <file>qml/dialogs/AddApplicationDialog.qml</file>
-        <file>qml/dialogs/ApplicationsDialog.qml</file>
-        <file>qml/dialogs/ConfirmFinishDialog.qml</file>
-        <file>qml/dialogs/ConfirmSwitchDialog.qml</file>
-        <file>qml/dialogs/DateRangeDialog.qml</file>
-        <file>qml/dialogs/EarlyLeaveDialog.qml</file>
-        <file>qml/dialogs/EarlyLogoutDialog.qml</file>
-        <file>qml/dialogs/FailureDialog.qml</file>
-        <file>qml/dialogs/MainDialog.qml</file>
-        <file>qml/dialogs/NeedReviewDialog.qml</file>
-        <file>qml/dialogs/Pop_up_waktuhabis.qml</file>
-        <file>qml/dialogs/RequestDialog.qml</file>
-        <file>qml/dialogs/SaveTombolCropImage.qml</file>
-        <file>qml/dialogs/TaskDetailPopup.qml</file>
+        <file>qml/theme/Theme.qml</file>
+        <file>qml/components/ToastNotification.qml</file>
+        <file>qml/components/CustomButton.qml</file>
+        <file>qml/components/StatusBadge.qml</file>
+        <file>qml/components/WorkTimerCard.qml</file>
+        <file>qml/views/LoginPage.qml</file>
+        <file>qml/views/ProfilePage.qml</file>
+        <file>qml/views/ProductivityView.qml</file>
+        <file>qml/views/CurrentTaskView.qml</file>
+        <file>qml/views/ActivityMonitorView.qml</file>
+        <file>qml/views/MonitoredApplicationsView.qml</file>
+        <file>qml/views/DateRangeView.qml</file>
+        <file>qml/views/AddApplicationRequestView.qml</file>
+        <file>qml/views/PendingAppRequestsView.qml</file>
+        <file>qml/dialogs/TimeUpPopup.qml</file>
         <file>qml/dialogs/TaskDetailsDialog.qml</file>
+        <file>qml/dialogs/EarlyLeaveDialog.qml</file>
+        <file>qml/dialogs/FailureDialog.qml</file>
+        <file>qml/dialogs/NeedReviewDialog.qml</file>
+        <file>qml/dialogs/CropImageDialog.qml</file>
+        <file>qml/dialogs/IdleNotificationWindow.qml</file>
+        <file>qml/dialogs/AuthErrorWindow.qml</file>
+        <file>qml/dialogs/PingErrorDialog.qml</file>
+        <file>qml/dialogs/TaskDetailPopup.qml</file>
+        <file>qml/dialogs/ConfirmSwitchDialog.qml</file>
+        <file>qml/dialogs/UpdateDialog.qml</file>
+        <file>qml/layouts/HeaderLayout.qml</file>
+        <file>qml/layouts/BodyLayout.qml</file>
     </qresource>
 </RCC>
