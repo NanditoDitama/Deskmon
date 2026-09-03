@@ -51,3 +51,8 @@ graph.html
 # Application logs and runtime databases
 logs/
 *.db
+
+# Python cache & packaging output
+__pycache__/
+*.pyc
+/dist/
