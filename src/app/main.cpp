@@ -16,6 +16,7 @@
 #include <QTextStream>
 #include <QMutex>
 #include <QQuickStyle>
+#include <QStandardPaths>
 #include <cstdio>
 #include "AppController.h"
 #include "features/tracking/IdleChecker.h"
@@ -57,10 +58,30 @@ void customMessageHandler(QtMsgType type, const QMessageLogContext &context, con
 
 void initLogging()
 {
-    QString logsDirPath = QDir::current().filePath("logs");
+    // Tentukan folder logs di AppLocalDataLocation agar aman dan writable
+    QString logsDirPath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/logs";
     QDir logsDir(logsDirPath);
     if (!logsDir.exists()) {
         logsDir.mkpath(".");
+    }
+
+    // Rotasi log: batasi maksimal 20 file log, hapus file lama jika sudah melebihi 20
+    QStringList logFiles = logsDir.entryList(QStringList() << "deskmon_*.log" << "*.log", QDir::Files, QDir::Time);
+    const int maxLogFiles = 20;
+    while (logFiles.size() >= maxLogFiles) {
+        QString oldestFile = logFiles.takeLast();
+        logsDir.remove(oldestFile);
+    }
+
+    // Bersihkan juga file logs lokal di folder aplikasi jika ada sisa
+    QString localLogsDirPath = QCoreApplication::applicationDirPath() + "/logs";
+    QDir localLogsDir(localLogsDirPath);
+    if (localLogsDir.exists()) {
+        QStringList localFiles = localLogsDir.entryList(QStringList() << "deskmon_*.log" << "*.log", QDir::Files, QDir::Time);
+        while (localFiles.size() >= maxLogFiles) {
+            QString oldest = localFiles.takeLast();
+            localLogsDir.remove(oldest);
+        }
     }
 
     QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd_hh-mm-ss");

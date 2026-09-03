@@ -36,10 +36,14 @@ if not exist "%BUILD_DIR%" (
 
 cd "%BUILD_DIR%"
 
+set "CONSOLE_OPTION=OFF"
+if /i "%1"=="debug" set "CONSOLE_OPTION=ON"
+if /i "%2"=="debug" set "CONSOLE_OPTION=ON"
+
 echo ==================================================
-echo Running CMake Configuration (CONSOLE_LOGS=ON)...
+echo Running CMake Configuration (CONSOLE_LOGS=%CONSOLE_OPTION%)...
 echo ==================================================
-cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Debug -DCONSOLE_LOGS=ON -DCMAKE_PREFIX_PATH="%QT_DIR%" ..
+cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Debug -DCONSOLE_LOGS=%CONSOLE_OPTION% -DCMAKE_PREFIX_PATH="%QT_DIR%" ..
 if errorlevel 1 (
     echo [ERROR] CMake configuration failed.
     pause
