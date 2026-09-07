@@ -200,8 +200,16 @@ if(WIN32)
     target_link_libraries(Deskmon PRIVATE user32 psapi)
 elseif(APPLE)
     # Framework khusus macOS
-    find_library(COCOA_LIBRARY Cocoa)
-    target_link_libraries(Deskmon PRIVATE ${COCOA_LIBRARY})
+    find_library(COCOA_FRAMEWORK Cocoa REQUIRED)
+    find_library(APPLICATION_SERVICES_FRAMEWORK ApplicationServices REQUIRED)
+    find_library(IOKIT_FRAMEWORK IOKit REQUIRED)
+    find_library(CORE_FOUNDATION_FRAMEWORK CoreFoundation REQUIRED)
+    target_link_libraries(Deskmon PRIVATE
+        ${COCOA_FRAMEWORK}
+        ${APPLICATION_SERVICES_FRAMEWORK}
+        ${IOKIT_FRAMEWORK}
+        ${CORE_FOUNDATION_FRAMEWORK}
+    )
 
     # Konfigurasi icon untuk macOS
     set_target_properties(Deskmon PROPERTIES
@@ -229,6 +237,12 @@ if(APPLE)
     set(MACOSX_BUNDLE_LONG_VERSION_STRING "${PROJECT_VERSION}")
     set(MACOSX_BUNDLE_INFO_STRING "Deskmon Activity Monitor")
     set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2025 Your Company")
+
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in)
+        set_target_properties(Deskmon PROPERTIES
+            MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in
+        )
+    endif()
 endif()
 
 # Set properti target

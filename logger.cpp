@@ -4516,14 +4516,19 @@ void Logger::launchMaintenanceTool()
     // Dapatkan path dari direktori tempat aplikasi ini berjalan
     QString appDir = QApplication::applicationDirPath();
 
-    // Buat path lengkap ke DeskmonTool.exe
-    QString maintenanceToolPath = QDir(appDir).filePath("DeskmonTool.exe");
+#ifdef Q_OS_WIN
+    QString toolName = "DeskmonTool.exe";
+#else
+    QString toolName = "DeskmonTool";
+#endif
+    // Buat path lengkap ke DeskmonTool
+    QString maintenanceToolPath = QDir(appDir).filePath(toolName);
 
     qDebug() << "Mencari Maintenance Tool di:" << maintenanceToolPath;
 
     if (!QFile::exists(maintenanceToolPath)) {
-        qWarning() << "DeskmonTool.exe tidak ditemukan!";
-        QMessageBox::critical(nullptr, "Error", "File update (DeskmonTool.exe) tidak ditemukan.");
+        qWarning() << toolName << "tidak ditemukan!";
+        QMessageBox::critical(nullptr, "Error", QString("File update (%1) tidak ditemukan.").arg(toolName));
         return;
     }
 
@@ -4613,7 +4618,8 @@ Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
     if (info.appName.isEmpty()) info.appName = "Unknown";
     if (info.title.isEmpty()) info.title = "No active window";
 
-    // (You can also add native code here to get the browser URL)
+    // Ambil URL browser jika aplikasi adalah web browser
+    info.url = getBrowserUrlMac();
 
     return info;
 }
@@ -4655,62 +4661,6 @@ Logger::WindowInfo Logger::getActiveWindowInfoLinux() {
 
     // Setelah mendapatkan info dasar, coba dapatkan URL
     info.url = getBrowserUrlLinux();
-
-    if (info.appName.isEmpty()) info.appName = "Unknown";
-    if (info.title.isEmpty()) info.title = "No active window";
-
-    return info;
-}
-#elif defined(Q_OS_MACOS)
-Logger::WindowInfo Logger::getActiveWindowInfoMacOS() {
-    WindowInfo info;
-
-    // Ambil nama aplikasi yang aktif
-    QProcess process;
-    process.start("osascript", {"-e", "tell application \"System Events\" to get name of first application process whose frontmost is true"});
-    process.waitForFinished(500);
-    info.appName = QString::fromUtf8(process.readAllStandardOutput()).trimmed();
-
-    // Ambil nama window (judul)
-    process.start("osascript", {
-                                   "-e",
-                                   "tell application \"System Events\" to tell (first application process whose frontmost is true) to get value of attribute \"AXTitle\" of front window"
-                               });
-    process.waitForFinished(1000);
-    info.title = QString::fromUtf8(process.readAllStandardOutput()).trimmed();
-
-    // Coba ambil URL jika browser dikenal
-    QString browser = info.appName.toLower();
-    QString url;
-
-    if (browser == "safari") {
-        process.start("osascript", {"-e", "tell application \"Safari\" to return URL of front document"});
-    } else if (browser == "google chrome") {
-        process.start("osascript", {"-e", "tell application \"Google Chrome\" to return URL of active tab of front window"});
-    } else if (browser == "microsoft edge") {
-        process.start("osascript", {"-e", "tell application \"Microsoft Edge\" to return URL of active tab of front window"});
-    } else if (browser == "brave browser") {
-        process.start("osascript", {"-e", "tell application \"Brave Browser\" to return URL of active tab of front window"});
-    } else if (browser == "arc") {
-        process.start("osascript", {"-e", "tell application \"Arc\" to return URL of active tab of front window"});
-    }
-
-    if (process.state() != QProcess::NotRunning) {
-        if (process.waitForFinished(1000)) {
-            url = QString::fromUtf8(process.readAllStandardOutput()).trimmed();
-        }
-    }
-
-    // Fallback jika URL kosong: coba ekstrak dari window title
-    if (url.isEmpty()) {
-        QRegularExpression urlRegex(R"(https?://[^\s/$.?#].[^\s]*)");
-        QRegularExpressionMatch match = urlRegex.match(info.title);
-        if (match.hasMatch()) {
-            url = match.captured(0);
-        }
-    }
-
-    info.url = url;
 
     if (info.appName.isEmpty()) info.appName = "Unknown";
     if (info.title.isEmpty()) info.title = "No active window";
@@ -4836,7 +4786,7 @@ QString Logger::getBrowserUrlMac() {
     QStringList script;
     if (frontApp == "Safari") {
         script << "tell application \"Safari\" to try" << "return URL of front document" << "on error" << "return \"\"" << "end try";
-    } else if (frontApp == "Google Chrome" || frontApp == "Brave Browser" || frontApp == "Microsoft Edge") {
+    } else if (frontApp == "Google Chrome" || frontApp == "Brave Browser" || frontApp == "Microsoft Edge" || frontApp == "Arc") {
         script << QString("tell application \"%1\" to try").arg(frontApp)
         << "return URL of active tab of front window"
         << "on error" << "return \"\"" << "end try";

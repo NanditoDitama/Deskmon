@@ -43,3 +43,6 @@ cmake_install.cmake
 
 # Thumbnails
 Thumbs.db
+
+# Tool analysis output
+graphify-out/
