@@ -1,9 +1,10 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 # ==============================================================================
-# Deskmon macOS Build Script
+# Deskmon macOS Build Script (Zsh / Bash Compatible)
 # ==============================================================================
 # Usage:
 #   ./build.sh [OPTIONS]
+#   zsh build.sh [OPTIONS]
 #
 # Options:
 #   --debug        Build with Debug configuration (default: Release)
@@ -14,9 +15,15 @@
 #   --help, -h     Show this help message
 # ==============================================================================
 
-set -euo pipefail
+# Error handling
+set -eu
+if [[ -n "${ZSH_VERSION:-}" ]]; then
+    setopt pipefail 2>/dev/null || true
+else
+    set -o pipefail 2>/dev/null || true
+fi
 
-# ANSI Color codes for output
+# ANSI Color codes
 CLR_RESET="\033[0m"
 CLR_BOLD="\033[1m"
 CLR_GREEN="\033[32m"
@@ -24,7 +31,20 @@ CLR_YELLOW="\033[33m"
 CLR_CYAN="\033[36m"
 CLR_RED="\033[31m"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+print_info()  { printf "%b\n" "${CLR_CYAN}$*${CLR_RESET}"; }
+print_bold()  { printf "%b\n" "${CLR_BOLD}$*${CLR_RESET}"; }
+print_succ()  { printf "%b\n" "${CLR_GREEN}$*${CLR_RESET}"; }
+print_warn()  { printf "%b\n" "${CLR_YELLOW}$*${CLR_RESET}"; }
+print_err()   { printf "%b\n" "${CLR_RED}$*${CLR_RESET}"; }
+
+# Detect script directory (supports both Zsh and Bash)
+if [[ -n "${ZSH_VERSION:-}" ]]; then
+    SCRIPT_DIR="${0:A:h}"
+elif [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+fi
 cd "$SCRIPT_DIR"
 
 BUILD_TYPE="Release"
@@ -60,9 +80,10 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            echo -e "${CLR_BOLD}Deskmon Build Script for macOS${CLR_RESET}"
+            print_bold "Deskmon Build Script for macOS (zsh)"
             echo ""
             echo "Usage: ./build.sh [OPTIONS]"
+            echo "       zsh build.sh [OPTIONS]"
             echo ""
             echo "Options:"
             echo "  --debug        Build Debug configuration (default: Release)"
@@ -74,15 +95,15 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         *)
-            echo -e "${CLR_YELLOW}Unknown argument: $1${CLR_RESET}"
+            print_warn "Unknown argument: $1"
             shift
             ;;
     esac
 done
 
-echo -e "${CLR_CYAN}==================================================${CLR_RESET}"
-echo -e "${CLR_BOLD}Configuring environment for Deskmon build (macOS)${CLR_RESET}"
-echo -e "${CLR_CYAN}==================================================${CLR_RESET}"
+print_info "=================================================="
+print_bold "Configuring environment for Deskmon build (macOS / zsh)"
+print_info "=================================================="
 
 # ------------------------------------------------------------------------------
 # Auto-detect Qt 6 Installation
@@ -105,9 +126,9 @@ if [[ -z "$DETECTED_QT_DIR" ]]; then
         "/usr/local/opt/qt"
         "/usr/local/opt/qt@6"
     )
-    for path in "${BREW_CANDIDATES[@]}"; do
-        if [[ -d "$path" ]]; then
-            DETECTED_QT_DIR="$path"
+    for p in "${BREW_CANDIDATES[@]}"; do
+        if [[ -d "$p" ]]; then
+            DETECTED_QT_DIR="$p"
             break
         fi
     done
@@ -138,9 +159,9 @@ fi
 if [[ -n "$DETECTED_QT_DIR" ]] && [[ -d "$DETECTED_QT_DIR" ]]; then
     export QT_DIR="$DETECTED_QT_DIR"
     export PATH="$QT_DIR/bin:$PATH"
-    echo -e "${CLR_GREEN}✓ Qt Path detected:${CLR_RESET} $QT_DIR"
+    print_succ "✓ Qt Path detected: $QT_DIR"
 else
-    echo -e "${CLR_RED}[ERROR] Qt 6 installation not found!${CLR_RESET}"
+    print_err "[ERROR] Qt 6 installation not found!"
     echo "Please ensure Qt 6 is installed via Homebrew or the official installer."
     echo "  - Via Homebrew: brew install qt6"
     echo "  - Or set environment variable: export QT_DIR=/path/to/Qt/6.x.x/macos"
@@ -154,30 +175,30 @@ if ! command -v cmake &>/dev/null; then
     if [[ -x "/Applications/CMake.app/Contents/bin/cmake" ]]; then
         export PATH="/Applications/CMake.app/Contents/bin:$PATH"
     else
-        echo -e "${CLR_RED}[ERROR] CMake is not installed or not in PATH.${CLR_RESET}"
+        print_err "[ERROR] CMake is not installed or not in PATH."
         echo "Install it via: brew install cmake"
         exit 1
     fi
 fi
-echo -e "${CLR_GREEN}✓ CMake Path:${CLR_RESET} $(command -v cmake)"
+print_succ "✓ CMake Path: $(command -v cmake)"
 
 # Generator check: prefer Ninja if available
-CMAKE_GEN=""
+CMAKE_GEN_ARGS=()
 if command -v ninja &>/dev/null; then
-    CMAKE_GEN="-G Ninja"
-    echo -e "${CLR_GREEN}✓ Generator:${CLR_RESET} Ninja ($(command -v ninja))"
+    CMAKE_GEN_ARGS=(-G "Ninja")
+    print_succ "✓ Generator: Ninja ($(command -v ninja))"
 else
-    echo -e "${CLR_YELLOW}- Generator: Default Unix Makefiles (Ninja not found, recommended: brew install ninja)${CLR_RESET}"
+    print_warn "- Generator: Default Unix Makefiles (Ninja not found, recommended: brew install ninja)"
 fi
 
-echo -e "${CLR_GREEN}✓ Build Type:${CLR_RESET} $BUILD_TYPE"
+print_succ "✓ Build Type: $BUILD_TYPE"
 echo ""
 
 # ------------------------------------------------------------------------------
 # Icon Generation (if icon.icns is missing)
 # ------------------------------------------------------------------------------
 if [[ ! -f "icon.icns" ]] && [[ -f "icon.png" ]]; then
-    echo -e "${CLR_CYAN}Generating icon.icns from icon.png...${CLR_RESET}"
+    print_info "Generating icon.icns from icon.png..."
     ICONSET_DIR="Deskmon.iconset"
     mkdir -p "$ICONSET_DIR"
     sips -z 16 16     icon.png --out "${ICONSET_DIR}/icon_16x16.png" >/dev/null 2>&1 || true
@@ -195,7 +216,7 @@ if [[ ! -f "icon.icns" ]] && [[ -f "icon.png" ]]; then
     fi
     rm -rf "$ICONSET_DIR"
     if [[ -f "icon.icns" ]]; then
-        echo -e "${CLR_GREEN}✓ icon.icns successfully generated.${CLR_RESET}"
+        print_succ "✓ icon.icns successfully generated."
     fi
 fi
 
@@ -205,7 +226,7 @@ fi
 BUILD_DIR="build"
 
 if [[ "$CLEAN_BUILD" = true ]] && [[ -d "$BUILD_DIR" ]]; then
-    echo -e "${CLR_YELLOW}Cleaning build directory: $BUILD_DIR...${CLR_RESET}"
+    print_warn "Cleaning build directory: $BUILD_DIR..."
     rm -rf "$BUILD_DIR"
 fi
 
@@ -214,12 +235,12 @@ mkdir -p "$BUILD_DIR"
 # ------------------------------------------------------------------------------
 # CMake Configuration
 # ------------------------------------------------------------------------------
-echo -e "${CLR_CYAN}==================================================${CLR_RESET}"
-echo -e "${CLR_BOLD}Running CMake Configuration...${CLR_RESET}"
-echo -e "${CLR_CYAN}==================================================${CLR_RESET}"
+print_info "=================================================="
+print_bold "Running CMake Configuration..."
+print_info "=================================================="
 
 cmake -B "$BUILD_DIR" \
-    $CMAKE_GEN \
+    "${CMAKE_GEN_ARGS[@]}" \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_PREFIX_PATH="$QT_DIR" \
     -DCONSOLE_LOGS=ON
@@ -227,16 +248,16 @@ cmake -B "$BUILD_DIR" \
 # ------------------------------------------------------------------------------
 # Compilation
 # ------------------------------------------------------------------------------
-echo -e "${CLR_CYAN}==================================================${CLR_RESET}"
-echo -e "${CLR_BOLD}Compiling Deskmon...${CLR_RESET}"
-echo -e "${CLR_CYAN}==================================================${CLR_RESET}"
+print_info "=================================================="
+print_bold "Compiling Deskmon..."
+print_info "=================================================="
 
 CPU_CORES=$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
 cmake --build "$BUILD_DIR" --config "$BUILD_TYPE" -- -j"$CPU_CORES"
 
-echo -e "${CLR_GREEN}==================================================${CLR_RESET}"
-echo -e "${CLR_BOLD}${CLR_GREEN}Build successful!${CLR_RESET}"
-echo -e "${CLR_GREEN}==================================================${CLR_RESET}"
+print_succ "=================================================="
+print_succ "Build successful!"
+print_succ "=================================================="
 echo "App bundle: $BUILD_DIR/Deskmon.app"
 echo ""
 
@@ -247,9 +268,9 @@ APP_PATH="$BUILD_DIR/Deskmon.app"
 
 if [[ "$DEPLOY_APP" = true ]]; then
     if command -v macdeployqt &>/dev/null; then
-        echo -e "${CLR_CYAN}==================================================${CLR_RESET}"
-        echo -e "${CLR_BOLD}Deploying Qt libraries to Deskmon.app with macdeployqt...${CLR_RESET}"
-        echo -e "${CLR_CYAN}==================================================${CLR_RESET}"
+        print_info "=================================================="
+        print_bold "Deploying Qt libraries to Deskmon.app with macdeployqt..."
+        print_info "=================================================="
 
         DEPLOY_FLAGS=("-qmldir=.")
         if [[ "$CREATE_DMG" = true ]]; then
@@ -257,12 +278,12 @@ if [[ "$DEPLOY_APP" = true ]]; then
         fi
 
         macdeployqt "$APP_PATH" "${DEPLOY_FLAGS[@]}"
-        echo -e "${CLR_GREEN}✓ Deployment completed.${CLR_RESET}"
+        print_succ "✓ Deployment completed."
         if [[ "$CREATE_DMG" = true ]]; then
-            echo -e "${CLR_GREEN}✓ DMG installer created in $BUILD_DIR/${CLR_RESET}"
+            print_succ "✓ DMG installer created in $BUILD_DIR/"
         fi
     else
-        echo -e "${CLR_YELLOW}[WARNING] macdeployqt not found. Skipping deployment.${CLR_RESET}"
+        print_warn "[WARNING] macdeployqt not found. Skipping deployment."
     fi
 fi
 
@@ -270,15 +291,15 @@ fi
 # Run Application
 # ------------------------------------------------------------------------------
 if [[ "$RUN_APP" = true ]]; then
-    echo -e "${CLR_CYAN}==================================================${CLR_RESET}"
-    echo -e "${CLR_BOLD}Launching Deskmon on macOS...${CLR_RESET}"
-    echo -e "${CLR_CYAN}==================================================${CLR_RESET}"
+    print_info "=================================================="
+    print_bold "Launching Deskmon on macOS..."
+    print_info "=================================================="
     "$APP_PATH/Contents/MacOS/Deskmon"
 else
-    echo -e "To run Deskmon:"
-    echo -e "  ${CLR_BOLD}open $APP_PATH${CLR_RESET}"
-    echo -e "  or directly in terminal: ${CLR_BOLD}$APP_PATH/Contents/MacOS/Deskmon${CLR_RESET}"
+    echo "To run Deskmon:"
+    printf "  %bopen %s%b\n" "$CLR_BOLD" "$APP_PATH" "$CLR_RESET"
+    printf "  or directly: %b%s/Contents/MacOS/Deskmon%b\n" "$CLR_BOLD" "$APP_PATH" "$CLR_RESET"
     echo ""
-    echo -e "To create a standalone DMG installer:"
-    echo -e "  ${CLR_BOLD}./build.sh --dmg${CLR_RESET}"
+    echo "To create a standalone DMG installer:"
+    printf "  %b./build.sh --dmg%b\n" "$CLR_BOLD" "$CLR_RESET"
 fi
