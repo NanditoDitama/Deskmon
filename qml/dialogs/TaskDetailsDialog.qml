@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import "../theme"
+import "../components"
 
 ApplicationWindow {
     id: root
@@ -157,7 +158,7 @@ ApplicationWindow {
                         anchors.margins: 2
                         clip: true
 
-                        ScrollBar.vertical.policy: ScrollBar.AsNeeded
+                        ScrollBar.vertical: CustomScrollBar {}
                         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                         TextArea {

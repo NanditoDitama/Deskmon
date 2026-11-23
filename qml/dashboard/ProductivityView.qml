@@ -843,7 +843,7 @@ Item {
                         id: app
                         text: Lang.t("Show Applications")
                         font {
-                            pixelSize: 10
+                            pixelSize: Theme.fontSizeSmall
                         }
                         background: Rectangle {
                             color: "transparent"

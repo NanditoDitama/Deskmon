@@ -99,6 +99,45 @@ Dialog {
         // Remove www. if present
         return domain.replace(/^www\./, '')
     }
+
+    function resolveIconUrl(appName, url) {
+        var domain = extractDomain(url)
+        if (domain) return "https://www.google.com/s2/favicons?domain=" + domain + "&sz=64"
+        if (!appName) return ""
+        var key = appName.toLowerCase().trim()
+        var map = {
+            "chrome": "google.com/chrome",
+            "firefox": "mozilla.org",
+            "edge": "microsoft.com",
+            "safari": "apple.com",
+            "opera": "opera.com",
+            "visual studio code": "code.visualstudio.com",
+            "vscode": "code.visualstudio.com",
+            "figma": "figma.com",
+            "canva": "canva.com",
+            "blender": "blender.org",
+            "capcut": "capcut.com",
+            "discord": "discord.com",
+            "slack": "slack.com",
+            "zoom": "zoom.us",
+            "notion": "notion.so",
+            "spotify": "spotify.com",
+            "whatsapp": "whatsapp.com",
+            "telegram": "telegram.org",
+            "postman": "postman.com",
+            "github": "github.com",
+            "acrord32": "adobe.com",
+            "adobe": "adobe.com",
+            "antigravity": "antigravity.google",
+            "anti gravity": "antigravity.google"
+        }
+        for (var k in map) {
+            if (key.indexOf(k) !== -1) {
+                return "https://www.google.com/s2/favicons?domain=" + map[k] + "&sz=64"
+            }
+        }
+        return ""
+    }
     // Initialize filtered models when dialog opens
     onOpened: {
         filterApps()
@@ -106,48 +145,101 @@ Dialog {
 
     footer: DialogButtonBox {
         alignment: Qt.AlignRight
+        padding: 16
+        spacing: 10
         background: Rectangle {
             color: Theme.cardColor
-            radius: Theme.radiusSmall
+            radius: Theme.radiusLarge
+            Rectangle {
+                anchors.top: parent.top
+                width: parent.width
+                height: 1
+                color: Theme.dividerColor
+            }
         }
         Button {
             text: Lang.t("Add Application")
-            flat: true
+            implicitHeight: 38
+            leftPadding: 16
+            rightPadding: 16
             onClicked: {
                 applicationsDialog.close()
                 addAppDialog.open()
             }
             background: Rectangle {
-                radius: 14
-                color: parent.hovered ? Qt.lighter(Theme.cardColor, 1.5) : "transparent"
-                border.color: Theme.dividerColor
+                radius: Theme.radiusSmall
+                color: parent.hovered ? Qt.alpha(Theme.textColor, 0.06) : Theme.cardHeaderColor
+                border.color: Theme.borderColor
                 border.width: 1
             }
             contentItem: Text {
                 text: parent.text
+                font.pixelSize: Theme.fontSizeSmall
+                font.weight: Font.Medium
                 color: Theme.textColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
         }
 
-
         Button {
             text: Lang.t("OK")
-            flat: true
+            implicitHeight: 38
+            leftPadding: 24
+            rightPadding: 24
             onClicked: applicationsDialog.accept()
             background: Rectangle {
-                radius: 14
-                color: parent.hovered ? Qt.lighter(Theme.cardColor, 1.5) : "transparent"
-                border.color: Theme.dividerColor
-                border.width: 1
+                radius: Theme.radiusSmall
+                color: parent.hovered ? Theme.primaryHoverColor : Theme.primaryColor
             }
             contentItem: Text {
                 text: parent.text
-                color: Theme.textColor
+                font.pixelSize: Theme.fontSizeSmall
+                font.weight: Font.DemiBold
+                color: "#FFFFFF"
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
+        }
+    }
+
+    header: Item {
+        implicitHeight: 56
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 24
+            anchors.rightMargin: 20
+            Label {
+                text: Lang.t("Monitored Applications")
+                font.pixelSize: 18
+                font.weight: Font.DemiBold
+                font.family: "Segoe UI"
+                color: Theme.textColor
+                Layout.fillWidth: true
+            }
+            Button {
+                width: 32
+                height: 32
+                flat: true
+                onClicked: applicationsDialog.close()
+                background: Rectangle {
+                    radius: 8
+                    color: parent.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
+                }
+                contentItem: Text {
+                    text: "×"
+                    font.pixelSize: 20
+                    color: Theme.lightTextColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+        }
+        Rectangle {
+            anchors.bottom: parent.bottom
+            width: parent.width
+            height: 1
+            color: Theme.dividerColor
         }
     }
 
@@ -157,7 +249,9 @@ Dialog {
     y: parent ? Math.round((parent.height - height) / 2) : 0
     background: Rectangle {
         color: Theme.cardColor
-        radius: Theme.radiusSmall
+        radius: Theme.radiusLarge
+        border.color: Theme.borderColor
+        border.width: 1
     }
 
     Column {
@@ -253,7 +347,9 @@ Dialog {
 
                 background: Rectangle {
                     radius: Theme.radiusSmall
-                    color: parent.hovered ? Qt.lighter(Theme.cardColor, 1.5) : "transparent"
+                    color: parent.hovered ? Qt.alpha(Theme.textColor, 0.06) : Theme.cardHeaderColor
+                    border.color: Theme.borderColor
+                    border.width: 1
                 }
 
                 contentItem: Text {
@@ -302,16 +398,15 @@ Dialog {
                     clip: true
                     spacing: 6
                     model: filteredProductiveApps // Use filtered array
-                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                    ScrollBar.vertical: CustomScrollBar {}
 
                     delegate: Rectangle {
-                        width: productiveListView.width
-                        height: 50
-                        gradient: Gradient {
-                            orientation: Gradient.Horizontal
-                            GradientStop { position: 0.1; color: hover ? Theme.productiveColor : Theme.cardColor }
-                            GradientStop { position: 1.0; color: Theme.cardColor }
-                        }
+                        width: productiveListView.width - 10
+                        height: 54
+                        radius: Theme.radiusSmall
+                        color: hover ? Qt.alpha(Theme.productiveColor, 0.08) : Theme.cardHeaderColor
+                        border.color: hover ? Theme.productiveColor : Theme.dividerColor
+                        border.width: 1
 
                         property bool hover: false
 
@@ -325,22 +420,29 @@ Dialog {
                         Row {
                             spacing: 12
                             anchors.fill: parent
-                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
 
                             Rectangle {
-                                width: 2
-                                height: parent.height
-                                color: Theme.productiveColor
-                            }
-
-                            Rectangle {
-                                width: 32
-                                height: 32
-                                radius: 6
-                                color: Qt.alpha(Theme.productiveColor, 0.15)
+                                width: 34
+                                height: 34
+                                radius: 8
+                                color: Qt.alpha(Theme.productiveColor, 0.14)
                                 anchors.verticalCenter: parent.verticalCenter
 
+                                Image {
+                                    id: prodIconImg
+                                    anchors.centerIn: parent
+                                    width: 22
+                                    height: 22
+                                    asynchronous: true
+                                    fillMode: Image.PreserveAspectFit
+                                    source: applicationsDialog.resolveIconUrl(modelData.appName, modelData.url)
+                                    visible: status === Image.Ready
+                                }
+
                                 Text {
+                                    visible: prodIconImg.status !== Image.Ready
                                     text: (modelData.appName || "?").charAt(0).toUpperCase()
                                     font.bold: true
                                     font.pixelSize: Theme.fontSizeBody
@@ -358,7 +460,7 @@ Dialog {
                                     text: modelData.appName || ""
                                     font.bold: true
                                     font.pixelSize: Theme.fontSizeSmall
-                                    color: hover ? "white" : Theme.textColor
+                                    color: Theme.textColor
                                     width: parent.width
                                     elide: Text.ElideRight
                                 }
@@ -366,7 +468,7 @@ Dialog {
                                 Text {
                                     text: extractDomain(modelData.url) || Lang.t("Application")
                                     font.pixelSize: 10
-                                    color: hover ? "white" : Theme.lightTextColor
+                                    color: Theme.lightTextColor
                                     width: parent.width
                                     elide: Text.ElideRight
                                 }
@@ -413,16 +515,15 @@ Dialog {
                     clip: true
                     spacing: 6
                     model: filteredNonProductiveApps // Use filtered array
-                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                    ScrollBar.vertical: CustomScrollBar {}
 
                     delegate: Rectangle {
-                        width: nonProductiveListView.width
-                        height: 50
-                        gradient: Gradient {
-                            orientation: Gradient.Horizontal
-                            GradientStop { position: 0.1; color: hover ? Theme.nonProductiveColor : Theme.cardColor }
-                            GradientStop { position: 1.0; color: Theme.cardColor }
-                        }
+                        width: nonProductiveListView.width - 10
+                        height: 54
+                        radius: Theme.radiusSmall
+                        color: hover ? Qt.alpha(Theme.nonProductiveColor, 0.08) : Theme.cardHeaderColor
+                        border.color: hover ? Theme.nonProductiveColor : Theme.dividerColor
+                        border.width: 1
 
                         property bool hover: false
 
@@ -436,22 +537,29 @@ Dialog {
                         Row {
                             spacing: 12
                             anchors.fill: parent
-                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
 
                             Rectangle {
-                                width: 2
-                                height: parent.height
-                                color: Theme.nonProductiveColor
-                            }
-
-                            Rectangle {
-                                width: 32
-                                height: 32
-                                radius: 6
-                                color: Qt.alpha(Theme.nonProductiveColor, 0.15)
+                                width: 34
+                                height: 34
+                                radius: 8
+                                color: Qt.alpha(Theme.nonProductiveColor, 0.14)
                                 anchors.verticalCenter: parent.verticalCenter
 
+                                Image {
+                                    id: nonProdIconImg
+                                    anchors.centerIn: parent
+                                    width: 22
+                                    height: 22
+                                    asynchronous: true
+                                    fillMode: Image.PreserveAspectFit
+                                    source: applicationsDialog.resolveIconUrl(modelData.appName, modelData.url)
+                                    visible: status === Image.Ready
+                                }
+
                                 Text {
+                                    visible: nonProdIconImg.status !== Image.Ready
                                     text: (modelData.appName || "?").charAt(0).toUpperCase()
                                     font.bold: true
                                     font.pixelSize: Theme.fontSizeBody
@@ -469,7 +577,7 @@ Dialog {
                                     text: modelData.appName || ""
                                     font.bold: true
                                     font.pixelSize: Theme.fontSizeSmall
-                                    color: hover ? "white" : Theme.textColor
+                                    color: Theme.textColor
                                     width: parent.width
                                     elide: Text.ElideRight
                                 }
@@ -477,7 +585,7 @@ Dialog {
                                 Text {
                                     text: modelData.url || Lang.t("Application")
                                     font.pixelSize: 10
-                                    color: hover ? "white" : Theme.lightTextColor
+                                    color: Theme.lightTextColor
                                     width: parent.width
                                     elide: Text.ElideRight
                                 }

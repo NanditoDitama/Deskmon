@@ -10,7 +10,6 @@ import "components"
 import "dialogs"
 import "layouts"
 import "login"
-import "profile"
 import "dashboard"
 import "application_submission"
 
@@ -36,9 +35,7 @@ Window {
     // Application-Level State
     // =========================================================================
     property bool isLoggedIn: false
-    property bool isProfileVisible: false
     property string currentUsername: ""
-    property string profileImagePath: ":/profilImage.png"
     property bool showIdleNotification: false
     property string idleNotificationText: ""
 
@@ -72,7 +69,6 @@ Window {
 
     function goToLoginPage() {
         isLoggedIn = false
-        isProfileVisible = false
         console.log("Navigasi ke halaman login")
     }
 
@@ -99,16 +95,8 @@ Window {
 
         function onRequestLoginPage() {
             isLoggedIn = false
-            isProfileVisible = false
             showIdleNotification = false
             console.log("Sesi berakhir, meminta login ulang")
-        }
-
-        function onProfileImageChanged(username, newPath) {
-            if (username === currentUsername) {
-                console.log("Profile image changed for", username, "to", newPath)
-                profileImagePath = newPath
-            }
         }
 
         function onTaskReviewNotification(message) {
@@ -158,7 +146,6 @@ Window {
             logger.logout()
             isLoggedIn = false
             currentUsername = ""
-            profileImagePath = ":/profilImage.png"
             logger.clearLogFilter()
         }
 
@@ -228,7 +215,6 @@ Window {
         id: authErrorWindow
         onLoginRedirectRequested: {
             isLoggedIn = false
-            isProfileVisible = false
             if (typeof logger !== "undefined")
                 logger.logout()
         }
@@ -342,57 +328,21 @@ Window {
     Rectangle {
         anchors.fill: parent
         color: Theme.backgroundColor
-        visible: !isLoggedIn && !isProfileVisible
+        visible: !isLoggedIn
 
         LoginPage {
             anchors.fill: parent
         }
     }
 
-    // 2. Halaman Profil
+    // 2. Halaman Dashboard Utama
     Rectangle {
         anchors.fill: parent
         color: Theme.backgroundColor
-        visible: isProfileVisible
-        opacity: isProfileVisible ? 1 : 0
-        Behavior on opacity {
-            NumberAnimation { duration: 300 }
-        }
-
-        ProfilePage {
-            anchors.fill: parent
-            profileImageSource: window.profileImagePath
-            onBackRequested: window.isProfileVisible = false
-            onProfileImageUpdated: function(newPath) {
-                window.profileImagePath = newPath
-            }
-            onStatusMessageRequested: function(msg) {
-                profileErrorLabel.text = msg
-            }
-        }
-
-        Label {
-            id: profileErrorLabel
-            text: ""
-            color: profileErrorLabel.text.includes("success") ? Theme.successColor : Theme.dangerColor
-            font.pixelSize: Theme.fontSizeSmall
-            Layout.alignment: Qt.AlignHCenter
-            visible: text !== ""
-        }
-    }
-
-    // 3. Halaman Dashboard Utama
-    Rectangle {
-        anchors.fill: parent
-        color: Theme.backgroundColor
-        visible: isLoggedIn && !isProfileVisible
+        visible: isLoggedIn
 
         DashboardPage {
             username: currentUsername
-            onProfileRequested: {
-                profileErrorLabel.text = ""
-                isProfileVisible = true
-            }
             onLogoutRequested: {
                 if (typeof logger !== "undefined" && logger.activeTaskId && logger.activeTaskId > 0) {
                     console.log("Task aktif terdeteksi (ID: " + logger.activeTaskId + "). Membuka dialog detail.")

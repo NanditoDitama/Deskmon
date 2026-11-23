@@ -23,43 +23,69 @@ Dialog {
     background: Rectangle {
         color: Theme.cardColor
         radius: Theme.radiusLarge
-        border.color: Theme.dividerColor
+        border.color: Theme.borderColor
         border.width: 1
+    }
 
-        Rectangle {
+    header: Item {
+        implicitHeight: 56
+        RowLayout {
             anchors.fill: parent
-            radius: parent.radius
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(0,0,0,0.05) }
-                GradientStop { position: 1.0; color: "transparent" }
+            anchors.leftMargin: 24
+            anchors.rightMargin: 20
+            Label {
+                text: Lang.t("Application Requests")
+                font.pixelSize: 18
+                font.weight: Font.DemiBold
+                font.family: "Segoe UI"
+                color: Theme.textColor
+                Layout.fillWidth: true
             }
+            Button {
+                width: 32
+                height: 32
+                flat: true
+                onClicked: requestDialog.close()
+                background: Rectangle {
+                    radius: 8
+                    color: parent.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
+                }
+                contentItem: Text {
+                    text: "×"
+                    font.pixelSize: 20
+                    color: Theme.lightTextColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+        }
+        Rectangle {
+            anchors.bottom: parent.bottom
+            width: parent.width
+            height: 1
+            color: Theme.dividerColor
         }
     }
 
     contentItem: ColumnLayout {
         spacing: 16
 
-        Label {
-            text: Lang.t("Pending Application Requests")
-            font {
-                pixelSize: 18
-                bold: true
-                family: "Segoe UI"
-            }
-            color: Theme.primaryColor
-            Layout.alignment: Qt.AlignHCenter
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: Theme.dividerColor
-        }
-
-        ScrollView {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
+
+            Label {
+                anchors.centerIn: parent
+                visible: requestListView.count === 0
+                text: Lang.t("No pending application requests")
+                font.pixelSize: Theme.fontSizeBody
+                color: Theme.lightTextColor
+            }
+
+            ScrollView {
+                anchors.fill: parent
+                clip: true
+                visible: requestListView.count > 0
 
             ListView {
                 id: requestListView
@@ -179,22 +205,24 @@ Dialog {
                 }
             }
         }
+        }
 
         Button {
             text: Lang.t("Close")
             Layout.alignment: Qt.AlignRight
-            Layout.preferredWidth: 120
-            Layout.preferredHeight: 40
+            Layout.preferredWidth: 110
+            Layout.preferredHeight: 38
             onClicked: requestDialog.close()
 
             background: Rectangle {
                 radius: Theme.radiusSmall
-                color: parent.hovered ? Qt.lighter(Theme.secondaryColor, 1.1) : Theme.secondaryColor
+                color: parent.hovered ? Theme.primaryHoverColor : Theme.primaryColor
             }
 
             contentItem: Text {
                 text: parent.text
-                font.pixelSize: Theme.fontSizeBody
+                font.pixelSize: Theme.fontSizeSmall
+                font.weight: Font.DemiBold
                 color: "white"
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter

@@ -195,11 +195,13 @@ Dialog {
 
     Shortcut {
         sequences: [ StandardKey.Close, "Escape" ]
+        enabled: root.visible
         onActivated: root.accept()
     }
 
     Shortcut {
         sequences: [ StandardKey.Accept, "Return", "Enter" ]
+        enabled: root.visible
         onActivated: okButton1.clicked()
     }
 

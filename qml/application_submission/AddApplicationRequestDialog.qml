@@ -6,6 +6,7 @@ import QtQuick.Dialogs
 import QtQuick.Effects
 import QtQuick.Window
 import "../theme"
+import "../components"
 
 Dialog {
     id: addAppDialog
@@ -20,33 +21,85 @@ Dialog {
     padding: 0
     background: Rectangle {
         color: Theme.cardColor
-        radius: Theme.radiusSmall
+        radius: Theme.radiusLarge
+        border.color: Theme.borderColor
+        border.width: 1
+    }
+
+    header: Item {
+        implicitHeight: 56
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 24
+            anchors.rightMargin: 20
+            Label {
+                text: Lang.t("Add Productivity Application")
+                font.pixelSize: 18
+                font.weight: Font.DemiBold
+                font.family: "Segoe UI"
+                color: Theme.textColor
+                Layout.fillWidth: true
+            }
+            Button {
+                width: 32
+                height: 32
+                flat: true
+                onClicked: addAppDialog.close()
+                background: Rectangle {
+                    radius: 8
+                    color: parent.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
+                }
+                contentItem: Text {
+                    text: "×"
+                    font.pixelSize: 20
+                    color: Theme.lightTextColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+        }
+        Rectangle {
+            anchors.bottom: parent.bottom
+            width: parent.width
+            height: 1
+            color: Theme.dividerColor
+        }
     }
 
     footer: DialogButtonBox {
         alignment: Qt.AlignRight
-        padding: 10
+        padding: 16
+        spacing: 10
         background: Rectangle {
             color: Theme.cardColor
-            radius: Theme.radiusSmall
+            radius: Theme.radiusLarge
+            Rectangle {
+                anchors.top: parent.top
+                width: parent.width
+                height: 1
+                color: Theme.dividerColor
+            }
         }
         Button {
             text: Lang.t("Cancel")
-            flat: true
+            implicitHeight: 38
+            leftPadding: 16
+            rightPadding: 16
             onClicked: {
                 addAppDialog.close()
                 addAppDialog.cancelRequested()
             }
 
-
             background: Rectangle {
-                radius: 14
-                color: parent.hovered ? Qt.lighter(Theme.cardColor, 1.5) : "transparent"
-                border.color: Theme.dividerColor
+                radius: Theme.radiusSmall
+                color: parent.hovered ? Qt.alpha(Theme.textColor, 0.06) : Theme.cardHeaderColor
+                border.color: Theme.borderColor
                 border.width: 1
             }
             contentItem: Text {
                 text: parent.text
+                font.pixelSize: Theme.fontSizeSmall
+                font.weight: Font.Medium
                 color: Theme.textColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -55,9 +108,11 @@ Dialog {
         Button {
             id: addButton
             text: Lang.t("Add")
-            Layout.alignment: Qt.AlignRight
-            font.pixelSize: Theme.fontSizeBody
-            padding: 8
+            implicitHeight: 38
+            leftPadding: 24
+            rightPadding: 24
+            font.pixelSize: Theme.fontSizeSmall
+            font.weight: Font.DemiBold
             enabled: {
                 if (appList.currentItem && appList.model[appList.currentIndex] === "Other") {
                     return txtAppName.text.trim().length > 0
@@ -68,18 +123,12 @@ Dialog {
                 return appList.currentItem !== null
             }
             background: Rectangle {
-                color: addButton.enabled ? Theme.primaryColor : "#cccccc"
-                radius: 4
-                Rectangle {
-                    anchors.fill: parent
-                    color: Qt.darker(Theme.primaryColor, 1.2)
-                    radius: 4
-                    visible: parent.parent.hovered && addButton.enabled
-                }
+                color: addButton.enabled ? (parent.hovered ? Theme.primaryHoverColor : Theme.primaryColor) : Theme.dividerColor
+                radius: Theme.radiusSmall
             }
             contentItem: Text {
                 text: parent.text
-                color: "#ffffff"
+                color: addButton.enabled ? "#ffffff" : Theme.mutedTextColor
                 font: parent.font
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -160,10 +209,7 @@ Dialog {
                         return apps.filter(app => app.toLowerCase().includes(searchField.text.toLowerCase()))
                     }
                     currentIndex: 0
-                    ScrollBar.vertical: ScrollBar {
-                        policy: ScrollBar.AsNeeded
-                        width: 8
-                    }
+                    ScrollBar.vertical: CustomScrollBar {}
 
                     delegate: Rectangle {
                         width: appList.width
@@ -208,13 +254,57 @@ Dialog {
                             leftPadding: 10
 
                             Rectangle {
-                                width: 32
-                                height: 32
-                                radius: 6
-                                color: Qt.lighter(Theme.primaryColor, 1.8)
+                                width: 34
+                                height: 34
+                                radius: 8
+                                color: Qt.alpha(Theme.primaryColor, 0.14)
                                 anchors.verticalCenter: parent.verticalCenter
 
+                                Image {
+                                    id: reqAppIconImg
+                                    anchors.centerIn: parent
+                                    width: 22
+                                    height: 22
+                                    asynchronous: true
+                                    fillMode: Image.PreserveAspectFit
+                                    source: {
+                                        var key = (modelData || "").toLowerCase().trim()
+                                        var map = {
+                                            "chrome": "google.com/chrome",
+                                            "firefox": "mozilla.org",
+                                            "edge": "microsoft.com",
+                                            "safari": "apple.com",
+                                            "opera": "opera.com",
+                                            "visual studio code": "code.visualstudio.com",
+                                            "vscode": "code.visualstudio.com",
+                                            "figma": "figma.com",
+                                            "canva": "canva.com",
+                                            "blender": "blender.org",
+                                            "capcut": "capcut.com",
+                                            "discord": "discord.com",
+                                            "slack": "slack.com",
+                                            "zoom": "zoom.us",
+                                            "notion": "notion.so",
+                                            "spotify": "spotify.com",
+                                            "whatsapp": "whatsapp.com",
+                                            "telegram": "telegram.org",
+                                            "postman": "postman.com",
+                                            "github": "github.com",
+                                            "adobe": "adobe.com",
+                                            "antigravity": "antigravity.google"
+                                        }
+                                        for (var k in map) {
+                                            if (key.indexOf(k) !== -1) {
+                                                return "https://www.google.com/s2/favicons?domain=" + map[k] + "&sz=64"
+                                            }
+                                        }
+                                        return ""
+                                    }
+                                    visible: status === Image.Ready
+                                }
+
                                 Text {
+                                    visible: reqAppIconImg.status !== Image.Ready
                                     text: modelData.charAt(0).toUpperCase()
                                     font.bold: true
                                     font.pixelSize: Theme.fontSizeBody
@@ -285,13 +375,17 @@ Dialog {
                 Layout.fillWidth: true
                 placeholderText: Lang.t("Enter application name, make sure the name is correct")
                 font.pixelSize: Theme.fontSizeBody
-                visible: false
+                color: Theme.textColor
+                placeholderTextColor: Theme.mutedTextColor
+                leftPadding: 12
+                rightPadding: 12
+                visible: appList.currentIndex >= 0 && appList.model && appList.model[appList.currentIndex] === "Other"
                 background: Rectangle {
-                    radius: 4
-                    border.color: Theme.dividerColor
-                    border.width: 1
-                    color: Theme.cardColor
-                    implicitHeight: 36
+                    radius: Theme.radiusSmall
+                    border.color: txtAppName.activeFocus ? Theme.primaryColor : Theme.borderColor
+                    border.width: txtAppName.activeFocus ? 2 : 1
+                    color: Theme.surfaceColor
+                    implicitHeight: 40
                 }
             }
 
@@ -309,13 +403,17 @@ Dialog {
                 Layout.fillWidth: true
                 placeholderText: Lang.t("Enter website domain (example: youtube.com, google.com, etc)")
                 font.pixelSize: Theme.fontSizeBody
-                visible: false
+                color: Theme.textColor
+                placeholderTextColor: Theme.mutedTextColor
+                leftPadding: 12
+                rightPadding: 12
+                visible: appList.currentIndex >= 0 && appList.model && ["Chrome", "Firefox", "Edge", "Safari", "Opera"].indexOf(appList.model[appList.currentIndex]) !== -1
                 background: Rectangle {
-                    radius: 4
-                    border.color: Theme.dividerColor
-                    border.width: 1
-                    color: Theme.cardColor
-                    implicitHeight: 36
+                    radius: Theme.radiusSmall
+                    border.color: txtWebsite.activeFocus ? Theme.primaryColor : Theme.borderColor
+                    border.width: txtWebsite.activeFocus ? 2 : 1
+                    color: Theme.surfaceColor
+                    implicitHeight: 40
                 }
                 validator: RegularExpressionValidator {
                     regularExpression: /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
@@ -436,34 +534,6 @@ Dialog {
                                         produktifRipple.height = 0
                                         produktifRipple.visible = false
                                     }
-                                }
-                            }
-                        }
-
-                        // Add icon for visual enhancement
-                        Rectangle {
-                            width: 16
-                            height: 16
-                            radius: 3
-                            color: Theme.successColor
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.indicator.verticalCenter
-                            anchors.rightMargin: 8
-                            visible: produktifRadio.checked
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "✓"
-                                color: "white"
-                                font.pixelSize: 10
-                                font.bold: true
-                            }
-
-                            scale: produktifRadio.checked ? 1.0 : 0.0
-                            Behavior on scale {
-                                NumberAnimation {
-                                    duration: 300
-                                    easing.type: Easing.OutBack
                                 }
                             }
                         }

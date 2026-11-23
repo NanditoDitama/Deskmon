@@ -37,7 +37,6 @@ set(CORE_SOURCES
     src/core/database/WorkLogRepository.cpp
     src/core/database/ProductivityAppRepository.cpp
     src/features/auth/AuthManager.cpp
-    src/features/profile/UserProfileManager.cpp
     src/features/worktime/WorkTimeTracker.cpp
     src/features/tracking/ActivityTracker.cpp
     src/features/tracking/IdleChecker.cpp
@@ -65,7 +64,6 @@ set(CORE_HEADERS
     src/core/database/WorkLogRepository.h
     src/core/database/ProductivityAppRepository.h
     src/features/auth/AuthManager.h
-    src/features/profile/UserProfileManager.h
     src/features/worktime/WorkTimeTracker.h
     src/features/tracking/ActivityTracker.h
     src/features/tracking/IdleChecker.h
@@ -84,11 +82,10 @@ set(QML_FILES
     qml/components/ToastNotification.qml
     qml/components/CustomButton.qml
     qml/components/CustomToolTip.qml
+    qml/components/CustomScrollBar.qml
     qml/components/StatusBadge.qml
     qml/components/WorkTimerCard.qml
     qml/login/LoginPage.qml
-    qml/profile/ProfilePage.qml
-    qml/profile/CropImageDialog.qml
     qml/dashboard/DashboardPage.qml
     qml/dashboard/ProductivityView.qml
     qml/dashboard/CurrentTaskView.qml

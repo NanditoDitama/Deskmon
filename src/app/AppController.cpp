@@ -25,7 +25,6 @@ AppController::AppController(QObject *parent)
     , m_workLogRepo(new WorkLogRepository(this))
     , m_prodRepo(new ProductivityAppRepository(this))
     , m_authManager(new AuthManager(m_apiClient, m_userRepo, this))
-    , m_profileManager(new UserProfileManager(m_userRepo, m_authManager, this))
     , m_workTimeTracker(new WorkTimeTracker(m_apiClient, m_workTimeRepo, m_authManager, this))
     , m_activityTracker(new ActivityTracker(m_workLogRepo, m_authManager, this))
     , m_taskManager(new TaskManager(m_apiClient, m_taskRepo, m_authManager, this))
@@ -101,9 +100,6 @@ void AppController::setupConnections()
         emit activeTaskChanged();
         emit taskPausedChanged();
     });
-
-    // Profile Manager Signals
-    connect(m_profileManager, &UserProfileManager::profileImageChanged, this, &AppController::profileImageChanged);
 
     // Work Time Tracker Signals
     connect(m_workTimeTracker, &WorkTimeTracker::workTimeElapsedSecondsChanged, this, &AppController::workTimeElapsedSecondsChanged);
@@ -186,21 +182,6 @@ QString AppController::getUserEmail(const QString &username) { return m_authMana
 QString AppController::getUsernameById(int userId) const { return m_authManager->getUsernameById(userId); }
 QString AppController::getCurrentUsername() const { return m_authManager->currentUsername(); }
 QString AppController::getCurrentUserEmail() const { return m_authManager->currentUserEmail(); }
-QString AppController::updateUserProfile(const QString &currentUsername, const QString &newUsername, const QString &newPassword) {
-    return m_profileManager->updateUserProfile(currentUsername, newUsername, newPassword);
-}
-QString AppController::cropProfileImage(const QString &imagePath, qreal x, qreal y, qreal imageWidth, qreal imageHeight, qreal cropWidth, qreal cropHeight) {
-    return m_profileManager->cropProfileImage(imagePath, x, y, imageWidth, imageHeight, cropWidth, cropHeight);
-}
-bool AppController::updateProfileImage(const QString &username, const QString &imagePath) {
-    return m_profileManager->updateProfileImage(username, imagePath);
-}
-QString AppController::getProfileImagePath(const QString &username) {
-    return m_profileManager->getProfileImagePath(username);
-}
-bool AppController::validateFilePath(const QString &filePath) {
-    return m_profileManager->validateFilePath(filePath);
-}
 
 // Tasks Delegations
 void AppController::fetchAndStoreTasks() { m_taskManager->fetchAndStoreTasks(); }

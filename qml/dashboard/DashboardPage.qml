@@ -11,7 +11,6 @@ Rectangle {
 
     property string username: ""
 
-    signal profileRequested()
     signal logoutRequested()
     signal needReviewRequested(int taskId)
 
@@ -21,7 +20,6 @@ Rectangle {
 
         HeaderLayout {
             username: root.username
-            onProfileClicked: root.profileRequested()
             onLogoutClicked: root.logoutRequested()
         }
 

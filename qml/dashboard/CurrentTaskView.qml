@@ -382,7 +382,7 @@ Item {
             clip: true
             visible: taskListView.count > 0
 
-            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+            ScrollBar.vertical: CustomScrollBar {}
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
 

@@ -18,10 +18,27 @@ Item {
     Component.onCompleted: {
         usernameField.text = logger.savedUsername()
         passwordField.text = logger.savedPassword()
+        usernameField.forceActiveFocus()
     }
-    // Background dengan gradient modern yang responsif terhadap tema
+
+    onVisibleChanged: {
+        if (visible && typeof logger !== "undefined") {
+            usernameField.text = logger.savedUsername()
+            passwordField.text = logger.savedPassword()
+            error_Label.text = ""
+            usernameField.forceActiveFocus()
+        }
+    }
+
+    Shortcut {
+        sequences: ["Return", "Enter"]
+        enabled: loginPageRoot.visible && !loginPageRoot.isLoading
+        onActivated: loginButton.clicked()
+    }
+        // Background dengan gradient modern yang responsif terhadap tema
     Rectangle {
         anchors.fill: parent
+        clip: true
 
         gradient: Gradient {
             GradientStop {
@@ -34,7 +51,7 @@ Item {
             }
         }
 
-        // Shooting Stars Animation
+        // Shooting Stars Animation (Dark Mode)
         Repeater {
             model: 5
 
@@ -52,7 +69,7 @@ Item {
                 property real starSize: 2 + Math.random() * 3
                 property bool isVisible: false
 
-                visible: shootingStar.isVisible
+                visible: Theme.isDarkMode && shootingStar.isVisible
 
                 Item {
                     id: starTrail
@@ -110,7 +127,7 @@ Item {
 
                 SequentialAnimation {
                     loops: Animation.Infinite
-                    running: true
+                    running: Theme.isDarkMode && loginPageRoot.visible
 
                     PauseAnimation { duration: shootingStar.animationDelay }
 
@@ -163,23 +180,196 @@ Item {
             }
         }
 
-        // Static stars (Background)
+        // Static stars (Background - Dark Mode)
         Repeater {
             model: 30
             Rectangle {
+                visible: Theme.isDarkMode
                 width: 1 + Math.random() * 2
                 height: width
                 radius: width / 2
-                color: Theme.isDarkMode ? "white" : Qt.rgba(1, 1, 1, 0.8)
+                color: "white"
                 x: Math.random() * parent.width
                 y: Math.random() * parent.height
                 opacity: 0.3
                 SequentialAnimation on opacity {
                     loops: Animation.Infinite
-                    running: true
+                    running: Theme.isDarkMode && loginPageRoot.visible
                     PauseAnimation { duration: Math.random() * 2000 }
                     NumberAnimation { from: 0.3; to: 1; duration: 1000 }
                     NumberAnimation { from: 1; to: 0.3; duration: 1000 }
+                }
+            }
+        }
+
+        // Light Mode Backdrop: matahari, awan, dan burung samar-samar
+        Item {
+            id: lightSkyBackdrop
+            anchors.fill: parent
+            visible: !Theme.isDarkMode
+
+            // Matahari samar dengan glow lembut
+            Item {
+                id: subtleSun
+                width: 160
+                height: 160
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.rightMargin: Math.max(40, parent.width * 0.1)
+                anchors.topMargin: Math.max(30, parent.height * 0.08)
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 160
+                    height: 160
+                    radius: 80
+                    color: "#FFE082"
+                    opacity: 0.14
+                }
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 108
+                    height: 108
+                    radius: 54
+                    color: "#FFE89E"
+                    opacity: 0.22
+                }
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 64
+                    height: 64
+                    radius: 32
+                    color: "#FFF6CC"
+                    opacity: 0.35
+                }
+
+                SequentialAnimation on scale {
+                    loops: Animation.Infinite
+                    running: lightSkyBackdrop.visible && loginPageRoot.visible
+                    NumberAnimation { from: 0.96; to: 1.04; duration: 5000; easing.type: Easing.InOutSine }
+                    NumberAnimation { from: 1.04; to: 0.96; duration: 5000; easing.type: Easing.InOutSine }
+                }
+            }
+
+            // Awan samar bergerak pelan
+            Repeater {
+                model: 4
+                Item {
+                    id: cloudItem
+                    width: 170 + (index % 2) * 50
+                    height: 60
+                    y: parent.height * (0.1 + index * 0.14)
+                    opacity: 0.22 + (index % 2) * 0.08
+                    readonly property real startX: lightSkyBackdrop.width * (0.14 + index * 0.21)
+                    readonly property int fullDuration: 42000 + index * 11000
+                    x: startX
+
+                    Rectangle {
+                        width: parent.width * 0.78
+                        height: 28
+                        radius: 14
+                        color: "#FFFFFF"
+                        anchors.bottom: parent.bottom
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                    Rectangle {
+                        width: parent.width * 0.44
+                        height: 38
+                        radius: 19
+                        color: "#FFFFFF"
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 8
+                        anchors.left: parent.left
+                        anchors.leftMargin: parent.width * 0.16
+                    }
+                    Rectangle {
+                        width: parent.width * 0.34
+                        height: 30
+                        radius: 15
+                        color: "#FFFFFF"
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 6
+                        anchors.right: parent.right
+                        anchors.rightMargin: parent.width * 0.18
+                    }
+
+                    SequentialAnimation on x {
+                        running: lightSkyBackdrop.visible && loginPageRoot.visible && lightSkyBackdrop.width > 0
+                        NumberAnimation {
+                            from: cloudItem.startX
+                            to: lightSkyBackdrop.width + 60
+                            duration: Math.max(1000, cloudItem.fullDuration * (1 - (cloudItem.startX + cloudItem.width) / (lightSkyBackdrop.width + cloudItem.width + 60)))
+                        }
+                        NumberAnimation {
+                            from: -cloudItem.width
+                            to: lightSkyBackdrop.width + 60
+                            duration: cloudItem.fullDuration
+                            loops: Animation.Infinite
+                        }
+                    }
+                }
+            }
+
+            // Burung kecil samar melintas di langit
+            Repeater {
+                model: 3
+                Item {
+                    id: birdItem
+                    width: 22
+                    height: 12
+                    y: lightSkyBackdrop.height * (0.16 + index * 0.09)
+                    opacity: 0.26
+                    readonly property real startX: lightSkyBackdrop.width * (0.22 + index * 0.24)
+                    readonly property int fullDuration: 26000 + index * 7000
+                    x: startX
+
+                    Canvas {
+                        anchors.fill: parent
+                        onPaint: {
+                            var ctx = getContext("2d")
+                            ctx.clearRect(0, 0, width, height)
+                            ctx.strokeStyle = "#546E7A"
+                            ctx.lineWidth = 1.6
+                            ctx.lineCap = "round"
+                            ctx.beginPath()
+                            ctx.moveTo(2, 8)
+                            ctx.quadraticCurveTo(6.5, 2, 11, 7)
+                            ctx.quadraticCurveTo(15.5, 2, 20, 8)
+                            ctx.stroke()
+                        }
+                    }
+
+                    SequentialAnimation on y {
+                        loops: Animation.Infinite
+                        running: lightSkyBackdrop.visible && loginPageRoot.visible
+                        NumberAnimation {
+                            from: lightSkyBackdrop.height * (0.16 + index * 0.09)
+                            to: lightSkyBackdrop.height * (0.16 + index * 0.09) - 10
+                            duration: 1800 + index * 300
+                            easing.type: Easing.InOutSine
+                        }
+                        NumberAnimation {
+                            from: lightSkyBackdrop.height * (0.16 + index * 0.09) - 10
+                            to: lightSkyBackdrop.height * (0.16 + index * 0.09)
+                            duration: 1800 + index * 300
+                            easing.type: Easing.InOutSine
+                        }
+                    }
+
+                    SequentialAnimation on x {
+                        running: lightSkyBackdrop.visible && loginPageRoot.visible && lightSkyBackdrop.width > 0
+                        NumberAnimation {
+                            from: birdItem.startX
+                            to: lightSkyBackdrop.width + 40
+                            duration: Math.max(1000, birdItem.fullDuration * (1 - (birdItem.startX + 40) / (lightSkyBackdrop.width + 80)))
+                        }
+                        NumberAnimation {
+                            from: -40
+                            to: lightSkyBackdrop.width + 40
+                            duration: birdItem.fullDuration
+                            loops: Animation.Infinite
+                        }
+                    }
                 }
             }
         }
@@ -536,11 +726,6 @@ Item {
                                 console.log("Email:", logger.getUserEmail(currentUsername))
                                 console.log("Department:", dept)
 
-                                var savedImagePath = logger.getProfileImagePath(currentUsername)
-                                profileImagePath = savedImagePath !== "" ? savedImagePath + "?t=" + new Date().getTime() : ":/profilImage.png"
-
-                                usernameField.text = ""
-                                passwordField.text = ""
                                 error_Label.text = ""
 
                             } else {

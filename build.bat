@@ -5,14 +5,14 @@ echo ==================================================
 echo Configuring environment for Deskmon build...
 echo ==================================================
 
-:: Set Qt 6.11.2 and Tools directories
-if exist "C:\Qt\6.11.2\mingw_64" (
-    set "QT_DIR=C:\Qt\6.11.2\mingw_64"
+:: Set Qt 6.12.0 and Tools directories
+if exist "C:\Qt\6.12.0\mingw_64" (
+    set "QT_DIR=C:\Qt\6.12.0\mingw_64"
     set "CMAKE_DIR=C:\Qt\Tools\CMake_64\bin"
     set "MINGW_DIR=C:\Qt\Tools\mingw1310_64\bin"
     set "NINJA_DIR=C:\Qt\Tools\Ninja"
 ) else (
-    set "QT_DIR=C:\Qt6112\6.11.2\mingw_64"
+    set "QT_DIR=C:\Qt6112\6.12.0\mingw_64"
     set "CMAKE_DIR=C:\Qt6112\Tools\CMake_64\bin"
     set "MINGW_DIR=C:\Qt6112\Tools\mingw1310_64\bin"
     set "NINJA_DIR=C:\Qt6112\Tools\Ninja"

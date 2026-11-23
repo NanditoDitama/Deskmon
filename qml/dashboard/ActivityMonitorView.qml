@@ -227,7 +227,7 @@ Item {
                                 Layout.preferredWidth: 100
                                 font {
                                     family: "Segoe UI"
-                                    pixelSize: 11
+                                    pixelSize: Theme.fontSizeSmall
                                 }
                                 color: Theme.lightTextColor
                                 elide: Text.ElideRight
@@ -238,7 +238,7 @@ Item {
                                 Layout.preferredWidth: 80
                                 font {
                                     family: "Segoe UI"
-                                    pixelSize: 11
+                                    pixelSize: Theme.fontSizeSmall
                                 }
                                 color: Theme.lightTextColor
                             }
@@ -248,7 +248,7 @@ Item {
                                 Layout.preferredWidth: 150
                                 font {
                                     family: "Segoe UI"
-                                    pixelSize: 11
+                                    pixelSize: Theme.fontSizeSmall
                                 }
                                 color: Theme.lightTextColor
                                 elide: Text.ElideRight
@@ -258,7 +258,7 @@ Item {
                                 text: modelData.title
                                 font {
                                     family: "Segoe UI"
-                                    pixelSize: 11
+                                    pixelSize: Theme.fontSizeSmall
                                 }
                                 color: Theme.lightTextColor
                                 elide: Text.ElideRight

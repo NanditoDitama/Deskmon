@@ -29,14 +29,13 @@ Rectangle {
         Label {
             text: "Deskmon"
             font { bold: true; pixelSize: 20; family: "Segoe UI" }
-            color: "white"
+            color: Theme.textColor
         }
 
         Label {
             text: root.username
             font.pixelSize: Theme.fontSizeBody
-            color: "white"
-            opacity: 0.8
+            color: Theme.lightTextColor
         }
 
         Item { Layout.fillWidth: true }
@@ -55,11 +54,11 @@ Rectangle {
                 hoverEnabled: true
                 background: Rectangle {
                     radius: 20
-                    color: parent.hovered || settingsMenu.visible ? Qt.rgba(1, 1, 1, 0.2) : "transparent"
+                    color: parent.hovered || settingsMenu.visible ? (Theme.isDarkMode ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(0, 0, 0, 0.06)) : "transparent"
                 }
 
                 contentItem: Image {
-                    source: "image://icon/settings.svg?" + (Theme.isDarkMode ? Theme.textColor : "#FFFFFF")
+                    source: "image://icon/settings.svg?" + Theme.textColor
                     sourceSize.width: 22
                     sourceSize.height: 22
                     anchors.centerIn: parent
@@ -93,69 +92,31 @@ Rectangle {
                     id: settingsMenu
                     y: settingsBtn.height + 8
                     x: -width + settingsBtn.width
-                    width: 210
+                    width: 224
+                    padding: 6
                     transformOrigin: Item.TopRight
 
                     background: Rectangle {
-                        implicitWidth: 210
+                        implicitWidth: 224
                         color: Theme.cardColor
                         radius: Theme.radiusMedium
-                        border.color: Theme.dividerColor
+                        border.color: Theme.borderColor
                         border.width: 1
-                    }
-
-                    // --- Profile Item ---
-                    MenuItem {
-                        id: profileMenuItem
-                        height: 40
-                        background: Rectangle {
-                            color: profileMenuItem.hovered ? (Theme.isDarkMode ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.05)) : "transparent"
-                            radius: Theme.radiusSmall
-                        }
-                        contentItem: RowLayout {
-                            spacing: 12
-                            anchors.fill: parent
-                            anchors.leftMargin: 14
-                            anchors.rightMargin: 14
-
-                            Image {
-                                source: "image://icon/edit.svg?" + Theme.textColor
-                                sourceSize.width: 16
-                                sourceSize.height: 16
-                                opacity: 0.85
-                            }
-                            Text {
-                                text: Lang.t("My Profile")
-                                font.pixelSize: Theme.fontSizeSmall
-                                font.weight: Font.Medium
-                                color: Theme.textColor
-                                Layout.fillWidth: true
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                        }
-                        onTriggered: root.profileClicked()
-                    }
-
-                    MenuSeparator {
-                        contentItem: Rectangle {
-                            implicitHeight: 1
-                            color: Theme.dividerColor
-                        }
                     }
 
                     // --- Appearance Mode Item ---
                     MenuItem {
                         id: modeMenuItem
-                        height: 40
+                        height: 38
                         background: Rectangle {
                             color: modeMenuItem.hovered ? (Theme.isDarkMode ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.05)) : "transparent"
                             radius: Theme.radiusSmall
                         }
                         contentItem: RowLayout {
-                            spacing: 12
+                            spacing: 10
                             anchors.fill: parent
-                            anchors.leftMargin: 14
-                            anchors.rightMargin: 14
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
 
                             Image {
                                 source: Theme.isDarkMode ? ("image://icon/light_mode.svg?" + Theme.textColor) : ("image://icon/dark_mode.svg?" + Theme.textColor)
@@ -178,6 +139,8 @@ Rectangle {
                     }
 
                     MenuSeparator {
+                        topPadding: 4
+                        bottomPadding: 4
                         contentItem: Rectangle {
                             implicitHeight: 1
                             color: Theme.dividerColor
@@ -218,6 +181,7 @@ Rectangle {
                             Text {
                                 text: "🇺🇸"
                                 font.pixelSize: 14
+                                color: Theme.textColor
                             }
                             Text {
                                 text: "English"
@@ -254,6 +218,7 @@ Rectangle {
                             Text {
                                 text: "🇮🇩"
                                 font.pixelSize: 14
+                                color: Theme.textColor
                             }
                             Text {
                                 text: "Bahasa Indonesia"
@@ -272,6 +237,41 @@ Rectangle {
                         }
                         onTriggered: Lang.setLanguage("id")
                     }
+
+                    MenuSeparator {
+                        topPadding: 4
+                        bottomPadding: 4
+                        contentItem: Rectangle {
+                            implicitHeight: 1
+                            color: Theme.dividerColor
+                        }
+                    }
+
+                    // --- Logout Item ---
+                    MenuItem {
+                        id: logoutMenuItem
+                        height: 38
+                        background: Rectangle {
+                            color: logoutMenuItem.hovered ? Qt.alpha(Theme.dangerColor, 0.12) : "transparent"
+                            radius: Theme.radiusSmall
+                        }
+                        contentItem: RowLayout {
+                            spacing: 10
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+
+                            Text {
+                                text: Lang.t("Logout")
+                                font.pixelSize: Theme.fontSizeSmall
+                                font.weight: Font.Medium
+                                color: Theme.dangerColor
+                                Layout.fillWidth: true
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+                        onTriggered: root.logoutClicked()
+                    }
                 }
             }
 
@@ -284,12 +284,12 @@ Rectangle {
                 hoverEnabled: true
                 background: Rectangle {
                     radius: 20
-                    color: parent.hovered ? Qt.rgba(1, 1, 1, 0.2) : "transparent"
+                    color: parent.hovered ? (Theme.isDarkMode ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(0, 0, 0, 0.06)) : "transparent"
                 }
 
                 contentItem: Image {
                     id: refreshIcon
-                    source: "image://icon/refresh.svg?" + (Theme.isDarkMode ? Theme.textColor : "#FFFFFF")
+                    source: "image://icon/refresh.svg?" + Theme.textColor
                     sourceSize.width: 24
                     sourceSize.height: 24
                     anchors.centerIn: parent
@@ -330,62 +330,6 @@ Rectangle {
                 }
             }
 
-            // Profile button
-            Button {
-                id: profileBtn
-                text: Lang.t("Profile")
-                height: 40
-                padding: 12
-                font {
-                    family: "Segoe UI"
-                    pixelSize: 14
-                    weight: Font.Medium
-                }
-                background: Rectangle {
-                    radius: Theme.radiusSmall
-                    color: parent.hovered ? Qt.rgba(1, 1, 1, 0.2) : "transparent"
-                    border.color: Qt.rgba(1, 1, 1, 0.3)
-                    border.width: 1
-                }
-                contentItem: Text {
-                    text: profileBtn.text
-                    font: profileBtn.font
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                onClicked: root.profileClicked()
-            }
-
-            // Logout button
-            Button {
-                id: logoutBtn
-                text: Lang.t("Logout")
-                height: 40
-                padding: 12
-                font {
-                    family: "Segoe UI"
-                    pixelSize: 14
-                    weight: Font.Medium
-                }
-                background: Rectangle {
-                    radius: Theme.radiusSmall
-                    color: parent.hovered ? Qt.rgba(1, 1, 1, 0.2) : "transparent"
-                    border.color: Qt.rgba(1, 1, 1, 0.3)
-                    border.width: 1
-                }
-                contentItem: Text {
-                    text: logoutBtn.text
-                    font: logoutBtn.font
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                onClicked: root.logoutClicked()
-            }
-
             // Cek Update button
             Button {
                 id: updateBtn
@@ -395,14 +339,14 @@ Rectangle {
                 font { family: "Segoe UI"; pixelSize: 14; weight: Font.Medium }
                 background: Rectangle {
                     radius: Theme.radiusSmall
-                    color: parent.hovered ? Qt.rgba(1, 1, 1, 0.2) : "transparent"
-                    border.color: Qt.rgba(1, 1, 1, 0.3)
+                    color: parent.hovered ? (Theme.isDarkMode ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(0, 0, 0, 0.06)) : "transparent"
+                    border.color: Theme.isDarkMode ? Qt.rgba(1, 1, 1, 0.3) : Theme.borderColor
                     border.width: 1
                 }
                 contentItem: Text {
                     text: parent.text
                     font: parent.font
-                    color: "white"
+                    color: Theme.textColor
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -420,15 +364,15 @@ Rectangle {
                 height: 40
                 background: Rectangle {
                     radius: Theme.radiusSmall
-                    color: parent.hovered ? Qt.rgba(1, 1, 1, 0.2) : "transparent"
-                    border.color: Qt.rgba(1, 1, 1, 0.3)
+                    color: parent.hovered ? (Theme.isDarkMode ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(0, 0, 0, 0.06)) : "transparent"
+                    border.color: Theme.isDarkMode ? Qt.rgba(1, 1, 1, 0.3) : Theme.borderColor
                     border.width: 1
                 }
 
                 contentItem: Item {
                     anchors.fill: parent
                     Image {
-                        source: "image://icon/website.svg?" + (Theme.isDarkMode ? Theme.textColor : "#FFFFFF")
+                        source: "image://icon/website.svg?" + Theme.textColor
                         sourceSize.width: 20
                         sourceSize.height: 20
                         anchors.centerIn: parent

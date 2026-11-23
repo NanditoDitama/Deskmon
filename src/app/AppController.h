@@ -16,7 +16,6 @@
 #include "core/database/WorkLogRepository.h"
 #include "core/database/ProductivityAppRepository.h"
 #include "features/auth/AuthManager.h"
-#include "features/profile/UserProfileManager.h"
 #include "features/worktime/WorkTimeTracker.h"
 #include "features/tracking/ActivityTracker.h"
 #include "features/tasks/TaskManager.h"
@@ -88,11 +87,6 @@ public:
     Q_INVOKABLE QString getUsernameById(int userId) const;
     Q_INVOKABLE QString getCurrentUsername() const;
     Q_INVOKABLE QString getCurrentUserEmail() const;
-    Q_INVOKABLE QString updateUserProfile(const QString &currentUsername, const QString &newUsername, const QString &newPassword);
-    Q_INVOKABLE QString cropProfileImage(const QString &imagePath, qreal x, qreal y, qreal imageWidth, qreal imageHeight, qreal cropWidth, qreal cropHeight);
-    Q_INVOKABLE bool updateProfileImage(const QString &username, const QString &imagePath);
-    Q_INVOKABLE QString getProfileImagePath(const QString &username);
-    Q_INVOKABLE bool validateFilePath(const QString &filePath);
 
     // Q_INVOKABLE Methods (Tasks)
     Q_INVOKABLE void fetchAndStoreTasks();
@@ -175,7 +169,6 @@ signals:
     void currentUsernameChanged();
     void currentUserEmailChanged();
     void authTokenError(const QString& message);
-    void profileImageChanged(const QString &username, const QString &newPath);
     void taskStatusChanged(int taskId, const QString& newStatus);
     void taskReviewNotification(const QString& message);
     void taskTimeUpdated(int taskId, int timeUsage);
@@ -210,7 +203,6 @@ private:
     WorkLogRepository *m_workLogRepo;
     ProductivityAppRepository *m_prodRepo;
     AuthManager *m_authManager;
-    UserProfileManager *m_profileManager;
     WorkTimeTracker *m_workTimeTracker;
     ActivityTracker *m_activityTracker;
     TaskManager *m_taskManager;
