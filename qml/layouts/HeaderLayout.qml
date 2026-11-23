@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "../theme"
 import "../dialogs"
+import "../components"
 
 Rectangle {
     id: root
@@ -83,9 +84,10 @@ Rectangle {
                     easing.type: Easing.OutCubic
                 }
 
-                ToolTip.text: Lang.t("Settings")
-                ToolTip.visible: hovered && !settingsMenu.visible
-                ToolTip.delay: 500
+                CustomToolTip {
+                    text: Lang.t("Settings")
+                    shown: settingsBtn.hovered && !settingsMenu.visible
+                }
 
                 Menu {
                     id: settingsMenu
@@ -226,7 +228,7 @@ Rectangle {
                                 verticalAlignment: Text.AlignVCenter
                             }
                             Image {
-                                source: "qrc:/icons/check.svg"
+                                source: "image://icon/check.svg?" + Theme.primaryColor
                                 sourceSize.width: 14
                                 sourceSize.height: 14
                                 visible: Lang.isEnglish
@@ -273,45 +275,6 @@ Rectangle {
                 }
             }
 
-            // Dark mode toggle button
-            RoundButton {
-                id: themeToggle
-                width: 40
-                height: 40
-                radius: 20
-                hoverEnabled: true
-                background: Rectangle {
-                    radius: 20
-                    color: parent.hovered ? Qt.rgba(1, 1, 1, 0.2) : "transparent"
-                }
-
-                contentItem: Image {
-                    source: Theme.isDarkMode ? ("image://icon/light_mode.svg?" + Theme.textColor) : ("image://icon/dark_mode.svg?#FFFFFF")
-                    sourceSize.width: 24
-                    sourceSize.height: 24
-                    anchors.centerIn: parent
-                    opacity: 0.9
-                }
-
-                onClicked: {
-                    Theme.isDarkMode = !Theme.isDarkMode
-                    rotationAnim.start()
-                }
-
-                RotationAnimation {
-                    id: rotationAnim
-                    target: themeToggle.contentItem
-                    from: 0
-                    to: 360
-                    duration: 600
-                    easing.type: Easing.OutBack
-                }
-
-                ToolTip.text: Theme.isDarkMode ? Lang.t("Switch to Light Mode") : Lang.t("Switch to Dark Mode")
-                ToolTip.visible: hovered
-                ToolTip.delay: 500
-            }
-
             // Refresh button
             RoundButton {
                 id: refreshBtn
@@ -336,9 +299,7 @@ Rectangle {
                 onClicked: {
                     root.refreshClicked()
                     if (typeof logger !== "undefined") {
-                        logger.refreshTasks()
-                        logger.fetchAndStoreTasks()
-                        logger.fetchAndStoreProductivityApps()
+                        logger.refreshAll()
                     }
                     console.log("Refresh button clicked")
                     refreshRotationAnimation.start()
@@ -353,9 +314,10 @@ Rectangle {
                     easing.type: Easing.OutBack
                 }
 
-                ToolTip.text: Lang.t("Refresh")
-                ToolTip.visible: hovered
-                ToolTip.delay: 500
+                CustomToolTip {
+                    text: Lang.t("Refresh")
+                    shown: refreshBtn.hovered
+                }
             }
 
             Shortcut {
@@ -474,9 +436,10 @@ Rectangle {
                 }
 
                 onClicked: Qt.openUrlExternally("https://deskmon.pranala-dt.co.id/")
-                ToolTip.text: Lang.t("Deskmon Website")
-                ToolTip.visible: hovered
-                ToolTip.delay: 500
+                CustomToolTip {
+                    text: Lang.t("Deskmon Website")
+                    shown: deskmonButton.hovered
+                }
             }
         }
     }
@@ -522,7 +485,7 @@ Rectangle {
     Connections {
         target: (typeof logger !== "undefined") ? logger : null
 
-        function onUpdateAvailable(version, releaseNotes, downloadUrl) {
+        function onUpdateAvailable(version, releaseNotes) {
             console.log("QML: Update tersedia!", version)
             updateDialog.openWith(version, releaseNotes)
         }

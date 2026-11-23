@@ -8,6 +8,57 @@ import "../theme"
 
 Item {
     anchors.fill: parent
+
+    function parseTimeSeconds(t) {
+        if (!t) return -1
+        const p = t.split(':')
+        if (p.length < 2) return -1
+        const h = parseInt(p[0], 10)
+        const m = parseInt(p[1], 10)
+        const s = p.length >= 3 ? parseInt(p[2], 10) : 0
+        if (isNaN(h) || isNaN(m) || isNaN(s)) return -1
+        return h * 3600 + m * 60 + s
+    }
+
+    function getTopRecentLogs(content, maxCount) {
+        if (!content) return []
+        const result = []
+        let pos = 0
+        const len = content.length
+        while (pos < len && result.length < maxCount) {
+            const nl = content.indexOf('\n', pos)
+            const line = (nl === -1) ? content.substring(pos) : content.substring(pos, nl)
+            pos = (nl === -1) ? len : nl + 1
+            if (line.trim() === '') continue
+            const parts = line.split(',')
+            if (parts.length >= 4) {
+                const start = parts[0].trim()
+                const end = parts[1].trim()
+                const startSec = parseTimeSeconds(start)
+                const endSec = parseTimeSeconds(end)
+                let durationText = ""
+                if (startSec >= 0 && endSec >= 0) {
+                    const durationSec = endSec - startSec
+                    durationText = Math.floor(durationSec / 60) + "m " + (durationSec % 60) + "s"
+                }
+                result.push({
+                    time: start,
+                    durationText: durationText,
+                    app: parts[2].trim(),
+                    title: parts[3].trim()
+                })
+            } else {
+                result.push({
+                    time: "Unknown",
+                    durationText: "",
+                    app: "Unknown",
+                    title: ""
+                })
+            }
+        }
+        return result
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 12
@@ -106,7 +157,7 @@ Item {
 
                 ListView {
                     id: activityListView
-                    model: logger.logContent.split('\n').filter(line => line.trim() !== '').slice(0, 15)
+                    model: getTopRecentLogs(logger.logContent, 15)
                     spacing: 4
                     width: parent.width
 
@@ -172,13 +223,7 @@ Item {
                             spacing: 8
 
                             Label {
-                                text: {
-                                    const parts = modelData.split(',')
-                                    if (parts.length >= 4) {
-                                        return parts[0].trim()
-                                    }
-                                    return "Unknown"
-                                }
+                                text: modelData.time
                                 Layout.preferredWidth: 100
                                 font {
                                     family: "Segoe UI"
@@ -189,18 +234,7 @@ Item {
                             }
 
                             Label {
-                                text: {
-                                    const parts = modelData.split(',')
-                                    if (parts.length >= 4) {
-                                        const start = parts[0].trim()
-                                        const end = parts[1].trim()
-                                        const startTime = new Date("2000-01-01 " + start)
-                                        const endTime = new Date("2000-01-01 " + end)
-                                        const durationSec = (endTime - startTime) / 1000
-                                        return Math.floor(durationSec/60) + "m " + (durationSec%60) + "s"
-                                    }
-                                    return ""
-                                }
+                                text: modelData.durationText
                                 Layout.preferredWidth: 80
                                 font {
                                     family: "Segoe UI"
@@ -210,13 +244,7 @@ Item {
                             }
 
                             Label {
-                                text: {
-                                    const parts = modelData.split(',')
-                                    if (parts.length >= 4) {
-                                        return parts[2].trim()
-                                    }
-                                    return "Unknown"
-                                }
+                                text: modelData.app
                                 Layout.preferredWidth: 150
                                 font {
                                     family: "Segoe UI"
@@ -227,13 +255,7 @@ Item {
                             }
 
                             Label {
-                                text: {
-                                    const parts = modelData.split(',')
-                                    if (parts.length >= 4) {
-                                        return parts[3].trim()
-                                    }
-                                    return ""
-                                }
+                                text: modelData.title
                                 font {
                                     family: "Segoe UI"
                                     pixelSize: 11

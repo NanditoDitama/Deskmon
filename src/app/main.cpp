@@ -52,7 +52,9 @@ void customMessageHandler(QtMsgType type, const QMessageLogContext &context, con
     if (g_logFile && g_logFile->isOpen()) {
         QTextStream stream(g_logFile);
         stream << logLine;
-        stream.flush();
+        if (type != QtDebugMsg) {
+            stream.flush();
+        }
     }
 }
 
@@ -100,6 +102,7 @@ void closeLogging()
 {
     if (g_logFile) {
         qInfo() << "=== Deskmon Closed ===";
+        g_logFile->flush();
         g_logFile->close();
         delete g_logFile;
         g_logFile = nullptr;
@@ -121,7 +124,7 @@ int main(int argc, char *argv[])
     // Inisialisasi logging ke folder logs/
     initLogging();
 
-    QSharedMemory sharedMemory("DeskmonAppInstance");
+    QSharedMemory sharedMemory(AppController::resolveInstanceKey());
     if (!sharedMemory.create(1)) {
         // Coba detach jika ada stale shared memory dari proses yang crash
         sharedMemory.attach();

@@ -2,6 +2,7 @@
 #define WORKTIMETRACKER_H
 
 #include <QObject>
+#include <QPointer>
 #include <QTimer>
 #include "core/network/ApiClient.h"
 #include "core/database/WorkTimeRepository.h"
@@ -33,11 +34,12 @@ public:
 signals:
     void workTimeElapsedSecondsChanged();
     void earlyLeaveReasonSubmitted();
+    void earlyLeaveSubmitFailed(const QString &errorMessage);
 
 private:
-    ApiClient *m_apiClient;
-    WorkTimeRepository *m_workTimeRepo;
-    AuthManager *m_authManager;
+    QPointer<ApiClient> m_apiClient;
+    QPointer<WorkTimeRepository> m_workTimeRepo;
+    QPointer<AuthManager> m_authManager;
 
     int m_workTimeElapsedSeconds = 0;
     QTimer m_apiWorkTimeTimer;

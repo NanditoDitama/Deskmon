@@ -30,6 +30,7 @@ signals:
     void trackingActiveChanged();
     void currentAppIconPathChanged();
     void windowChanged(const WindowInfo &info);
+    void refreshRequested();
 
 private:
     WorkLogRepository *m_workLogRepo;
@@ -41,6 +42,8 @@ private:
     qint64 m_lastActivityTime = 0;
     bool m_isFirstCheck = true;
     bool m_isTrackingActive = true;
+    bool m_pollInFlight = false;
+    quint64 m_sessionGeneration = 0;
 };
 
 #endif // ACTIVITYTRACKER_H

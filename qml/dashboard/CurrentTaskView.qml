@@ -23,21 +23,51 @@ Item {
 
     property bool isTimeUpPopupOpen: false
     property bool isTimeUpWarningOpen: false
+    property int warnedTaskId: -1
+    property int expiredTaskId: -1
+    property int liveTickCounter: 0
 
-    function checkTaskTimeWarning(timeUsage, maxTime) {
-        if (!maxTime || maxTime <= 0) return;
+    readonly property var activeTaskObj: {
+        void(liveTickCounter);
+        if (typeof logger === "undefined" || !logger || logger.activeTaskId === -1 || !logger.taskList) return null;
+        return logger.taskList.find(task => task.id === logger.activeTaskId) || null;
+    }
+
+    Timer {
+        id: activeTaskLiveTimer
+        interval: 1000
+        repeat: true
+        running: typeof logger !== "undefined" && logger && logger.activeTaskId !== -1 && !logger.isTaskPaused
+        onTriggered: {
+            liveTickCounter = (liveTickCounter + 1) % 1000000
+            if (activeTaskObj) {
+                checkTaskTimeWarning(activeTaskObj.id, activeTaskObj.time_usage, activeTaskObj.max_time)
+            }
+        }
+    }
+
+    function checkTaskTimeWarning(taskId, timeUsage, maxTime) {
+        if (!taskId || taskId <= 0 || !maxTime || maxTime <= 0) return;
+        // Hanya tampilkan peringatan saat task sedang aktif berjalan (tidak Paused)
+        if (typeof logger !== "undefined" && logger.isTaskPaused) return;
+
         var diffSeconds = maxTime - timeUsage;
         if (diffSeconds <= 0) {
-            if (!isTimeUpPopupOpen) {
-                customWarningDialog.newText = "Waktu Task anda Sudah Habis";
+            if (!isTimeUpPopupOpen && expiredTaskId !== taskId) {
+                expiredTaskId = taskId;
+                warnedTaskId = taskId;
                 isTimeUpPopupOpen = true;
-                customWarningDialog.show();
+                customWarningDialog.titleText = Lang.t("Task Time Warning");
+                customWarningDialog.newText = Lang.t("timeUpFinished");
+                customWarningDialog.showAnimated();
             }
         } else if (diffSeconds <= 600) {
-            if (!isTimeUpWarningOpen) {
-                customWarningDialog.newText = "Waktu Task anda tersisa kurang dari 10 menit!";
+            if (!isTimeUpWarningOpen && warnedTaskId !== taskId) {
+                warnedTaskId = taskId;
                 isTimeUpWarningOpen = true;
-                customWarningDialog.show();
+                customWarningDialog.titleText = Lang.t("Task Time Warning");
+                customWarningDialog.newText = Lang.t("timeUpWarning");
+                customWarningDialog.showAnimated();
             }
         }
     }
@@ -88,19 +118,10 @@ Item {
                                 width: 76
                                 height: 30
                                 radius: 15
-                                visible: {
-                                    if (logger.activeTaskId === -1) return false
-                                    for (let i = 0; i < logger.taskList.length; i++) {
-                                        if (logger.taskList[i].id === logger.activeTaskId) {
-                                            return logger.taskList[i].status !== "Review"
-                                        }
-                                    }
-                                    return false
-                                }
+                                visible: activeTaskObj !== null && activeTaskObj.status !== "Review"
 
                                 color: {
-                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                    if (activeTask && activeTask.status === "Review") {
+                                    if (activeTaskObj && activeTaskObj.status === "Review") {
                                         return Qt.rgba(1, 0.6, 0, 0.12)
                                     }
                                     return logger.isTaskPaused ? Qt.rgba(0.4, 0.4, 0.7, 0.12) : Qt.rgba(0.2, 0.8, 0.4, 0.12)
@@ -115,16 +136,12 @@ Item {
                                         height: 8
                                         radius: 4
                                         color: {
-                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            if (activeTask && activeTask.status === "Review") return Theme.warningColor
+                                            if (activeTaskObj && activeTaskObj.status === "Review") return Theme.warningColor
                                             return logger.isTaskPaused ? Theme.accentColor : Theme.productiveColor
                                         }
 
                                         SequentialAnimation on opacity {
-                                            running: {
-                                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                                return !logger.isTaskPaused && !(activeTask && activeTask.status === "Review")
-                                            }
+                                            running: !logger.isTaskPaused && !(activeTaskObj && activeTaskObj.status === "Review")
                                             loops: Animation.Infinite
                                             NumberAnimation { from: 0.3; to: 1; duration: 700; easing.type: Easing.InOutQuad }
                                             NumberAnimation { from: 1; to: 0.3; duration: 700; easing.type: Easing.InOutQuad }
@@ -133,16 +150,14 @@ Item {
 
                                     Label {
                                         text: {
-                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            if (activeTask && activeTask.status === "Review") return Lang.t("Review")
+                                            if (activeTaskObj && activeTaskObj.status === "Review") return Lang.t("Review")
                                             return logger.isTaskPaused ? Lang.t("Paused") : Lang.t("Active")
                                         }
                                         font.pixelSize: 13
                                         font.weight: Font.DemiBold
                                         font.family: "Segoe UI"
                                         color: {
-                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            if (activeTask && activeTask.status === "Review") return Theme.warningColor
+                                            if (activeTaskObj && activeTaskObj.status === "Review") return Theme.warningColor
                                             return logger.isTaskPaused ? Theme.accentColor : Theme.productiveColor
                                         }
                                     }
@@ -152,11 +167,9 @@ Item {
                             // Current Time
                             Label {
                                 text: {
-                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                    if (activeTask) {
-                                        checkTaskTimeWarning(activeTask.time_usage, activeTask.max_time)
-                                        var hours = Math.floor(activeTask.time_usage / 3600)
-                                        var minutes = Math.floor((activeTask.time_usage % 3600) / 60)
+                                    if (activeTaskObj) {
+                                        var hours = Math.floor(activeTaskObj.time_usage / 3600)
+                                        var minutes = Math.floor((activeTaskObj.time_usage % 3600) / 60)
                                         var timeText = ""
                                         if (hours > 0) timeText += hours + "h "
                                         timeText += minutes + "m"
@@ -168,8 +181,7 @@ Item {
                                 font.weight: Font.Bold
                                 font.family: "Segoe UI"
                                 color: {
-                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                    if (activeTask && activeTask.time_usage > activeTask.max_time) {
+                                    if (activeTaskObj && activeTaskObj.time_usage > activeTaskObj.max_time) {
                                         return Theme.nonProductiveColor
                                     }
                                     return Theme.primaryColor
@@ -186,9 +198,8 @@ Item {
 
                                 Rectangle {
                                     width: {
-                                        var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                        if (activeTask) {
-                                            return parent.width * Math.min(1, activeTask.time_usage / activeTask.max_time)
+                                        if (activeTaskObj && activeTaskObj.max_time > 0) {
+                                            return parent.width * Math.min(1, activeTaskObj.time_usage / activeTaskObj.max_time)
                                         }
                                         return 0
                                     }
@@ -200,8 +211,7 @@ Item {
                                         GradientStop {
                                             position: 0.0
                                             color: {
-                                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                                if (activeTask && activeTask.time_usage > activeTask.max_time) {
+                                                if (activeTaskObj && activeTaskObj.time_usage > activeTaskObj.max_time) {
                                                     return Theme.nonProductiveColor
                                                 }
                                                 return Theme.secondaryColor
@@ -210,8 +220,7 @@ Item {
                                         GradientStop {
                                             position: 1.0
                                             color: {
-                                                var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                                if (activeTask && activeTask.time_usage > activeTask.max_time) {
+                                                if (activeTaskObj && activeTaskObj.time_usage > activeTaskObj.max_time) {
                                                     return Qt.lighter(Theme.nonProductiveColor, 1.2)
                                                 }
                                                 return Qt.lighter(Theme.secondaryColor, 1.2)
@@ -220,10 +229,7 @@ Item {
                                     }
 
                                     Behavior on width {
-                                        enabled: {
-                                            var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                            return !(activeTask && activeTask.status === "Review")
-                                        }
+                                        enabled: !(activeTaskObj && activeTaskObj.status === "Review")
                                         NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
                                     }
                                 }
@@ -240,9 +246,8 @@ Item {
                             // Percentage
                             Label {
                                 text: {
-                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                    if (activeTask) {
-                                        var percentage = Math.round((activeTask.time_usage / activeTask.max_time) * 100)
+                                    if (activeTaskObj && activeTaskObj.max_time > 0) {
+                                        var percentage = Math.round((activeTaskObj.time_usage / activeTaskObj.max_time) * 100)
                                         return percentage + "%"
                                     }
                                     return "0%"
@@ -257,10 +262,9 @@ Item {
                             // Max Time
                             Label {
                                 text: {
-                                    var activeTask = logger.taskList.find(task => task.id === logger.activeTaskId)
-                                    if (activeTask) {
-                                        var hours = Math.floor(activeTask.max_time / 3600)
-                                        var minutes = Math.floor((activeTask.max_time % 3600) / 60)
+                                    if (activeTaskObj) {
+                                        var hours = Math.floor(activeTaskObj.max_time / 3600)
+                                        var minutes = Math.floor((activeTaskObj.max_time % 3600) / 60)
                                         var timeText = ""
                                         if (hours > 0) timeText += hours + "h "
                                         timeText += minutes + "m"
@@ -276,15 +280,7 @@ Item {
                             // Pause/Resume Button
                             Button {
                                 id: pauseResumeButton
-                                visible: {
-                                    if (logger.activeTaskId === -1) return false
-                                    for (let i = 0; i < logger.taskList.length; i++) {
-                                        if (logger.taskList[i].id === logger.activeTaskId) {
-                                            return logger.taskList[i].status !== "Review"
-                                        }
-                                    }
-                                    return false
-                                }
+                                visible: activeTaskObj !== null && activeTaskObj.status !== "Review"
 
                                 text: logger.isTaskPaused ? Lang.t("Resume") : Lang.t("Pause")
                                 Layout.preferredWidth: 92
@@ -351,6 +347,23 @@ Item {
 
             Connections {
                 target: logger
+
+                function onTaskListChanged() {
+                    if (activeTaskObj && !logger.isTaskPaused) {
+                        checkTaskTimeWarning(activeTaskObj.id, activeTaskObj.time_usage, activeTaskObj.max_time)
+                    }
+                }
+
+                function onActiveTaskChanged() {
+                    if (logger.activeTaskId !== warnedTaskId) {
+                        isTimeUpWarningOpen = false
+                        warnedTaskId = -1
+                    }
+                    if (logger.activeTaskId !== expiredTaskId) {
+                        isTimeUpPopupOpen = false
+                        expiredTaskId = -1
+                    }
+                }
 
                 function onTaskPausedChanged() {
                     taskControlRow.isLoading = false
@@ -480,7 +493,7 @@ Item {
                         return isActive ? Theme.secondaryColor : Qt.alpha(Theme.dividerColor, 0.3)
                     }
                     border.width: 1
-                    opacity: isReview ? 0.85 : 1 ||  isExpired ? 0.7 : (isReview ? 0.85 : 1)
+                    opacity: isExpired ? 0.7 : (isReview ? 0.85 : 1.0)
 
 
                     // Subtle shadow effect
@@ -499,8 +512,8 @@ Item {
                         onClicked: {
                             // === LOGIKA 1: CEK TASK EXPIRED (Bulan Lalu) ===
                             if (logger.isTaskExpired(modelData.id)) {
-                                customWarningDialog.titleText = "Task Expired"
-                                customWarningDialog.newText = "Task dari bulan lalu tidak dapat dijalankan. Silahkan Need Review."
+                                customWarningDialog.titleText = Lang.t("Task Expired")
+                                customWarningDialog.newText = Lang.t("Tasks from last month cannot be started. Please mark as Need Review.")
                                 customWarningDialog.showAnimated()
                                 return;
                             }
@@ -510,8 +523,8 @@ Item {
                                 var pendingStartedCount = logger.getPendingStartedTaskCount();
 
                                 if (pendingStartedCount >= 3) {
-                                    customWarningDialog.titleText = "Warning"
-                                    customWarningDialog.newText = "Terdapat " + pendingStartedCount + " task pending yang sudah berjalan. Mohon segera di-review."
+                                    customWarningDialog.titleText = Lang.t("Warning")
+                                    customWarningDialog.newText = Lang.t("There are %1 pending tasks already started. Please review them soon.").arg(pendingStartedCount)
                                     customWarningDialog.showAnimated()
                                 }
                             }
@@ -669,11 +682,11 @@ Item {
                                     id: statusText
                                     anchors.centerIn: parent
                                     text: {
-                                        if (modelData.status === "Review") return "Review";
-                                        if (modelData.status === "Need Review") return "Need Review";
-                                        if (modelData.status === "Need Revise") return "Need Revise";
-                                        if (modelData.active) return modelData.isTaskPaused ? "Paused" : "Running";
-                                        return "Pending";
+                                        if (modelData.status === "Review") return Lang.t("Review");
+                                        if (modelData.status === "Need Review") return Lang.t("Need Review");
+                                        if (modelData.status === "Need Revise") return Lang.t("Need Revise");
+                                        if (modelData.active) return modelData.isTaskPaused ? Lang.t("Paused") : Lang.t("Running");
+                                        return Lang.t("Pending");
                                     }
                                     font.pixelSize: 10
                                     font.bold: true

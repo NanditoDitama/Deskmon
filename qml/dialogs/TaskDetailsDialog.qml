@@ -308,9 +308,7 @@ ApplicationWindow {
                     }
 
                     function onTaskDetailsSubmissionFailed(message) {
-                        // Tampilkan pesan pada dialog (opsional)
-                        errorText.text = message
-                        // Notifikasi global juga sudah dipicu dari C++: showNotification("error", message)
+                        root.isLoading = false
                     }
                 }
             }

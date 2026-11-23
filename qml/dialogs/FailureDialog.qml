@@ -25,7 +25,6 @@ ApplicationWindow {
     property string failedDetails: ""
     property string failedAction: ""
     property int failedNextTaskId: -1
-    property var logger: null
 
     // Modern background
     Rectangle {
@@ -141,8 +140,8 @@ ApplicationWindow {
 
                     onClicked: {
                         console.log("Pengiriman ulang dibatalkan oleh pengguna.");
-                        if (failedAction === "quit" && logger) {
-                            logger.taskDetailsDialogClosed("quit");
+                        if ((failedAction === "quit" || failedAction === "logout") && typeof logger !== "undefined" && logger) {
+                            logger.taskDetailsDialogClosed(failedAction);
                         }
                         root.close();
                     }

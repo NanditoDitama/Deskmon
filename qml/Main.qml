@@ -43,8 +43,8 @@ Window {
     property string idleNotificationText: ""
 
     Component.onCompleted: {
-        if (typeof Qt.styleHints !== "undefined") {
-            Theme.isDarkMode = Qt.styleHints.colorScheme === Qt.Dark
+        if (typeof Application !== "undefined" && Application.styleHints) {
+            Theme.isDarkMode = Application.styleHints.colorScheme === Qt.ColorScheme.Dark
         } else {
             Theme.isDarkMode = Material.theme === Material.Dark
         }
@@ -54,6 +54,20 @@ Window {
             console.log("Ke halaman login untuk login ulang")
         }
         window.visibility = Window.Maximized
+    }
+
+    function showEarlyLeaveDialog() {
+        earlyLeaveReasonDialog.show()
+    }
+
+    function showTaskDetailsDialog(taskId, action, nextTaskId) {
+        taskDetailsDialog.show(taskId, action, nextTaskId)
+    }
+
+    function showReviewNotification(message) {
+        if (window.visibility === Window.Windowed || window.visibility === Window.Maximized) {
+            reviewNotificationPopup.showNotification(message)
+        }
     }
 
     function goToLoginPage() {
@@ -108,12 +122,16 @@ Window {
         }
 
         function onTaskDetailsSubmissionSuccess() {
-            taskDetailsDialog.loadingIndicator.running = false
+            taskDetailsDialog.isLoading = false
             taskDetailsDialog.close()
         }
 
+        function onTaskDetailsSubmissionFailed(errorMessage) {
+            taskDetailsDialog.isLoading = false
+        }
+
         function onTaskDetailsSubmissionFailedWithRetry(errorMessage, taskId, details, action, nextTaskId) {
-            taskDetailsDialog.loadingIndicator.running = false
+            taskDetailsDialog.isLoading = false
             taskDetailsDialog.close()
             failureDialog.show(errorMessage, taskId, details, action, nextTaskId)
         }
@@ -125,7 +143,7 @@ Window {
             }
             if (isLoggedIn) {
                 console.log("Token expired, showing auth error window.")
-                authErrorWindow.errorMessage = message
+                authErrorWindow.errorMessage = Lang.t(message)
                 authErrorWindow.visible = true
                 authErrorWindow.raise()
             }
@@ -145,7 +163,11 @@ Window {
         }
 
         function onShowPingErrorDialog(message) {
-            pingErrorDialog.errorMessage = message
+            var translated = Lang.t(message)
+            if (translated === message && typeof message === "string" && message.indexOf("Koneksi gagal: ") === 0) {
+                translated = Lang.t("Connection failed: ") + message.substring("Koneksi gagal: ".length)
+            }
+            pingErrorDialog.errorMessage = translated
             pingErrorDialog.open()
         }
 
@@ -216,6 +238,102 @@ Window {
         id: pingErrorDialog
     }
 
+    Popup {
+        id: reviewNotificationPopup
+        width: 340
+        height: 120
+        x: (parent.width - width) / 2
+        y: 50
+        modal: false
+        closePolicy: Popup.NoAutoClose
+        padding: 0
+
+        background: Rectangle {
+            color: Theme.cardColor
+            radius: 12
+            border.color: Qt.alpha(Theme.warningColor, 0.25)
+            border.width: 1
+        }
+
+        contentItem: RowLayout {
+            spacing: 12
+            anchors.fill: parent
+            anchors.margins: 16
+
+            Rectangle {
+                width: 36
+                height: 36
+                radius: 18
+                color: Qt.alpha(Theme.warningColor, 0.12)
+                Layout.alignment: Qt.AlignVCenter
+
+                Image {
+                    anchors.centerIn: parent
+                    width: 20
+                    height: 20
+                    source: "qrc:/icon.ico"
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 4
+
+                Label {
+                    text: Lang.t("Task Review Reminder")
+                    font.pixelSize: 15
+                    font.weight: Font.DemiBold
+                    color: Theme.textColor
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                }
+
+                Label {
+                    id: reviewNotificationText
+                    text: ""
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                    color: Qt.alpha(Theme.textColor, 0.75)
+                    font.pixelSize: 12
+                    maximumLineCount: 2
+                    elide: Text.ElideRight
+                }
+            }
+
+            Button {
+                Layout.alignment: Qt.AlignTop
+                Layout.preferredWidth: 28
+                Layout.preferredHeight: 28
+                padding: 0
+                flat: true
+                onClicked: reviewNotificationPopup.close()
+                contentItem: Text {
+                    text: "×"
+                    font.pixelSize: 18
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    color: Qt.alpha(Theme.textColor, 0.6)
+                }
+            }
+        }
+
+        function showNotification(message) {
+            reviewNotificationText.text = message
+            open()
+            reviewNotificationTimer.restart()
+        }
+
+        Timer {
+            id: reviewNotificationTimer
+            interval: 10000
+            onTriggered: reviewNotificationPopup.close()
+        }
+    }
+
     // =========================================================================
     // Page Views (Login, Profile, Dashboard)
     // =========================================================================
@@ -243,6 +361,14 @@ Window {
 
         ProfilePage {
             anchors.fill: parent
+            profileImageSource: window.profileImagePath
+            onBackRequested: window.isProfileVisible = false
+            onProfileImageUpdated: function(newPath) {
+                window.profileImagePath = newPath
+            }
+            onStatusMessageRequested: function(msg) {
+                profileErrorLabel.text = msg
+            }
         }
 
         Label {

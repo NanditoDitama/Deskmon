@@ -152,12 +152,14 @@ Rectangle {
                     hoverEnabled: true
                 }
 
-                ToolTip.visible: clockInArea.containsMouse
-                ToolTip.text: {
-                    if (root.clockIn === "--:--") {
-                        return Lang.t("Waiting for clock-in data...");
-                    } else {
-                        return Lang.t("Recorded clock-in at: ") + root.clockIn;
+                CustomToolTip {
+                    shown: clockInArea.containsMouse
+                    text: {
+                        if (root.clockIn === "--:--") {
+                            return Lang.t("Waiting for clock-in data...");
+                        } else {
+                            return Lang.t("Recorded clock-in at: ") + root.clockIn;
+                        }
                     }
                 }
             }
@@ -234,7 +236,7 @@ Rectangle {
                     }
 
                     Label {
-                        text: root.clockOut === "Online" ? "Online" : root.clockOut
+                        text: root.clockOut === "Online" ? Lang.t("Online") : (root.clockOut === "Error" ? Lang.t("Error") : root.clockOut)
                         font {
                             pixelSize: 10
                             weight: Font.Bold
@@ -259,16 +261,18 @@ Rectangle {
                     hoverEnabled: true
                 }
 
-                ToolTip.visible: clockOutArea.containsMouse
-                ToolTip.text: {
-                    if (root.clockOut === "Online") {
-                        return "Anda sedang dalam jam kerja";
-                    } else if (root.clockOut === "Error") {
-                        return "Koneksi gagal, tidak bisa mengambil data";
-                    } else if (root.clockOut === "--:--") {
-                        return "Menunggu data jam keluar...";
-                    } else {
-                        return "Anda tercatat keluar pada jam " + root.clockOut;
+                CustomToolTip {
+                    shown: clockOutArea.containsMouse
+                    text: {
+                        if (root.clockOut === "Online") {
+                            return Lang.t("You are currently in working hours");
+                        } else if (root.clockOut === "Error") {
+                            return Lang.t("Connection failed, unable to fetch data");
+                        } else if (root.clockOut === "--:--") {
+                            return Lang.t("Waiting for clock-out data...");
+                        } else {
+                            return Lang.t("Recorded clock-out at: ") + root.clockOut;
+                        }
                     }
                 }
             }

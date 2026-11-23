@@ -26,14 +26,19 @@ public:
 
     void refreshProductivityModels(int userId);
     void updateProductivityCache(int userId);
+    void copyCachesForUser(int userId, QHash<QString, int> &outAppTypes, QHash<QString, int> &outDomainTypes) const;
 
     int getAppProductivityType(const QString &appName, const QString &url, int userId) const;
+    static int lookupProductivityType(const QString &appName, const QString &url,
+                                      const QHash<QString, int> &appTypes,
+                                      const QHash<QString, int> &domainTypes);
     QVariantList getAvailableApps() const;
     QVariantList getProductivityApps(int userId) const;
     QVariantList getPendingApplicationRequests() const;
 
     bool addProductivityApp(const QString &appName, const QString &windowTitle, const QString &url, int productivityType);
     bool storeProductivityAppsFromApi(const QJsonArray &appsArray, int userId);
+    static bool syncAppsToDatabase(QSqlDatabase &db, const QJsonArray &appsArray);
 
     int getIdleThreshold() const;
     void setIdleThreshold(int seconds);
@@ -48,6 +53,7 @@ private:
 
     mutable QHash<QString, int> m_cachedAppTypes;
     mutable QHash<QString, int> m_cachedDomainTypes;
+    mutable int m_cachedUserId = -1;
 };
 
 #endif // PRODUCTIVITYAPPREPOSITORY_H

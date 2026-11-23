@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
 import "../theme"
+import "../components"
 
 Item {
     id: loginPageRoot
@@ -303,7 +304,7 @@ Item {
                     TextField {
                         id: usernameField
                         placeholderText: Lang.t("Enter your username")
-                        text: logger.savedUsername
+                        text: (typeof logger !== "undefined") ? logger.savedUsername() : ""
                         enabled: !loginPageRoot.isLoading
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
@@ -544,7 +545,7 @@ Item {
 
                             } else {
                                 console.log("Login failed:", result)
-                                error_Label.text = result
+                                error_Label.text = Lang.t(result)
                                 loginPageRoot.isLoading = false
                             }
                         })
@@ -572,12 +573,6 @@ Item {
             Item {
                 Layout.fillHeight: true
             }
-        }
-
-        function refreshProfileImage() {
-            console.log("Refreshing profile image for user:", currentUsername, "path:", profileImagePath)
-            profileImage.source = ""
-            profileImage.source = profileImagePath
         }
     }
 
@@ -746,36 +741,13 @@ Item {
             }
         }
 
-        ToolTip {
+        CustomToolTip {
             id: themeTooltip
-            text: Theme.isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"
-            visible: themeToggle.hovered
-            delay: 800
+            target: themeToggle
+            text: Theme.isDarkMode ? Lang.t("Switch to Light Mode") : Lang.t("Switch to Dark Mode")
+            shown: themeToggle.hovered
+            delay: 400
             timeout: 3000
-
-            background: Rectangle {
-                color: Theme.isDarkMode ? "#2D2D2D" : "#F5F5F5"
-                radius: Theme.radiusSmall
-                border.color: Theme.borderColor
-                border.width: 1
-
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.margins: -2
-                    color: "transparent"
-                    radius: 10
-                    border.color: Qt.rgba(0, 0, 0, 0.1)
-                    border.width: 1
-                    z: -1
-                }
-            }
-
-            contentItem: Text {
-                text: themeTooltip.text
-                font.pixelSize: Theme.fontSizeSmall
-                font.family: "Segoe UI"
-                color: Theme.textColor
-            }
         }
     }
 }

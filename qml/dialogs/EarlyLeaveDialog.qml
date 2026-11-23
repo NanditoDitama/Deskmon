@@ -155,7 +155,7 @@ Dialog {
             Button {
                 id: cancelButton
                 text: Lang.t("Cancel")
-                enabled: buttonBox.enabled
+                enabled: buttonBox.buttonsEnabled
 
                 leftPadding: 18
                 rightPadding: 18
@@ -187,8 +187,8 @@ Dialog {
 
             Button {
                 id: submitButton
-                text: buttonBox.enabled ? Lang.t("Submit") : Lang.t("Sending...")
-                enabled: reasonInput.text.trim().length > 1 && buttonBox.enabled
+                text: buttonBox.buttonsEnabled ? Lang.t("Submit") : Lang.t("Sending...")
+                enabled: reasonInput.text.trim().length > 1 && buttonBox.buttonsEnabled
 
                 leftPadding: 24
                 rightPadding: 24
@@ -216,7 +216,7 @@ Dialog {
                 }
 
                 onClicked: {
-                    buttonBox.enabled = false
+                    buttonBox.buttonsEnabled = false
                     statusLabel.text = Lang.t("Sending data...")
                     statusLabel.color = Theme.primaryColor
                     statusLabel.visible = true
@@ -229,7 +229,7 @@ Dialog {
     // Hidden item untuk enable/disable buttons
     Item {
         id: buttonBox
-        property bool enabled: true
+        property bool buttonsEnabled: true
     }
 
     // Fungsi untuk menampilkan dialog
@@ -242,7 +242,7 @@ Dialog {
 
     // Fungsi untuk reset dialog ke kondisi awal
     function resetDialog() {
-        buttonBox.enabled = true
+        buttonBox.buttonsEnabled = true
         statusLabel.visible = false
         statusLabel.text = ""
     }
@@ -257,8 +257,15 @@ Dialog {
         target: logger
 
         function onEarlyLeaveReasonSubmitted() {
-            statusLabel.text = "Berhasil! Aplikasi akan ditutup..."
+            statusLabel.text = Lang.t("Success! The application will close...")
             statusLabel.color = Theme.successColor
+            statusLabel.visible = true
+        }
+
+        function onEarlyLeaveSubmitFailed(errorMessage) {
+            buttonBox.buttonsEnabled = true
+            statusLabel.text = errorMessage ? Lang.t(errorMessage) : Lang.t("Failed to send data to server.")
+            statusLabel.color = Theme.dangerColor
             statusLabel.visible = true
         }
     }

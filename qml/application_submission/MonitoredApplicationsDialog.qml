@@ -15,43 +15,81 @@ Dialog {
     property alias productiveAppsModel: productiveAppsModel
     property alias nonProductiveAppsModel: nonProductiveAppsModel
 
+    property var allProductiveApps: []
+    property var allNonProductiveApps: []
+    property var filteredProductiveApps: []
+    property var filteredNonProductiveApps: []
+
     ListModel { id: productiveAppsModel }
     ListModel { id: nonProductiveAppsModel }
     ListModel { id: filteredProductiveAppsModel }
     ListModel { id: filteredNonProductiveAppsModel }
 
+    function setApps(apps) {
+        var prod = []
+        var nonProd = []
+        if (apps) {
+            for (var i = 0; i < apps.length; i++) {
+                var item = apps[i]
+                if (item.type === 1) {
+                    prod.push({ "appName": item.appName || "", "url": item.url || "" })
+                } else if (item.type === 2) {
+                    nonProd.push({ "appName": item.appName || "", "url": item.url || "" })
+                }
+            }
+        }
+        allProductiveApps = prod
+        allNonProductiveApps = nonProd
+        filterApps()
+    }
+
     // Search function
     function filterApps() {
         var searchText = search_Field.text.toLowerCase().trim()
+        var prodSource = allProductiveApps
+        var nonProdSource = allNonProductiveApps
 
-        filteredProductiveAppsModel.clear()
-        filteredNonProductiveAppsModel.clear()
+        if (prodSource.length === 0 && productiveAppsModel.count > 0) {
+            prodSource = []
+            for (var i = 0; i < productiveAppsModel.count; i++) {
+                prodSource.push(productiveAppsModel.get(i))
+            }
+        }
+        if (nonProdSource.length === 0 && nonProductiveAppsModel.count > 0) {
+            nonProdSource = []
+            for (var j = 0; j < nonProductiveAppsModel.count; j++) {
+                nonProdSource.push(nonProductiveAppsModel.get(j))
+            }
+        }
 
-        // Filter productive apps
-        for (var i = 0; i < productiveAppsModel.count; i++) {
-            var item = productiveAppsModel.get(i)
+        if (searchText === "") {
+            filteredProductiveApps = prodSource
+            filteredNonProductiveApps = nonProdSource
+            return
+        }
+
+        var filteredProd = []
+        for (var k = 0; k < prodSource.length; k++) {
+            var item = prodSource[k]
             var appName = item.appName ? item.appName.toLowerCase() : ""
             var url = item.url ? item.url.toLowerCase() : ""
-
-            if (searchText === "" ||
-                    appName.indexOf(searchText) !== -1 ||
-                    url.indexOf(searchText) !== -1) {
-                filteredProductiveAppsModel.append(item)
+            if (appName.indexOf(searchText) !== -1 || url.indexOf(searchText) !== -1) {
+                filteredProd.push(item)
             }
         }
 
-        // Filter non-productive apps
-        for (var j = 0; j < nonProductiveAppsModel.count; j++) {
-            var item2 = nonProductiveAppsModel.get(j)
+        var filteredNonProd = []
+        for (var m = 0; m < nonProdSource.length; m++) {
+            var item2 = nonProdSource[m]
             var appName2 = item2.appName ? item2.appName.toLowerCase() : ""
             var url2 = item2.url ? item2.url.toLowerCase() : ""
-
-            if (searchText === "" ||
-                    appName2.indexOf(searchText) !== -1 ||
-                    url2.indexOf(searchText) !== -1) {
-                filteredNonProductiveAppsModel.append(item2)
+            if (appName2.indexOf(searchText) !== -1 || url2.indexOf(searchText) !== -1) {
+                filteredNonProd.push(item2)
             }
         }
+
+        filteredProductiveApps = filteredProd
+        filteredNonProductiveApps = filteredNonProd
     }
 
     function extractDomain(url) {
@@ -263,7 +301,7 @@ Dialog {
                     height: parent.height - 50
                     clip: true
                     spacing: 6
-                    model: filteredProductiveAppsModel // Use filtered model
+                    model: filteredProductiveApps // Use filtered array
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
                     delegate: Rectangle {
@@ -303,7 +341,7 @@ Dialog {
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
-                                    text: model.appName.charAt(0).toUpperCase()
+                                    text: (modelData.appName || "?").charAt(0).toUpperCase()
                                     font.bold: true
                                     font.pixelSize: Theme.fontSizeBody
                                     color: Theme.productiveColor
@@ -317,7 +355,7 @@ Dialog {
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
-                                    text: model.appName
+                                    text: modelData.appName || ""
                                     font.bold: true
                                     font.pixelSize: Theme.fontSizeSmall
                                     color: hover ? "white" : Theme.textColor
@@ -326,7 +364,7 @@ Dialog {
                                 }
 
                                 Text {
-                                    text: extractDomain(model.url) || "Aplikasi"
+                                    text: extractDomain(modelData.url) || Lang.t("Application")
                                     font.pixelSize: 10
                                     color: hover ? "white" : Theme.lightTextColor
                                     width: parent.width
@@ -374,7 +412,7 @@ Dialog {
                     height: parent.height - 50
                     clip: true
                     spacing: 6
-                    model: filteredNonProductiveAppsModel // Use filtered model
+                    model: filteredNonProductiveApps // Use filtered array
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
                     delegate: Rectangle {
@@ -414,7 +452,7 @@ Dialog {
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
-                                    text: model.appName.charAt(0).toUpperCase()
+                                    text: (modelData.appName || "?").charAt(0).toUpperCase()
                                     font.bold: true
                                     font.pixelSize: Theme.fontSizeBody
                                     color: Theme.nonProductiveColor
@@ -428,7 +466,7 @@ Dialog {
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
-                                    text: model.appName
+                                    text: modelData.appName || ""
                                     font.bold: true
                                     font.pixelSize: Theme.fontSizeSmall
                                     color: hover ? "white" : Theme.textColor
@@ -437,7 +475,7 @@ Dialog {
                                 }
 
                                 Text {
-                                    text: model.url || "Aplikasi"
+                                    text: modelData.url || Lang.t("Application")
                                     font.pixelSize: 10
                                     color: hover ? "white" : Theme.lightTextColor
                                     width: parent.width
@@ -453,6 +491,7 @@ Dialog {
     AddApplicationRequestDialog{
         id:addAppDialog
         parent:Overlay.overlay
+        onCancelRequested: applicationsDialog.open()
     }
     PendingAppRequestsDialog{
         id: requestDialog

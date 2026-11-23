@@ -20,7 +20,7 @@ ApplicationWindow {
     visible: false
 
     property int taskId: -1
-    property var logger: null
+    property var loggerRef: (typeof logger !== "undefined") ? logger : null
 
     // Modern background without shadow
     Rectangle {
@@ -305,7 +305,8 @@ ApplicationWindow {
                     }
 
                     onClicked: {
-                        if (!logger) {
+                        var activeLogger = needReviewDialog.loggerRef ? needReviewDialog.loggerRef : ((typeof logger !== "undefined") ? logger : null);
+                        if (!activeLogger) {
                             console.error("Logger not set. Please provide logger instance when opening dialog.");
                             return;
                         }
@@ -318,32 +319,33 @@ ApplicationWindow {
                             "alasan": reasonInput.text.trim()
                         };
 
-                        var apiUrl = "https://deskmon.pranala-dt.co.id/api/update-status-task/" +
-                                needReviewDialog.taskId + "/" + logger.currentUserId;
+                        var baseUrl = (activeLogger.apiBaseUrl ? activeLogger.apiBaseUrl() : "https://deskmon.pranala-dt.co.id/api");
+                        var apiUrl = baseUrl + "/update-status-task/" +
+                                needReviewDialog.taskId + "/" + activeLogger.currentUserId;
 
                         var request = new XMLHttpRequest();
                         request.open("POST", apiUrl);
                         request.setRequestHeader("Content-Type", "application/json");
-                        request.setRequestHeader("Authorization", "Bearer " + logger.authToken);
+                        request.setRequestHeader("Authorization", "Bearer " + activeLogger.authToken);
 
                         request.onreadystatechange = function() {
                             if (request.readyState === XMLHttpRequest.DONE) {
                                 submitButton.isLoading = false;
                                 if (request.status === 200) {
                                     console.log("Task status updated to 'need review' with reason.");
-                                    if (logger && logger.fetchAndStoreTasks) {
-                                        logger.fetchAndStoreTasks();
+                                    if (activeLogger && activeLogger.fetchAndStoreTasks) {
+                                        activeLogger.fetchAndStoreTasks();
                                     }
                                     needReviewDialog.close();
-                                    if (logger && logger.notify) {
-                                        logger.notify("success", "Berhasil mengajukan Need Review");
-                                        logger.refreshTasks()
+                                    if (activeLogger && activeLogger.notify) {
+                                        activeLogger.notify("success", Lang.t("Successfully submitted Need Review"));
+                                        activeLogger.refreshAll();
                                     }
                                 } else {
                                     console.error("Failed to update task status:", request.status, request.responseText);
                                     submitButton.enabled = true;
-                                    if (logger && logger.notify) {
-                                        logger.notify("warning", "Gagal mengajukan Need Review");
+                                    if (activeLogger && activeLogger.notify) {
+                                        activeLogger.notify("warning", Lang.t("Failed to submit Need Review"));
                                     }
                                 }
                             }
@@ -360,7 +362,7 @@ ApplicationWindow {
     function openWithTaskId(id, loggerInstance) {
         taskId = id;
         if (loggerInstance) {
-            logger = loggerInstance;
+            loggerRef = loggerInstance;
         }
         reasonInput.text = "";
         submitButton.isLoading = false
@@ -387,9 +389,8 @@ ApplicationWindow {
 
     // Fokus awal
     Component.onCompleted: {
-        // Coba cari logger dari context property jika belum diset
-        if (!logger && typeof logger !== "undefined") {
-            needReviewDialog.logger = logger;
+        if (!loggerRef && typeof logger !== "undefined") {
+            needReviewDialog.loggerRef = logger;
         }
         reasonInput.forceActiveFocus();
     }

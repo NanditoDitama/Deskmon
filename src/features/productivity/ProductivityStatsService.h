@@ -24,15 +24,19 @@ public:
     int calculateTodayProductiveSeconds() const;
 
     void sendProductiveTimeToAPI();
-    void sendDailyUsageReport();
+    void sendDailyUsageReport(bool async = false);
 
     void startTimers();
     void stopTimers();
+    int productivePingIntervalMs() const { return m_productivePingTimer.interval(); }
 
 signals:
     void productivityStatsChanged();
+    void refreshRequested();
 
 private:
+    void invalidateStatsCache();
+
     ApiClient *m_apiClient;
     WorkLogRepository *m_workLogRepo;
     ProductivityAppRepository *m_prodRepo;
@@ -40,6 +44,12 @@ private:
 
     QTimer m_productivePingTimer;
     QTimer m_usageReportTimer;
+
+    mutable bool m_statsCacheValid = false;
+    mutable int m_cachedStatsUserId = -1;
+    mutable QString m_cachedStartFilter;
+    mutable QString m_cachedEndFilter;
+    mutable QVariantMap m_cachedStats;
 };
 
 #endif // PRODUCTIVITYSTATSSERVICE_H

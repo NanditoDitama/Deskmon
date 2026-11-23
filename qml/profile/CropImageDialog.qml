@@ -21,6 +21,9 @@ Dialog {
     property real imageX: 0
     property real imageY: 0
 
+    signal imageCropped(string newPath)
+    signal cropError(string message)
+
     background: Rectangle {
         color: Theme.cardColor
         radius: 12
@@ -97,9 +100,13 @@ Dialog {
 
                         onStatusChanged: {
                             if (status === Image.Ready) {
-                                // Center the image initially
+                                cropDialog.imageScale = Math.min(1.0, cropArea.width / Math.max(1, cropImage.implicitWidth))
                                 cropDialog.imageX = (cropArea.width - cropImage.width) / 2
                                 cropDialog.imageY = (cropArea.height - cropImage.height) / 2
+                                zoomSlider.value = cropDialog.imageScale
+                            } else if (status === Image.Error) {
+                                cropDialog.cropError(Lang.t("Failed to load image for cropping"))
+                                cropDialog.close()
                             }
                         }
                     }
@@ -272,7 +279,7 @@ Dialog {
                     }
                     onClicked: {
                         cropDialog.reject()
-                        profileErrorLabel.text = ""
+                        cropDialog.cropError("")
                     }
                 }
 
@@ -298,22 +305,17 @@ Dialog {
                                     )
                         if (croppedPath !== "") {
                             console.log("Cropped image path:", croppedPath)
-                            if (logger.updateProfileImage(currentUsername, croppedPath)) {
-                                profileImagePath = croppedPath
-                                profileImage.source = ""
-                                profileImage.source = profileImagePath
+                            var uname = (typeof logger !== "undefined" && logger.currentUsername) ? logger.currentUsername : ""
+                            if (logger.updateProfileImage(uname, croppedPath)) {
+                                cropDialog.imageCropped(croppedPath)
                                 cropDialog.accept()
-                                profileErrorLabel.text = "Profile picture updated successfully"
-                                profileErrorLabel.color = Theme.successColor
                             } else {
                                 console.log("Failed to update profile image in database")
-                                profileErrorLabel.text = "Failed to update profile image"
-                                profileErrorLabel.color = Theme.dangerColor
+                                cropDialog.cropError(Lang.t("Failed to update profile image"))
                             }
                         } else {
                             console.log("Failed to crop image")
-                            profileErrorLabel.text = "Failed to crop image"
-                            profileErrorLabel.color = Theme.dangerColor
+                            cropDialog.cropError(Lang.t("Failed to crop image"))
                         }
                     }
                 }

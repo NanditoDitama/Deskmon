@@ -27,8 +27,7 @@ endif()
 qt_standard_project_setup(REQUIRES 6.8)
 
 # Menambahkan sumber daya (resources) dan file QML
-set(SOURCES
-    src/app/main.cpp
+set(CORE_SOURCES
     src/app/AppController.cpp
     src/core/network/ApiClient.cpp
     src/core/database/DatabaseManager.cpp
@@ -47,14 +46,14 @@ set(SOURCES
 )
 
 if(WIN32)
-    list(APPEND SOURCES src/core/platform/WindowInfoProvider_Win.cpp)
+    list(APPEND CORE_SOURCES src/core/platform/WindowInfoProvider_Win.cpp)
 elseif(APPLE)
-    list(APPEND SOURCES src/core/platform/WindowInfoProvider_Mac.cpp)
+    list(APPEND CORE_SOURCES src/core/platform/WindowInfoProvider_Mac.cpp)
 else()
-    list(APPEND SOURCES src/core/platform/WindowInfoProvider_Linux.cpp)
+    list(APPEND CORE_SOURCES src/core/platform/WindowInfoProvider_Linux.cpp)
 endif()
 
-set(HEADERS
+set(CORE_HEADERS
     src/app/AppController.h
     src/core/platform/WindowInfoProvider.h
     src/core/platform/ThemedIconProvider.h
@@ -74,12 +73,17 @@ set(HEADERS
     src/features/productivity/ProductivityStatsService.h
 )
 
+set(APP_SOURCES
+    src/app/main.cpp
+)
+
 set(QML_FILES
     qml/Main.qml
     qml/theme/Theme.qml
     qml/theme/Lang.qml
     qml/components/ToastNotification.qml
     qml/components/CustomButton.qml
+    qml/components/CustomToolTip.qml
     qml/components/StatusBadge.qml
     qml/components/WorkTimerCard.qml
     qml/login/LoginPage.qml
@@ -186,28 +190,54 @@ if(WIN32)
             set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>")
         endif()
 
-        # Tambahkan resource file ke sources
-        set(SOURCES ${SOURCES} ${WIN_RESOURCE_FILE})
+        # Tambahkan resource file ke app sources
+        list(APPEND APP_SOURCES ${WIN_RESOURCE_FILE})
         message(STATUS "Windows resource file created and added: ${WIN_RESOURCE_FILE}")
     else()
         message(WARNING "resources/images/icon.ico not found! Icon will not be embedded.")
     endif()
 endif()
 
-# Menambahkan executable
-qt_add_executable(Deskmon
-    ${SOURCES}
-    ${HEADERS}
+# Core static library agar unit test dapat link langsung
+qt_add_library(DeskmonCore STATIC
+    ${CORE_SOURCES}
+    ${CORE_HEADERS}
 )
 
-# Menambahkan direktori include untuk compiler
-target_include_directories(Deskmon PRIVATE
+target_include_directories(DeskmonCore PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/app
     ${CMAKE_CURRENT_SOURCE_DIR}/src/core
     ${CMAKE_CURRENT_SOURCE_DIR}/src/features
     ${CMAKE_CURRENT_SOURCE_DIR}/src/features/tracking
+)
+
+target_compile_definitions(DeskmonCore PUBLIC APP_VERSION="${PROJECT_VERSION}")
+
+target_link_libraries(DeskmonCore
+    PUBLIC
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Sql
+        Qt6::Network
+        Qt6::Widgets
+)
+
+if(WIN32)
+    target_link_libraries(DeskmonCore PUBLIC user32 psapi ole32 oleaut32)
+elseif(APPLE)
+    find_library(COCOA_LIBRARY Cocoa)
+    target_link_libraries(DeskmonCore PUBLIC ${COCOA_LIBRARY})
+elseif(UNIX AND NOT APPLE)
+    find_package(X11 REQUIRED)
+    target_link_libraries(DeskmonCore PUBLIC ${X11_LIBRARIES})
+endif()
+
+# Menambahkan executable
+qt_add_executable(Deskmon
+    ${APP_SOURCES}
 )
 
 # Declare QML Singleton types
@@ -275,28 +305,14 @@ qt_add_resources(Deskmon "icons"
 # Link library yang diperlukan
 target_link_libraries(Deskmon
     PRIVATE
+        DeskmonCore
         Qt6::Quick
-        Qt6::Gui
-        Qt6::Qml
-        Qt6::Core
-        Qt6::Sql
-        Qt6::Network
-        Qt6::Widgets
         Qt6::QuickControls2
         Qt6::Svg
 )
 
-# Teruskan versi proyek ke compiler C++
-target_compile_definitions(Deskmon PRIVATE APP_VERSION="${PROJECT_VERSION}")
-
-# Link library spesifik platform
-if(WIN32)
-    target_link_libraries(Deskmon PRIVATE user32 psapi ole32 oleaut32)
-elseif(APPLE)
-    # Framework khusus macOS
-    find_library(COCOA_LIBRARY Cocoa)
-    target_link_libraries(Deskmon PRIVATE ${COCOA_LIBRARY})
-
+# Konfigurasi bundle / icon spesifik platform
+if(APPLE)
     # Konfigurasi icon untuk macOS
     set_target_properties(Deskmon PROPERTIES
         MACOSX_BUNDLE_ICON_FILE "icon.icns"
@@ -309,10 +325,6 @@ elseif(APPLE)
             MACOSX_PACKAGE_LOCATION Resources
         )
     endif()
-elseif(UNIX AND NOT APPLE)
-    # Linux
-    find_package(X11 REQUIRED)
-    target_link_libraries(Deskmon PRIVATE ${X11_LIBRARIES})
 endif()
 
 # Untuk macOS, tambahkan pengaturan bundle
@@ -348,3 +360,10 @@ install(TARGETS Deskmon
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+# Unit & E2E Tests
+option(BUILD_TESTING "Build unit and integration tests" ON)
+if(BUILD_TESTING AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")
+    enable_testing()
+    add_subdirectory(tests)
+endif()

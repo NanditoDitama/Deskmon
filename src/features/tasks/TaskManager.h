@@ -29,6 +29,7 @@ public:
     void syncActiveTask();
     void refreshTasks();
     void setActiveTask(int taskId);
+    void stopActiveTaskForLogout();
     void finishTask(int taskId);
     void toggleTaskPause();
     void updateTaskStatus(int taskId);
@@ -45,6 +46,8 @@ public:
     void sendPing(int taskId);
     void startPingTimer();
     void stopPingTimer();
+    void startRefreshTimer();
+    void stopRefreshTimer();
     void sendPausePlayDataToAPI(int taskId, const QString& startTime, const QString& endTime, const QString& status);
 
 signals:
@@ -61,8 +64,10 @@ signals:
     void requestTaskDetails(int taskId, const QString &action, int nextTaskId);
     void taskDetailsSubmissionSuccess();
     void taskDetailsSubmissionFailed(const QString &error);
+    void taskDetailsSubmissionFailedWithRetry(const QString &errorMessage, int taskId, const QString &details, const QString &action, int nextTaskId);
     void readyToProceedWithQuit();
     void readyToProceedWithLogout();
+    void saveWorkTimeRequested();
 
 private slots:
     void handleTaskFetchReply(QNetworkReply *reply);
@@ -70,6 +75,7 @@ private slots:
 
 private:
     void sendTaskDetailsToAPI(int taskId, const QString &details, const QString &action, int nextTaskId);
+    void invalidateTaskCache();
 
     ApiClient *m_apiClient;
     TaskRepository *m_taskRepo;
@@ -83,9 +89,16 @@ private:
     qint64 m_globalTimeUsage = 0;
     QDateTime m_lastPlayStartTime;
 
+    mutable QVariantList m_cachedTaskList;
+    mutable bool m_taskCacheValid = false;
+    mutable int m_cachedUserId = -1;
+    mutable bool m_cachedPausedState = false;
+
     QTimer m_pingTimer;
     int m_pingRetryCount = 0;
     QTimer m_taskRefreshTimer;
+    quint64 m_activationSequence = 0;
+    quint64 m_fetchSequence = 0;
 };
 
 #endif // TASKMANAGER_H

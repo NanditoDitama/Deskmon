@@ -17,6 +17,7 @@ bool AuthManager::tryAutoLogin()
     int userId = -1;
     QString username, email, token;
     if (m_userRepo && m_userRepo->findUserWithToken(userId, username, email, token)) {
+        m_isTokenErrorVisible = false;
         setCurrentUserInfo(userId, username, email, token);
         qDebug() << "Auto login as user ID:" << userId << "Username:" << username;
         emit loggedIn();
@@ -65,7 +66,7 @@ QString AuthManager::authenticate(const QString &loginInput, const QString &pass
 
     qDebug() << "Sending login request with payload:" << doc.toJson(QJsonDocument::Compact);
 
-    QNetworkReply *reply = m_apiClient->post(QUrl("https://deskmon.pranala-dt.co.id/api/login"), data, false);
+    QNetworkReply *reply = m_apiClient->post(m_apiClient->buildUrl("/login"), data, false);
     QEventLoop loop;
     QTimer::singleShot(10000, &loop, &QEventLoop::quit);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -104,20 +105,31 @@ QString AuthManager::authenticate(const QString &loginInput, const QString &pass
             m_userRepo->saveUser(userId, username, password, userEmail, department, role, token);
         }
 
+        m_isTokenErrorVisible = false;
         setCurrentUserInfo(userId, username, userEmail, token);
         emit loggedIn();
 
         reply->deleteLater();
         return ""; // Success
     } else {
-        QString errorMsg = jsonObj.value("message").toString("Login gagal. Periksa kembali username dan password Anda.");
+        QString serverMessage = jsonObj.value("message").toString();
+        if (serverMessage == QStringLiteral("Login not allowed from this IP address")) {
+            QString ipAddress = jsonObj.value("your_ip").toString();
+            if (!ipAddress.isEmpty()) {
+                serverMessage.append(". " + ipAddress);
+            }
+        }
         reply->deleteLater();
-        return errorMsg;
+        return serverMessage.isEmpty() ? QStringLiteral("Username atau password salah.") : serverMessage;
     }
 }
 
 void AuthManager::logout()
 {
+    if (m_currentUserId == -1 && m_authToken.isEmpty()) {
+        return;
+    }
+
     sendLogoutToAPI();
 
     if (m_currentUserId != -1 && m_userRepo) {
@@ -146,7 +158,7 @@ void AuthManager::sendLogoutToAPI()
     if (m_currentUserId == -1 || m_authToken.isEmpty()) return;
 
     QEventLoop loop;
-    QNetworkReply *reply = m_apiClient->post(QUrl("https://deskmon.pranala-dt.co.id/api/logout"), QJsonDocument(QJsonObject()).toJson(), true);
+    QNetworkReply *reply = m_apiClient->post(m_apiClient->buildUrl("/logout"), QJsonDocument(QJsonObject()).toJson(), true);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     QTimer::singleShot(5000, &loop, &QEventLoop::quit);
     loop.exec();

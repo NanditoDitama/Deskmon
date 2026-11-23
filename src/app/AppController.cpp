@@ -7,9 +7,14 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QPointer>
 #include <QScopedPointer>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QThreadPool>
 #include <QVersionNumber>
 #include <QDebug>
+#include <atomic>
 
 AppController::AppController(QObject *parent)
     : QObject(parent)
@@ -31,20 +36,15 @@ AppController::AppController(QObject *parent)
     m_prodRepo->initialize();
 
     setupConnections();
-
-    // Check auto login
-    if (m_authManager->tryAutoLogin()) {
-        m_workTimeTracker->checkAndCreateNewDayRecord();
-        m_workTimeTracker->loadWorkTimeData();
-        m_workTimeTracker->startSyncTimer();
-        m_prodRepo->updateProductivityCache(m_authManager->currentUserId());
-        m_taskManager->checkTaskStatusBeforeStart();
-        m_prodStatsService->startTimers();
-    }
 }
 
 AppController::~AppController()
 {
+    m_workTimeTracker->stopSyncTimer();
+    m_taskManager->stopPingTimer();
+    m_taskManager->stopRefreshTimer();
+    m_prodStatsService->stopTimers();
+    m_workTimeTracker->saveWorkTimeData();
 }
 
 void AppController::setupConnections()
@@ -54,13 +54,9 @@ void AppController::setupConnections()
     connect(m_activityTracker, &ActivityTracker::currentWindowTitleChanged, this, &AppController::currentWindowTitleChanged);
     connect(m_activityTracker, &ActivityTracker::trackingActiveChanged, this, &AppController::trackingActiveChanged);
     connect(m_activityTracker, &ActivityTracker::currentAppIconPathChanged, this, &AppController::currentAppIconPathChanged);
-    connect(m_activityTracker, &ActivityTracker::windowChanged, this, [this](const WindowInfo &) {
-        emit logCountChanged();
-        emit logContentChanged();
-        emit productivityStatsChanged();
-    });
+    connect(m_activityTracker, &ActivityTracker::refreshRequested, this, &AppController::refreshAll);
 
-    // Work Log Repo Signals
+    // Work Log Repo Signals (dipicu otomatis setiap kali logWindowChange atau setLogFilter selesai)
     connect(m_workLogRepo, &WorkLogRepository::logsChanged, this, [this]() {
         emit logCountChanged();
         emit logContentChanged();
@@ -86,8 +82,10 @@ void AppController::setupConnections()
         m_workTimeTracker->loadWorkTimeData();
         m_workTimeTracker->startSyncTimer();
         m_prodRepo->updateProductivityCache(m_authManager->currentUserId());
-        m_taskManager->startPingTimer();
+        m_prodRepo->refreshProductivityModels(m_authManager->currentUserId());
         m_taskManager->checkTaskStatusBeforeStart();
+        m_taskManager->startPingTimer();
+        m_taskManager->startRefreshTimer();
         m_taskManager->fetchAndStoreTasks();
         m_prodStatsService->startTimers();
         fetchAndStoreProductivityApps();
@@ -97,7 +95,8 @@ void AppController::setupConnections()
         m_workTimeTracker->stopSyncTimer();
         m_taskManager->stopPingTimer();
         m_prodStatsService->stopTimers();
-        m_prodStatsService->sendDailyUsageReport();
+        m_prodRepo->updateProductivityCache(-1);
+        m_prodRepo->refreshProductivityModels(-1);
         emit taskListChanged();
         emit activeTaskChanged();
         emit taskPausedChanged();
@@ -109,6 +108,7 @@ void AppController::setupConnections()
     // Work Time Tracker Signals
     connect(m_workTimeTracker, &WorkTimeTracker::workTimeElapsedSecondsChanged, this, &AppController::workTimeElapsedSecondsChanged);
     connect(m_workTimeTracker, &WorkTimeTracker::earlyLeaveReasonSubmitted, this, &AppController::earlyLeaveReasonSubmitted);
+    connect(m_workTimeTracker, &WorkTimeTracker::earlyLeaveSubmitFailed, this, &AppController::earlyLeaveSubmitFailed);
 
     // Task Manager Signals
     connect(m_taskManager, &TaskManager::taskListChanged, this, &AppController::taskListChanged);
@@ -124,11 +124,14 @@ void AppController::setupConnections()
     connect(m_taskManager, &TaskManager::requestTaskDetails, this, &AppController::requestTaskDetails);
     connect(m_taskManager, &TaskManager::taskDetailsSubmissionSuccess, this, &AppController::taskDetailsSubmissionSuccess);
     connect(m_taskManager, &TaskManager::taskDetailsSubmissionFailed, this, &AppController::taskDetailsSubmissionFailed);
+    connect(m_taskManager, &TaskManager::taskDetailsSubmissionFailedWithRetry, this, &AppController::taskDetailsSubmissionFailedWithRetry);
     connect(m_taskManager, &TaskManager::readyToProceedWithQuit, this, &AppController::readyToProceedWithQuit);
     connect(m_taskManager, &TaskManager::readyToProceedWithLogout, this, &AppController::readyToProceedWithLogout);
+    connect(m_taskManager, &TaskManager::saveWorkTimeRequested, m_workTimeTracker, &WorkTimeTracker::saveWorkTimeData);
 
     // Productivity Stats Signals
     connect(m_prodStatsService, &ProductivityStatsService::productivityStatsChanged, this, &AppController::productivityStatsChanged);
+    connect(m_prodStatsService, &ProductivityStatsService::refreshRequested, this, &AppController::refreshAll);
 }
 
 // Property Getters
@@ -160,10 +163,18 @@ int AppController::workTimeElapsedSeconds() const { return m_workTimeTracker->wo
 QSqlQueryModel* AppController::logModel() const { return m_workLogRepo->logModel(); }
 
 // Auth & Profile Delegations
-QString AppController::authenticate(const QString &loginInput, const QString &password) { return m_authManager->authenticate(loginInput, password); }
+QString AppController::authenticate(const QString &loginInput, const QString &password) {
+    QString result = m_authManager->authenticate(loginInput, password);
+    if (result.isEmpty()) {
+        checkForUpdates();
+    }
+    return result;
+}
 void AppController::logout() {
     m_workTimeTracker->saveWorkTimeData();
     m_workTimeTracker->sendWorkTimeToAPI();
+    m_taskManager->stopActiveTaskForLogout();
+    m_prodStatsService->sendDailyUsageReport();
     m_authManager->logout();
 }
 QString AppController::savedUsername() const { return m_authManager->savedUsername(); }
@@ -198,6 +209,7 @@ void AppController::setActiveTask(int taskId) { m_taskManager->setActiveTask(tas
 void AppController::finishTask(int taskId) { m_taskManager->finishTask(taskId); }
 void AppController::toggleTaskPause() { m_taskManager->toggleTaskPause(); }
 void AppController::updateTaskStatus(int taskId) { m_taskManager->updateTaskStatus(taskId); }
+void AppController::revertTaskChange() { m_taskManager->revertTaskChange(); }
 void AppController::submitTaskDetails(int taskId, const QString &details, const QString &action, int nextTaskId) {
     m_taskManager->submitTaskDetails(taskId, details, action, nextTaskId);
 }
@@ -225,22 +237,19 @@ void AppController::logIdle(qint64 startTime, qint64 endTime) { m_activityTracke
 void AppController::startGlobalTimer() { m_taskManager->startGlobalTimer(); }
 void AppController::setIdleThreshold(int seconds) { m_prodRepo->setIdleThreshold(seconds); }
 int AppController::getIdleThreshold() const { return m_prodRepo->getIdleThreshold(); }
-void AppController::showLogs() { m_workLogRepo->showLogs(m_authManager->currentUserId()); }
+void AppController::showLogs() {
+    m_workLogRepo->showLogs(m_authManager->currentUserId());
+    emit logContentChanged();
+}
 void AppController::clearLogFilter() {
     m_startDateFilter.clear();
     m_endDateFilter.clear();
     m_workLogRepo->clearLogFilter(m_authManager->currentUserId());
-    emit logContentChanged();
-    emit logCountChanged();
-    emit productivityStatsChanged();
 }
 void AppController::setLogFilter(const QString &startDate, const QString &endDate) {
     m_startDateFilter = startDate;
     m_endDateFilter = endDate;
     m_workLogRepo->setLogFilter(startDate, endDate, m_authManager->currentUserId());
-    emit logContentChanged();
-    emit logCountChanged();
-    emit productivityStatsChanged();
 }
 QString AppController::debugShowRawData() const { return m_workLogRepo->debugShowRawData(m_authManager->currentUserId()); }
 QString AppController::formatDuration(int seconds) const {
@@ -285,27 +294,83 @@ void AppController::sendProductivityAppToAPI(const QString &appName, const QStri
     if (!windowTitle.isEmpty()) payload["process_name"] = windowTitle;
     if (!url.isEmpty()) payload["url"] = url;
 
-    QNetworkReply *reply = m_apiClient->post(QUrl("https://deskmon.pranala-dt.co.id/api/app-request/store"), QJsonDocument(payload).toJson(), true);
-    connect(reply, &QNetworkReply::finished, reply, &QNetworkReply::deleteLater);
+    QNetworkReply *reply = m_apiClient->post(m_apiClient->buildUrl("/app-request/store"), QJsonDocument(payload).toJson(), true);
+    QTimer::singleShot(30000, reply, &QNetworkReply::abort);
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() != QNetworkReply::NoError) {
+            qWarning() << "Failed to send productivity app to API:" << reply->errorString();
+            if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 401) {
+                m_authManager->showAuthTokenErrorMessage();
+                emit authTokenError(QStringLiteral("Authentication token expired"));
+            }
+        }
+        reply->deleteLater();
+    });
 }
 
 void AppController::fetchAndStoreProductivityApps() {
     int userId = m_authManager->currentUserId();
     if (userId == -1 || m_authManager->authToken().isEmpty()) return;
 
-    QNetworkReply *reply = m_apiClient->get(QUrl("https://deskmon.pranala-dt.co.id/api/app-request/all"), true);
+    QNetworkReply *reply = m_apiClient->get(m_apiClient->buildUrl("/app-request/all"), true);
+    QTimer::singleShot(30000, reply, &QNetworkReply::abort);
     connect(reply, &QNetworkReply::finished, this, [this, reply, userId]() {
         QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> replyPtr(reply);
-        if (reply->error() != QNetworkReply::NoError) return;
+        if (reply->error() != QNetworkReply::NoError) {
+            qWarning() << "Failed to fetch productivity apps:" << reply->errorString();
+            if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 401) {
+                m_authManager->showAuthTokenErrorMessage();
+                emit authTokenError(QStringLiteral("Authentication token expired"));
+            }
+            return;
+        }
 
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(reply->readAll());
-        if (!jsonDoc.isObject()) return;
+        QByteArray rawPayload = reply->readAll();
+        static std::atomic<quint64> s_appSyncWorkerSeq{0};
+        const quint64 workerSeq = ++s_appSyncWorkerSeq;
+        const QString dbPath = DatabaseManager::instance().databasePath();
+        QPointer<AppController> self(this);
 
-        QJsonObject jsonObj = jsonDoc.object();
-        if (!jsonObj["success"].toBool()) return;
+        // Parse JSON & batch sync SQLite di background worker thread (QThreadPool)
+        QThreadPool::globalInstance()->start([self, rawPayload, userId, workerSeq, dbPath]() {
+            QJsonDocument jsonDoc = QJsonDocument::fromJson(rawPayload);
+            if (!jsonDoc.isObject()) return;
 
-        QJsonArray appsArray = jsonObj["data"].toArray();
-        m_prodRepo->storeProductivityAppsFromApi(appsArray, userId);
+            QJsonObject jsonObj = jsonDoc.object();
+            if (!jsonObj["success"].toBool()) return;
+
+            QJsonArray appsArray = jsonObj["data"].toArray();
+            if (!self) return;
+
+            bool syncedOnWorker = false;
+            if (!dbPath.isEmpty()) {
+                const QString connName = QStringLiteral("worker_apps_%1").arg(workerSeq);
+                {
+                    QSqlDatabase workerDb = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+                    workerDb.setDatabaseName(dbPath);
+                    if (workerDb.open()) {
+                        QSqlQuery pragmaQ(workerDb);
+                        pragmaQ.exec(QStringLiteral("PRAGMA busy_timeout = 5000;"));
+                        pragmaQ.exec(QStringLiteral("PRAGMA foreign_keys = ON;"));
+                        syncedOnWorker = ProductivityAppRepository::syncAppsToDatabase(workerDb, appsArray);
+                        workerDb.close();
+                    }
+                }
+                QSqlDatabase::removeDatabase(connName);
+            }
+
+            if (!self) return;
+
+            QMetaObject::invokeMethod(self, [self, appsArray, userId, syncedOnWorker]() {
+                if (!self || self->m_authManager->currentUserId() != userId) return;
+                if (syncedOnWorker) {
+                    self->m_prodRepo->refreshProductivityModels(userId);
+                    self->m_prodRepo->updateProductivityCache(userId);
+                } else {
+                    self->m_prodRepo->storeProductivityAppsFromApi(appsArray, userId);
+                }
+            }, Qt::QueuedConnection);
+        });
     });
 }
 
@@ -336,7 +401,10 @@ void AppController::launchMaintenanceTool() {
 
 void AppController::checkForUpdates() {
     const QString currentVersion = appVersion();
-    QUrl url("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json");
+    const QString updateUrlOverride = qEnvironmentVariable("DESKMON_UPDATE_URL").trimmed();
+    QUrl url = updateUrlOverride.isEmpty()
+        ? QUrl(QStringLiteral("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json"))
+        : QUrl(updateUrlOverride);
     QNetworkReply *reply = m_apiClient->get(url, false);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, currentVersion]() {
@@ -373,6 +441,15 @@ void AppController::checkForUpdates() {
     });
 }
 
+QString AppController::apiBaseUrl() const {
+    return m_apiClient ? m_apiClient->baseUrl() : ApiClient::defaultBaseUrl();
+}
+
+QString AppController::resolveInstanceKey() {
+    QString key = qEnvironmentVariable("DESKMON_INSTANCE_KEY").trimmed();
+    return key.isEmpty() ? QStringLiteral("DeskmonAppInstance") : key;
+}
+
 QString AppController::statusMessage() const {
     return m_statusMessage;
 }
@@ -381,20 +458,14 @@ void AppController::refreshAll() {
     int userId = m_authManager->currentUserId();
     if (userId == -1) return;
 
-    m_taskManager->fetchAndStoreTasks();
+    m_taskManager->refreshTasks();
     fetchAndStoreProductivityApps();
     m_workTimeTracker->fetchWorkTimeFromAPI();
     m_activityTracker->logActiveWindow(m_taskManager->isTaskPaused());
-    m_taskManager->syncActiveTask();
+    m_workLogRepo->showLogs(userId);
 
-    emit taskListChanged();
-    emit logContentChanged();
-    emit logCountChanged();
-    emit productivityStatsChanged();
     emit currentAppNameChanged();
     emit currentWindowTitleChanged();
     emit globalTimeUsageChanged();
     emit trackingActiveChanged();
-    emit taskPausedChanged();
-    emit activeTaskChanged();
 }

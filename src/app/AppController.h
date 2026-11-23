@@ -101,6 +101,7 @@ public:
     Q_INVOKABLE void finishTask(int taskId);
     Q_INVOKABLE void toggleTaskPause();
     Q_INVOKABLE void updateTaskStatus(int taskId);
+    Q_INVOKABLE void revertTaskChange();
     Q_INVOKABLE void submitTaskDetails(int taskId, const QString &details, const QString &action, int nextTaskId = -1);
     Q_INVOKABLE void taskDetailsDialogClosed(const QString &action);
     Q_INVOKABLE bool isTaskExpired(int taskId);
@@ -146,7 +147,10 @@ public:
     Q_INVOKABLE void notify(const QString &type, const QString &message);
     Q_INVOKABLE void launchMaintenanceTool();
     Q_INVOKABLE void checkForUpdates();
+    Q_INVOKABLE QString apiBaseUrl() const;
     QString statusMessage() const;
+
+    static QString resolveInstanceKey();
 
 public slots:
     void refreshAll();
@@ -180,6 +184,7 @@ signals:
     void workTimeElapsedSecondsChanged();
     void showTimeWarning(const QString &message);
     void earlyLeaveReasonSubmitted();
+    void earlyLeaveSubmitFailed(const QString &errorMessage);
     void showStatusMessage(const QString &message);
     void statusMessageChanged();
     void updateAvailable(const QString &newVersion, const QString &releaseNotes);

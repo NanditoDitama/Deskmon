@@ -7,7 +7,13 @@ import QtQuick.Effects
 import "../theme"
 
 Item {
+    id: profileRoot
     anchors.fill: parent
+
+    property string profileImageSource: ":/profilImage.png"
+    signal backRequested()
+    signal profileImageUpdated(string newPath)
+    signal statusMessageRequested(string message)
     Rectangle {
         anchors.fill: parent
         color: "transparent"
@@ -203,7 +209,7 @@ Item {
                         icon.source: "image://icon/arrow_back.svg?#FFFFFF"
                         icon.width: 24
                         icon.height: 24
-                        onClicked: isProfileVisible = false
+                        onClicked: profileRoot.backRequested()
 
                         HoverHandler {
                             cursorShape: Qt.PointingHandCursor
@@ -292,7 +298,7 @@ Item {
                                         id: profileImage
                                         anchors.fill: parent
                                         anchors.margins: 4
-                                        source: profileImagePath
+                                        source: profileRoot.profileImageSource
                                         fillMode: Image.PreserveAspectCrop
                                         layer.enabled: true
                                         cache: false
@@ -355,7 +361,7 @@ Item {
                                 spacing: 4
 
                                 Label {
-                                    text: logger.currentUsername || "Username not set"
+                                    text: logger.currentUsername || Lang.t("Username not set")
                                     font {
                                         pixelSize: Theme.fontSizeHeader;
                                         bold: true;
@@ -366,7 +372,7 @@ Item {
                                 }
 
                                 Label {
-                                    text: logger.currentUserEmail || "Email not set"
+                                    text: logger.currentUserEmail || Lang.t("Email not set")
                                     font {
                                         pixelSize: Theme.fontSizeBody;
                                         family: "Segoe UI"
@@ -448,7 +454,7 @@ Item {
                                         anchors.leftMargin: 16
                                         anchors.rightMargin: 16
                                         verticalAlignment: Text.AlignVCenter
-                                        text: logger.currentUserEmail || "Email not set"
+                                        text: logger.currentUserEmail || Lang.t("Email not set")
                                         font.pixelSize: 15
                                         color: "white"
                                         elide: Text.ElideRight
@@ -539,7 +545,7 @@ Item {
 
             if (!logger.validateFilePath(fileUrl)) {
                 console.log("File validation failed: url=", fileUrl)
-                profileErrorLabel.text = Lang.t("Selected file is invalid or cannot be accessed")
+                profileRoot.statusMessageRequested(Lang.t("Selected file is invalid or cannot be accessed"))
                 return
             }
 
@@ -548,13 +554,23 @@ Item {
             saveTombolCropImage_.open()
         }
         onRejected: {
-            profileErrorLabel.text = ""
+            profileRoot.statusMessageRequested("")
             console.log("FileDialog rejected")
         }
     }
     CropImageDialog{
         id: saveTombolCropImage_
         parent: Overlay.overlay
+        onImageCropped: function(newPath) {
+            profileRoot.profileImageSource = newPath
+            profileImage.source = ""
+            profileImage.source = newPath
+            profileRoot.profileImageUpdated(newPath)
+            profileRoot.statusMessageRequested(Lang.t("Profile picture updated successfully"))
+        }
+        onCropError: function(message) {
+            profileRoot.statusMessageRequested(message)
+        }
     }
 }
 

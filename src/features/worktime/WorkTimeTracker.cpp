@@ -1,5 +1,6 @@
 #include "WorkTimeTracker.h"
 #include <QDate>
+#include <QGuiApplication>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMessageBox>
@@ -20,8 +21,13 @@ WorkTimeTracker::WorkTimeTracker(ApiClient *apiClient,
 
 WorkTimeTracker::~WorkTimeTracker()
 {
-    saveWorkTimeData();
-    sendWorkTimeToAPI();
+    stopSyncTimer();
+    if (m_authManager && m_workTimeRepo) {
+        saveWorkTimeData();
+    }
+    if (m_authManager && m_apiClient) {
+        sendWorkTimeToAPI();
+    }
 }
 
 void WorkTimeTracker::startSyncTimer()
@@ -37,8 +43,9 @@ void WorkTimeTracker::stopSyncTimer()
 
 void WorkTimeTracker::checkAndCreateNewDayRecord()
 {
+    if (!m_authManager || !m_workTimeRepo) return;
     int userId = m_authManager->currentUserId();
-    if (userId == -1 || !m_workTimeRepo) return;
+    if (userId == -1) return;
 
     QString today = QDate::currentDate().toString("yyyy-MM-dd");
     if (!m_workTimeRepo->hasRecordForDate(userId, today)) {
@@ -51,7 +58,7 @@ void WorkTimeTracker::checkAndCreateNewDayRecord()
 
 void WorkTimeTracker::loadWorkTimeData()
 {
-    int userId = m_authManager->currentUserId();
+    int userId = m_authManager ? m_authManager->currentUserId() : -1;
     if (userId == -1 || !m_workTimeRepo) {
         m_workTimeElapsedSeconds = 0;
         emit workTimeElapsedSecondsChanged();
@@ -72,8 +79,9 @@ void WorkTimeTracker::loadWorkTimeData()
 
 void WorkTimeTracker::saveWorkTimeData()
 {
+    if (!m_authManager || !m_workTimeRepo) return;
     int userId = m_authManager->currentUserId();
-    if (userId == -1 || !m_workTimeRepo) return;
+    if (userId == -1) return;
 
     QString today = QDate::currentDate().toString("yyyy-MM-dd");
     m_workTimeRepo->saveElapsedSeconds(userId, today, m_workTimeElapsedSeconds);
@@ -81,6 +89,7 @@ void WorkTimeTracker::saveWorkTimeData()
 
 void WorkTimeTracker::sendWorkTimeToAPI()
 {
+    if (!m_authManager || !m_apiClient) return;
     int userId = m_authManager->currentUserId();
     QString token = m_authManager->authToken();
     if (userId == -1 || token.isEmpty()) {
@@ -91,7 +100,7 @@ void WorkTimeTracker::sendWorkTimeToAPI()
     payload["user_id"] = userId;
     payload["time_at_work"] = m_workTimeElapsedSeconds;
 
-    QNetworkReply *reply = m_apiClient->post(QUrl("https://deskmon.pranala-dt.co.id/api/send-time-at-work"), QJsonDocument(payload).toJson(), true);
+    QNetworkReply *reply = m_apiClient->post(m_apiClient->buildUrl("/send-time-at-work"), QJsonDocument(payload).toJson(), true);
     QTimer::singleShot(10000, reply, &QNetworkReply::abort);
 
     connect(reply, &QNetworkReply::finished, this, [reply]() {
@@ -106,13 +115,14 @@ void WorkTimeTracker::sendWorkTimeToAPI()
 
 void WorkTimeTracker::fetchWorkTimeFromAPI()
 {
+    if (!m_authManager || !m_apiClient) return;
     int userId = m_authManager->currentUserId();
     QString token = m_authManager->authToken();
     if (userId == -1 || token.isEmpty()) {
         return;
     }
 
-    QUrl url(QString("https://deskmon.pranala-dt.co.id/api/get-time-at-work/%1").arg(userId));
+    QUrl url = m_apiClient->buildUrl(QString("/get-time-at-work/%1").arg(userId));
     QNetworkReply *reply = m_apiClient->get(url, true);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
@@ -151,7 +161,7 @@ void WorkTimeTracker::submitEarlyLeaveReason(const QString &reason)
     payload["email"] = m_authManager->currentUserEmail();
     payload["alasan"] = reason;
 
-    QNetworkReply* reply = m_apiClient->post(QUrl("https://deskmon.pranala-dt.co.id/api/send-alasan"), QJsonDocument(payload).toJson(), true);
+    QNetworkReply* reply = m_apiClient->post(m_apiClient->buildUrl("/send-alasan"), QJsonDocument(payload).toJson(), true);
     QTimer::singleShot(30000, reply, &QNetworkReply::abort);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
@@ -189,7 +199,10 @@ void WorkTimeTracker::submitEarlyLeaveReason(const QString &reason)
         if (shouldQuit) {
             emit earlyLeaveReasonSubmitted();
         } else {
-            QMessageBox::warning(nullptr, "Submit Gagal", errorMessage);
+            emit earlyLeaveSubmitFailed(errorMessage);
+            if (QGuiApplication::platformName() != QLatin1String("offscreen")) {
+                QMessageBox::warning(nullptr, "Submit Gagal", errorMessage);
+            }
         }
     });
 }

@@ -19,6 +19,38 @@ Dialog {
 
     property int currentMonth: new Date().getMonth()
     property int currentYear: new Date().getFullYear()
+    property var targetView: null
+    property date startSelectedDate: targetView ? targetView.startSelectedDate : new Date()
+    property date endSelectedDate: targetView ? targetView.endSelectedDate : new Date()
+    property bool isDateSelected: targetView ? targetView.isDateSelected : false
+
+    function applyDateRange() {
+        if (targetView) {
+            targetView.startSelectedDate = dateRangeDialog.startSelectedDate
+            targetView.endSelectedDate = dateRangeDialog.endSelectedDate
+            targetView.isDateSelected = dateRangeDialog.isDateSelected
+            if (targetView.applyDateRange) {
+                targetView.applyDateRange()
+            }
+        } else if (typeof logger !== "undefined") {
+            if (!isDateSelected || isNaN(startSelectedDate.getTime())) {
+                logger.clearLogFilter()
+            } else {
+                var startStr = Qt.formatDate(startSelectedDate, "yyyy-MM-dd")
+                var endObj = isNaN(endSelectedDate.getTime()) ? startSelectedDate : endSelectedDate
+                var endStr = Qt.formatDate(endObj, "yyyy-MM-dd")
+                logger.setLogFilter(startStr, endStr)
+            }
+        }
+    }
+
+    onOpened: {
+        if (targetView) {
+            startSelectedDate = targetView.startSelectedDate
+            endSelectedDate = targetView.endSelectedDate
+            isDateSelected = targetView.isDateSelected
+        }
+    }
 
     background: Rectangle {
         color: Theme.cardColor
@@ -331,9 +363,9 @@ Dialog {
                         Label {
                             anchors.centerIn: parent
                             text: {
-                                if (isNaN(startSelectedDate.getTime())) return "No date selected"
+                                if (isNaN(startSelectedDate.getTime())) return Lang.t("No date selected")
                                 if (isNaN(endSelectedDate.getTime())) {
-                                    return "Selected: " + Qt.formatDate(startSelectedDate, "MMMM d, yyyy")
+                                    return Lang.t("Selected: ") + Qt.formatDate(startSelectedDate, "MMMM d, yyyy")
                                 }
                                 return Qt.formatDate(startSelectedDate, "MMM d") + " - " + Qt.formatDate(endSelectedDate, "MMM d, yyyy")
                             }
@@ -418,6 +450,7 @@ Dialog {
                                 endSelectedDate = new Date(startSelectedDate)
                             }
                             isDateSelected = true
+                            applyDateRange()
                             dateRangeDialog.accept()
                         }
                     }

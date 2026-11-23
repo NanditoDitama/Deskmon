@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QSqlError>
+#include <QThreadPool>
 #include <QDebug>
 
 DatabaseManager& DatabaseManager::instance()
@@ -20,9 +21,37 @@ DatabaseManager::DatabaseManager(QObject *parent)
 
 DatabaseManager::~DatabaseManager()
 {
-    if (m_db.isOpen()) {
-        m_db.close();
+    if (QCoreApplication::instance() != nullptr) {
+        close();
+    } else if (m_db.isValid()) {
+        if (m_db.isOpen()) {
+            m_db.close();
+        }
+        m_db = QSqlDatabase();
+        m_dbPath.clear();
     }
+}
+
+void DatabaseManager::close()
+{
+    if (!m_db.isValid() && m_dbPath.isEmpty()) {
+        if (QCoreApplication::instance() == nullptr || !QSqlDatabase::contains("deskmon_main_db")) {
+            return;
+        }
+    }
+    if (QCoreApplication::instance() != nullptr) {
+        QThreadPool::globalInstance()->waitForDone();
+    }
+    if (m_db.isValid()) {
+        if (m_db.isOpen()) {
+            m_db.close();
+        }
+        m_db = QSqlDatabase();
+    }
+    if (QCoreApplication::instance() != nullptr && QSqlDatabase::contains("deskmon_main_db")) {
+        QSqlDatabase::removeDatabase("deskmon_main_db");
+    }
+    m_dbPath.clear();
 }
 
 QString DatabaseManager::databasePath() const
@@ -49,15 +78,35 @@ bool DatabaseManager::ensureOpen() const
     return true;
 }
 
-bool DatabaseManager::initialize()
+bool DatabaseManager::initialize(const QString &dbPathOverride)
 {
-    // Gunakan lokasi standar pengguna (AppData/Local di Windows)
-    // Memisahkan database dari folder aplikasi agar aman saat update/uninstall
-    QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    QDir().mkpath(dataDir);
+    if (m_db.isValid() || QSqlDatabase::contains("deskmon_main_db")) {
+        close();
+    }
 
-    m_dbPath = dataDir + "/deskmon.db";
+    const QString trimmedOverride = dbPathOverride.trimmed();
+    const QString envPath = qEnvironmentVariable("DESKMON_DB_PATH").trimmed();
+    const bool isIsolated = !trimmedOverride.isEmpty() || !envPath.isEmpty() || QStandardPaths::isTestModeEnabled();
+
+    if (!trimmedOverride.isEmpty()) {
+        m_dbPath = trimmedOverride;
+    } else if (!envPath.isEmpty()) {
+        m_dbPath = envPath;
+    } else {
+        // Gunakan lokasi standar pengguna (AppData/Local di Windows)
+        // Memisahkan database dari folder aplikasi agar aman saat update/uninstall
+        QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+        m_dbPath = dataDir + "/deskmon.db";
+    }
+
+    QFileInfo(m_dbPath).dir().mkpath(".");
     bool isNewDatabase = !QFileInfo::exists(m_dbPath);
+
+    if (QCoreApplication *app = QCoreApplication::instance()) {
+        connect(app, &QCoreApplication::aboutToQuit,
+                this, &DatabaseManager::close,
+                static_cast<Qt::ConnectionType>(Qt::DirectConnection | Qt::UniqueConnection));
+    }
 
     m_db = QSqlDatabase::addDatabase("QSQLITE", "deskmon_main_db");
     m_db.setDatabaseName(m_dbPath);
@@ -67,22 +116,30 @@ bool DatabaseManager::initialize()
         return false;
     }
 
-    qInfo() << "=== Deskmon Database Initialized at:" << m_dbPath << "===";
-
     // Aktifkan WAL mode dan foreign keys untuk performa maksimal
     QSqlQuery pragmaQuery(m_db);
     pragmaQuery.exec("PRAGMA journal_mode = WAL;");
     pragmaQuery.exec("PRAGMA foreign_keys = ON;");
+    pragmaQuery.exec("PRAGMA synchronous = NORMAL;");
+    pragmaQuery.exec("PRAGMA busy_timeout = 5000;");
+    pragmaQuery.exec("PRAGMA temp_store = MEMORY;");
+    pragmaQuery.exec("PRAGMA cache_size = -8000;");
 
     if (!createTables()) {
         return false;
     }
 
+    if (!runMigrations()) {
+        return false;
+    }
+
     createViews();
 
-    if (isNewDatabase) {
+    if (isNewDatabase && !isIsolated) {
         migrateLegacyDatabases();
     }
+
+    qInfo() << "=== Deskmon Database Initialized at:" << m_dbPath << "===";
 
     return true;
 }
@@ -134,7 +191,8 @@ bool DatabaseManager::createTables()
             app_name TEXT NOT NULL,
             window_title TEXT,
             url TEXT,
-            productivity_type INTEGER NOT NULL, -- 1: Productive, 2: Non-Productive, 0: Neutral
+            productivity_type INTEGER NOT NULL, -- 1: Productive, 2: Non-Productive, 0: Neutral/Pending
+            productivity INTEGER NOT NULL DEFAULT 0,
             for_user TEXT NOT NULL DEFAULT '0'
         );
     )";
@@ -229,6 +287,48 @@ bool DatabaseManager::createTables()
         return false;
     }
 
+    // 9. Index untuk mempercepat query data besar
+    const char *indexes[] = {
+        "CREATE INDEX IF NOT EXISTS idx_activity_logs_user_start ON activity_logs(user_id, start_time DESC);",
+        "CREATE INDEX IF NOT EXISTS idx_tasks_user_active ON tasks(user_id, active);",
+        "CREATE INDEX IF NOT EXISTS idx_productivity_apps_name_url ON productivity_apps(app_name, url);",
+        "CREATE INDEX IF NOT EXISTS idx_productivity_apps_type_user ON productivity_apps(productivity_type, for_user);",
+        "CREATE INDEX IF NOT EXISTS idx_task_pause_logs_task_status ON task_pause_logs(task_id, status);"
+    };
+    for (const char *idxSql : indexes) {
+        if (!query.exec(idxSql)) {
+            qWarning() << "Failed to create index:" << query.lastError().text();
+        }
+    }
+
+    return true;
+}
+
+bool DatabaseManager::runMigrations()
+{
+    QSqlQuery query(m_db);
+    if (!query.exec("PRAGMA table_info(productivity_apps)")) {
+        qWarning() << "Failed to inspect productivity_apps schema:" << query.lastError().text();
+        return false;
+    }
+
+    bool hasProductivityColumn = false;
+    while (query.next()) {
+        if (query.value(1).toString() == QStringLiteral("productivity")) {
+            hasProductivityColumn = true;
+            break;
+        }
+    }
+
+    if (!hasProductivityColumn) {
+        QSqlQuery alterQuery(m_db);
+        if (!alterQuery.exec("ALTER TABLE productivity_apps ADD COLUMN productivity INTEGER NOT NULL DEFAULT 0")) {
+            qWarning() << "Failed to migrate productivity_apps (add productivity column):" << alterQuery.lastError().text();
+            return false;
+        }
+        qInfo() << "Migrated productivity_apps: added productivity column.";
+    }
+
     return true;
 }
 
@@ -243,9 +343,10 @@ bool DatabaseManager::createViews()
         FROM activity_logs;
     )");
 
+    query.exec("DROP VIEW IF EXISTS aplikasi;");
     query.exec(R"(
         CREATE VIEW IF NOT EXISTS aplikasi AS
-        SELECT id, app_name AS aplikasi, window_title, url, productivity_type AS jenis, 0 AS productivity, for_user
+        SELECT id, app_name AS aplikasi, window_title, url, productivity_type AS jenis, productivity, for_user
         FROM productivity_apps;
     )");
 
@@ -286,15 +387,19 @@ void DatabaseManager::migrateLegacyDatabases()
     // 1. Migrasi dari activity_logs.db
     if (!legacyActivityDb.isEmpty()) {
         qInfo() << "Found legacy activity_logs.db at" << legacyActivityDb << ", migrating data...";
+        QString escapedActPath = legacyActivityDb;
+        escapedActPath.replace('\'', QStringLiteral("''"));
         QSqlQuery query(m_db);
-        if (query.exec(QString("ATTACH DATABASE '%1' AS legacy_act").arg(legacyActivityDb))) {
+        if (query.exec(QString("ATTACH DATABASE '%1' AS legacy_act").arg(escapedActPath))) {
             query.exec(R"(
                 INSERT OR IGNORE INTO users (id, username, password, department, profile_image, email, role, token)
                 SELECT id, username, password, department, profile_image, email, role, token FROM legacy_act.users;
             )");
             query.exec(R"(
                 INSERT OR IGNORE INTO activity_logs (id, user_id, start_time, end_time, app_name, title, url)
-                SELECT id, id_user, start_time, end_time, app_name, title, url FROM legacy_act.log;
+                SELECT id, id_user, start_time, end_time, app_name, title, url
+                FROM legacy_act.log
+                WHERE EXISTS (SELECT 1 FROM users u WHERE u.id = legacy_act.log.id_user);
             )");
             query.exec("DETACH DATABASE legacy_act");
             qInfo() << "Migration from activity_logs.db completed successfully.";
@@ -304,12 +409,31 @@ void DatabaseManager::migrateLegacyDatabases()
     // 2. Migrasi dari produktif_app_db.db
     if (!legacyProductivityDb.isEmpty()) {
         qInfo() << "Found legacy produktif_app_db.db at" << legacyProductivityDb << ", migrating data...";
+        QString escapedProdPath = legacyProductivityDb;
+        escapedProdPath.replace('\'', QStringLiteral("''"));
         QSqlQuery query(m_db);
-        if (query.exec(QString("ATTACH DATABASE '%1' AS legacy_prod").arg(legacyProductivityDb))) {
-            query.exec(R"(
-                INSERT OR IGNORE INTO productivity_apps (id, app_name, window_title, url, productivity_type, for_user)
-                SELECT id, aplikasi, window_title, url, jenis, for_user FROM legacy_prod.aplikasi;
-            )");
+        if (query.exec(QString("ATTACH DATABASE '%1' AS legacy_prod").arg(escapedProdPath))) {
+            bool hasLegacyProductivityCol = false;
+            QSqlQuery pragmaCheck(m_db);
+            if (pragmaCheck.exec("PRAGMA legacy_prod.table_info(aplikasi)")) {
+                while (pragmaCheck.next()) {
+                    if (pragmaCheck.value(1).toString() == QStringLiteral("productivity")) {
+                        hasLegacyProductivityCol = true;
+                        break;
+                    }
+                }
+            }
+            if (hasLegacyProductivityCol) {
+                query.exec(R"(
+                    INSERT OR IGNORE INTO productivity_apps (id, app_name, window_title, url, productivity_type, productivity, for_user)
+                    SELECT id, aplikasi, window_title, url, jenis, COALESCE(productivity, 0), for_user FROM legacy_prod.aplikasi;
+                )");
+            } else {
+                query.exec(R"(
+                    INSERT OR IGNORE INTO productivity_apps (id, app_name, window_title, url, productivity_type, for_user)
+                    SELECT id, aplikasi, window_title, url, jenis, for_user FROM legacy_prod.aplikasi;
+                )");
+            }
             query.exec(R"(
                 INSERT OR IGNORE INTO tasks (id, user_id, project_name, task_desc, max_time, time_usage, active, status, paused, created_at)
                 SELECT id, user_id, project_name, task, max_time, time_usage, active, status, paused, created_at FROM legacy_prod.task;
@@ -320,16 +444,22 @@ void DatabaseManager::migrateLegacyDatabases()
             )");
             query.exec(R"(
                 INSERT OR IGNORE INTO task_pause_logs (id, task_id, paused_at, resumed_at, status)
-                SELECT id, task_id, start_reality, end_reality, current_status FROM legacy_prod.log_paused;
+                SELECT id, task_id, start_reality, end_reality, current_status
+                FROM legacy_prod.log_paused
+                WHERE EXISTS (SELECT 1 FROM tasks t WHERE t.id = legacy_prod.log_paused.task_id);
             )");
             query.exec(R"(
                 INSERT OR IGNORE INTO work_time_records (id, user_id, work_date, elapsed_seconds)
                 SELECT id, user_id, date, elapsed_seconds FROM legacy_prod.work_time;
             )");
-            query.exec(R"(
-                INSERT OR REPLACE INTO idle_settings (id, threshold_seconds)
-                SELECT id, threshold_seconds FROM legacy_prod.idle_settings LIMIT 1;
-            )");
+            QSqlQuery idleQ(m_db);
+            if (idleQ.exec("SELECT threshold_seconds FROM legacy_prod.idle_settings WHERE threshold_seconds > 0 ORDER BY id DESC LIMIT 1") && idleQ.next()) {
+                int legacyThreshold = idleQ.value(0).toInt();
+                QSqlQuery updateIdleQ(m_db);
+                updateIdleQ.prepare("INSERT OR REPLACE INTO idle_settings (id, threshold_seconds) VALUES (1, :threshold)");
+                updateIdleQ.bindValue(":threshold", legacyThreshold);
+                updateIdleQ.exec();
+            }
             query.exec("DETACH DATABASE legacy_prod");
             qInfo() << "Migration from produktif_app_db.db completed successfully.";
         }

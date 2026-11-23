@@ -11,6 +11,7 @@ Dialog {
     id: addAppDialog
     title: Lang.t("Add Productivity Application")
     property int selectedProductivityType: 1
+    signal cancelRequested()
     modal: true
     width: parent ? Math.min(parent.width * 0.8, 1000) : 800
     height: parent ? Math.min(parent.height * 0.8, 600) : 600
@@ -34,7 +35,7 @@ Dialog {
             flat: true
             onClicked: {
                 addAppDialog.close()
-                applicationsDialog.open()
+                addAppDialog.cancelRequested()
             }
 
 
@@ -92,7 +93,9 @@ Dialog {
                 // Panggil fungsi dengan parameter URL baru
                 logger.addProductivityApp(appName, "", url, prodType)
                 addAppDialog.close()
-                notification.show()
+                if (typeof logger !== "undefined" && logger.notify) {
+                    logger.notify("success", Lang.t("Application request submitted successfully and is under review."))
+                }
             }
         }
     }
@@ -236,10 +239,10 @@ Dialog {
 
                                 Text {
                                     text: {
-                                        if (modelData === "Other") return "Aplikasi Lain"
+                                        if (modelData === "Other") return Lang.t("Other Application")
                                         if (["Chrome", "Firefox", "Edge", "Safari", "Opera"].includes(modelData))
-                                             return "Browser Web"
-                                        return "Aplikasi"
+                                             return Lang.t("Web Browser")
+                                        return Lang.t("Application")
                                     }
                                     font.pixelSize: 10
                                     color: hover || isSelected ? (hover ? Theme.primaryColor : Theme.lightTextColor) : Theme.lightTextColor

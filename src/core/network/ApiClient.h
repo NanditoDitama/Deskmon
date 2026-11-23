@@ -22,6 +22,11 @@ public:
     QString authToken() const { return m_authToken; }
     void clearAuthToken() { m_authToken.clear(); }
 
+    static QString defaultBaseUrl();
+    QString baseUrl() const { return m_baseUrl; }
+    void setBaseUrl(const QString &baseUrl);
+    QUrl buildUrl(const QString &endpointPath) const;
+
     QNetworkRequest createRequest(const QUrl &url, bool withAuth = true) const;
     QNetworkReply* get(const QUrl &url, bool withAuth = true);
     QNetworkReply* post(const QUrl &url, const QByteArray &data, bool withAuth = true);
@@ -30,6 +35,7 @@ public:
 private:
     QNetworkAccessManager *m_networkManager;
     QString m_authToken;
+    QString m_baseUrl;
 };
 
 #endif // APICLIENT_H

@@ -14,9 +14,9 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
 #include <Carbon/Carbon.h>
+#include <AvailabilityMacros.h>
 #include <IOKit/IOKitLib.h>
 #include <IOKit/IOKitKeys.h>
-#include <IOKit/IOKitLib.h>
 
 #else
 #include <X11/Xlib.h>
@@ -79,32 +79,59 @@ bool IdleChecker::isIdle() const
     return m_isIdle;
 }
 
+void IdleChecker::setIdleTimeProvider(IdleTimeProvider provider)
+{
+    m_idleTimeProvider = std::move(provider);
+}
+
 void IdleChecker::checkIdleTime()
 {
-    qint64 currentTime = QDateTime::currentSecsSinceEpoch();
+    checkIdleTimeAt(QDateTime::currentSecsSinceEpoch());
+}
 
-    if (currentTime - m_lastThresholdCheckTime >= 60) {
+void IdleChecker::checkIdleTimeAt(qint64 currentTime)
+{
+    if (!m_appController || m_appController->currentUserId() == -1) {
+        if (m_isIdle) {
+            m_isIdle = false;
+            m_lastIdleLogTime = 0;
+            m_lastActiveTime = 0;
+        }
+        m_autoPausedByIdle = false;
+        return;
+    }
+
+    if (m_appController->activeTaskId() != -1 && m_appController->isTaskPaused() && !m_isIdle) {
+        return;
+    }
+
+    if (currentTime - m_lastThresholdCheckTime >= 10) {
         updateIdleThresholdFromDatabase();
     }
 
     qint64 idleSeconds = getSystemIdleTime();
+    if (idleSeconds < 0) {
+        qWarning() << "Skipping idle check due to system error";
+        return;
+    }
 
     if (idleSeconds >= m_idleThreshold) {
         if (!m_isIdle) {
             m_isIdle = true;
-            m_lastIdleLogTime = currentTime - idleSeconds;
+            m_lastActiveTime = currentTime - idleSeconds;
+            m_lastIdleLogTime = currentTime;
 
-            if (m_appController && m_appController->activeTaskId() != -1 && !m_appController->isTaskPaused()) {
+            if (m_appController->activeTaskId() != -1 && !m_appController->isTaskPaused()) {
                 m_appController->toggleTaskPause();
                 m_autoPausedByIdle = true;
                 qDebug() << "Task automatically paused due to idle";
             }
 
-            emit showIdleNotification(QString("Sistem tidak aktif selama %1 detik").arg(m_idleThreshold));
+            emit showIdleNotification(QStringLiteral("Idle Terdeteksi"));
             qDebug() << "Idle state started. Idle seconds:" << idleSeconds << "Threshold:" << m_idleThreshold;
         }
 
-        if (currentTime - m_lastIdleLogTime >= 10) {
+        if (currentTime - m_lastIdleLogTime >= 60) {
             emit idleDetected(m_lastIdleLogTime, currentTime);
             m_lastIdleLogTime = currentTime;
         }
@@ -115,9 +142,10 @@ void IdleChecker::checkIdleTime()
                 emit idleDetected(m_lastIdleLogTime, currentTime);
             }
             m_lastIdleLogTime = 0;
+            m_lastActiveTime = 0;
 
             if (m_autoPausedByIdle) {
-                if (m_appController && m_appController->activeTaskId() != -1 && m_appController->isTaskPaused()) {
+                if (m_appController->activeTaskId() != -1 && m_appController->isTaskPaused()) {
                     m_appController->toggleTaskPause();
                     qDebug() << "Task automatically resumed after idle";
                 }
@@ -132,6 +160,9 @@ void IdleChecker::checkIdleTime()
 
 qint64 IdleChecker::getSystemIdleTime() const
 {
+    if (m_idleTimeProvider) {
+        return m_idleTimeProvider();
+    }
 #ifdef Q_OS_WIN
     return getSystemIdleTimeWindows();
 #elif defined(Q_OS_MACOS)
@@ -148,16 +179,21 @@ qint64 IdleChecker::getSystemIdleTimeWindows() const
     lii.cbSize = sizeof(LASTINPUTINFO);
     if (GetLastInputInfo(&lii)) {
         DWORD tickCount = GetTickCount();
-        return (tickCount - lii.dwTime) / 1000;
+        return static_cast<qint64>(tickCount - lii.dwTime) / 1000;
     }
-    return 0;
+    return -1;
 }
 #elif defined(Q_OS_MACOS)
 qint64 IdleChecker::getSystemIdleTimeMacOS() const
 {
     int64_t idlesecs = -1;
     io_iterator_t iter = IO_OBJECT_NULL;
-    if (IOServiceGetMatchingServices(kIOMasterPortDefault, IOServiceMatching("IOHIDSystem"), &iter) == KERN_SUCCESS) {
+#if defined(MAC_OS_VERSION_12_0) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_12_0
+    mach_port_t mainPort = kIOMainPortDefault;
+#else
+    mach_port_t mainPort = 0;
+#endif
+    if (IOServiceGetMatchingServices(mainPort, IOServiceMatching("IOHIDSystem"), &iter) == KERN_SUCCESS) {
         io_registry_entry_t entry = IOIteratorNext(iter);
         if (entry) {
             CFMutableDictionaryRef dict = NULL;
@@ -175,17 +211,24 @@ qint64 IdleChecker::getSystemIdleTimeMacOS() const
         }
         IOObjectRelease(iter);
     }
-    return idlesecs >= 0 ? idlesecs : 0;
+    return idlesecs >= 0 ? idlesecs : -1;
 }
 #else
 qint64 IdleChecker::getSystemIdleTimeLinux() const
 {
-    Display *display = XOpenDisplay(NULL);
-    if (!display) return 0;
+    Display *display = XOpenDisplay(nullptr);
+    if (!display) return -1;
 
     XScreenSaverInfo *info = XScreenSaverAllocInfo();
-    XScreenSaverQueryInfo(display, DefaultRootWindow(display), info);
-    qint64 idleTime = info->idle / 1000;
+    if (!info) {
+        XCloseDisplay(display);
+        return -1;
+    }
+
+    qint64 idleTime = -1;
+    if (XScreenSaverQueryInfo(display, DefaultRootWindow(display), info)) {
+        idleTime = static_cast<qint64>(info->idle) / 1000;
+    }
     XFree(info);
     XCloseDisplay(display);
     return idleTime;

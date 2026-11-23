@@ -143,7 +143,11 @@ Rectangle {
 
     function show(type, msg) {
         ntype = type
-        message = msg
+        var translated = Lang.t(msg)
+        if (translated === msg && typeof msg === "string" && msg.indexOf("Gagal mengecek update: ") === 0) {
+            translated = Lang.t("Failed to check for updates: ") + msg.substring("Gagal mengecek update: ".length)
+        }
+        message = translated
         leaving = false
 
         switch(type) {

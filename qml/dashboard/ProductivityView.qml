@@ -32,15 +32,37 @@ Item {
         startSelectedDate = today;
         endSelectedDate = today;
         isDateSelected = true;
-        updateAppDurations();
-        updateDomainDurations();
+        applyDateRange();
+        if (typeof logger !== "undefined") {
+            checkAndFetchClockData();
+        }
+    }
+
+    function applyDateRange() {
+        if (typeof logger === "undefined") return;
+        if (!isDateSelected || isNaN(startSelectedDate.getTime())) {
+            logger.clearLogFilter();
+        } else {
+            var startStr = Qt.formatDate(startSelectedDate, "yyyy-MM-dd");
+            var endObj = isNaN(endSelectedDate.getTime()) ? startSelectedDate : endSelectedDate;
+            var endStr = Qt.formatDate(endObj, "yyyy-MM-dd");
+            logger.setLogFilter(startStr, endStr);
+        }
+        usageDebounceTimer.stop();
+        updateUsageData();
+    }
+
+    Timer {
+        id: usageDebounceTimer
+        interval: 80
+        repeat: false
+        onTriggered: updateUsageData()
     }
 
     Connections {
         target: (typeof logger !== "undefined") ? logger : null
         function onLogContentChanged() {
-            updateAppDurations();
-            updateDomainDurations();
+            usageDebounceTimer.restart();
         }
     }
 
@@ -59,19 +81,38 @@ Item {
         }
     }
 
+    function parseTimeToSeconds(t) {
+        if (!t) return -1;
+        var p = t.split(':');
+        if (p.length < 2) return -1;
+        var h = parseInt(p[0], 10);
+        var m = parseInt(p[1], 10);
+        var s = p.length >= 3 ? parseInt(p[2], 10) : 0;
+        if (isNaN(h) || isNaN(m) || isNaN(s)) return -1;
+        return h * 3600 + m * 60 + s;
+    }
+
     function extractDomain(urlString) {
-        if (!urlString || urlString.trim() === "") return "";
-        try {
-            var fullUrl = urlString.startsWith("http") ? urlString : "https://" + urlString;
-            var urlObj = new URL(fullUrl);
-            var hostname = urlObj.hostname;
-            if (hostname.startsWith("www.")) return hostname.substring(4);
-            return hostname;
-        } catch (e) {
-            var domain = urlString.split('/')[0];
-            if (domain.startsWith("www.")) return domain.substring(4);
-            return domain;
+        if (!urlString) return "";
+        var s = urlString.trim();
+        if (s === "" || s.toLowerCase() === "n/a") return "";
+        var schemeIdx = s.indexOf("://");
+        if (schemeIdx !== -1) {
+            s = s.substring(schemeIdx + 3);
         }
+        var slashIdx = s.indexOf("/");
+        if (slashIdx !== -1) s = s.substring(0, slashIdx);
+        var queryIdx = s.indexOf("?");
+        if (queryIdx !== -1) s = s.substring(0, queryIdx);
+        var hashIdx = s.indexOf("#");
+        if (hashIdx !== -1) s = s.substring(0, hashIdx);
+        var atIdx = s.indexOf("@");
+        if (atIdx !== -1) s = s.substring(atIdx + 1);
+        var colonIdx = s.indexOf(":");
+        if (colonIdx !== -1) s = s.substring(0, colonIdx);
+        s = s.toLowerCase();
+        if (s.startsWith("www.")) s = s.substring(4);
+        return s;
     }
 
     function getProductivityType(name, url) {
@@ -84,92 +125,89 @@ Item {
         }
     }
 
-    function updateAppDurations() {
-        if (typeof logger === "undefined" || !logger.logContent) return;
+    function updateUsageData() {
+        if (typeof logger === "undefined") return;
+        var content = logger.logContent || "";
+        if (content.length === 0) {
+            appDurations = {};
+            sortedApps = [];
+            sortedDomains = [];
+            return;
+        }
+
         var durations = {};
-        var logs = logger.logContent.split('\n');
-        var totalDuration = 0;
+        var domainDurations = {};
+        var totalAppDuration = 0;
+        var totalDomainDuration = 0;
 
-        for (var i = 0; i < logs.length; i++) {
-            var parts = logs[i].split(',');
-            if (parts.length >= 4 && parts[2].trim() !== '' && parts[3].trim() !== '') {
-                var appName = parts[2].trim();
-                if (appName === "Idle") continue;
+        var pos = 0;
+        var len = content.length;
+        while (pos < len) {
+            var nl = content.indexOf('\n', pos);
+            var line = (nl === -1) ? content.substring(pos) : content.substring(pos, nl);
+            pos = (nl === -1) ? len : nl + 1;
+            if (line.length === 0) continue;
 
-                var start = parts[0].trim();
-                var end = parts[1].trim();
-                var startTime = new Date("2000-01-01 " + start);
-                var endTime = new Date("2000-01-01 " + end);
-                var durationSec = (endTime - startTime) / 1000;
+            var parts = line.split(',');
+            if (parts.length < 4) continue;
+            var appName = parts[2].trim();
+            var windowTitle = parts[3].trim();
+            if (appName === '' || windowTitle === '') continue;
 
-                if (durationSec > 0) {
-                    if (durations[appName] === undefined) {
-                        durations[appName] = 0;
-                    }
-                    durations[appName] += durationSec;
-                    totalDuration += durationSec;
+            var startSec = parseTimeToSeconds(parts[0].trim());
+            var endSec = parseTimeToSeconds(parts[1].trim());
+            if (startSec < 0 || endSec < 0) continue;
+            var durationSec = endSec - startSec;
+            if (durationSec <= 0) continue;
+
+            if (appName !== "Idle") {
+                durations[appName] = (durations[appName] || 0) + durationSec;
+                totalAppDuration += durationSec;
+            }
+
+            if (parts.length >= 5) {
+                var domain = extractDomain(parts[4]);
+                if (domain) {
+                    domainDurations[domain] = (domainDurations[domain] || 0) + durationSec;
+                    totalDomainDuration += durationSec;
                 }
             }
         }
 
         var appArray = [];
         for (var app in durations) {
-            var percentage = totalDuration > 0 ? (durations[app] / totalDuration) * 100 : 0;
+            var pct = totalAppDuration > 0 ? (durations[app] / totalAppDuration) * 100 : 0;
             appArray.push({
                 name: app,
                 duration: durations[app],
-                percentage: percentage,
+                percentage: pct,
                 productivityType: getProductivityType(app, "")
             });
         }
-
-        appArray.sort((a, b) => b.duration - a.duration);
+        appArray.sort(function(a, b) { return b.duration - a.duration; });
         appDurations = durations;
         sortedApps = appArray;
-    }
-
-    function updateDomainDurations() {
-        if (typeof logger === "undefined" || !logger.logContent) return;
-        var domainDurations = {};
-        var logs = logger.logContent.split('\n').filter(line => line.trim() !== '');
-        var totalDuration = 0;
-
-        for (var i = 0; i < logs.length; i++) {
-            var parts = logs[i].split(',');
-            if (parts.length >= 5 && parts[4] && parts[4].trim() !== '') {
-                var url = parts[4].trim();
-                var domain = extractDomain(url);
-                if (domain) {
-                    var start = parts[0].trim();
-                    var end = parts[1].trim();
-                    var startTime = new Date("2000-01-01 " + start);
-                    var endTime = new Date("2000-01-01 " + end);
-                    var durationSec = (endTime - startTime) / 1000;
-
-                    if (durationSec > 0) {
-                        if (domainDurations[domain] === undefined) {
-                            domainDurations[domain] = 0;
-                        }
-                        domainDurations[domain] += durationSec;
-                        totalDuration += durationSec;
-                    }
-                }
-            }
-        }
 
         var domainArray = [];
         for (var d in domainDurations) {
-            var percentage = totalDuration > 0 ? (domainDurations[d] / totalDuration) * 100 : 0;
+            var dpct = totalDomainDuration > 0 ? (domainDurations[d] / totalDomainDuration) * 100 : 0;
             domainArray.push({
                 name: d,
                 duration: domainDurations[d],
-                percentage: percentage,
+                percentage: dpct,
                 productivityType: getProductivityType(d, d)
             });
         }
-
-        domainArray.sort((a, b) => b.duration - a.duration);
+        domainArray.sort(function(a, b) { return b.duration - a.duration; });
         sortedDomains = domainArray;
+    }
+
+    function updateAppDurations() {
+        updateUsageData();
+    }
+
+    function updateDomainDurations() {
+        updateUsageData();
     }
 
     function fetchClockData() {
@@ -220,7 +258,8 @@ Item {
             }
         }
 
-        xhr.open("GET", "https://deskmon.pranala-dt.co.id/api/get-check-in/" + userId);
+        var baseUrl = (typeof logger !== "undefined" && logger.apiBaseUrl) ? logger.apiBaseUrl() : "https://deskmon.pranala-dt.co.id/api";
+        xhr.open("GET", baseUrl + "/get-check-in/" + userId);
 
         // PENTING: Tambahkan header Authorization
         xhr.setRequestHeader("Authorization", "Bearer " + logger.authToken);
@@ -264,6 +303,11 @@ Item {
                 clockIn = "--:--";
                 clockOut = "--:--";
             } else {
+                var today = new Date();
+                startSelectedDate = today;
+                endSelectedDate = today;
+                isDateSelected = true;
+                applyDateRange();
                 // Coba cek, mungkin token sudah siap
                 checkAndFetchClockData();
             }
@@ -316,7 +360,7 @@ Item {
                         Layout.alignment: Qt.AlignRight
 
                         Button {
-                            text: showAllPercentages ? "Top 4" : "All"
+                            text: showAllPercentages ? Lang.t("Top 4") : Lang.t("All")
                             height: 38
                             padding: 0
                             leftPadding: 12
@@ -348,7 +392,7 @@ Item {
                                       (!isNaN(endSelectedDate.getTime()) ?
                                            Qt.formatDate(startSelectedDate, "MMM d") + "-" + Qt.formatDate(endSelectedDate, "MMM d") :
                                            Qt.formatDate(startSelectedDate, "MMM d")) :
-                                      "Date Range"
+                                      Lang.t("Date Range")
                             height: 38
                             padding: 0
                             leftPadding: 12
@@ -378,6 +422,7 @@ Item {
                 DateRangeDialog{
                     id: dateRangeDialog
                     parent: Overlay.overlay
+                    targetView: productivityRoot
                 }
 
                 // Divider
@@ -598,7 +643,7 @@ Item {
                     // Delegate untuk domainsListView (gunakan kode yang sudah dibuat dari jawaban sebelumnya
                     // yang sudah memiliki warna progress bar dinamis)
                     delegate: Item {
-                        width: percentageListView.width
+                        width: domainsListView.width
                         height: 48
 
                         property real targetPercentage: model.modelData.percentage
@@ -810,22 +855,7 @@ Item {
                             color: Theme.accentColor
                         }
                         onClicked: {
-                            var apps = logger.getProductivityApps();
-                            applicationsDialog.productiveAppsModel.clear();
-                            applicationsDialog.nonProductiveAppsModel.clear();
-                            for (var i = 0; i < apps.length; i++) {
-                                if (apps[i].type === 1) {
-                                    applicationsDialog.productiveAppsModel.append({
-                                        "appName": apps[i].appName,
-                                        "url": apps[i].url
-                                    });
-                                } else if (apps[i].type === 2) {
-                                    applicationsDialog.nonProductiveAppsModel.append({
-                                        "appName": apps[i].appName,
-                                        "url": apps[i].url
-                                    });
-                                }
-                            }
+                            applicationsDialog.setApps(logger.getProductivityApps());
                             applicationsDialog.open();
                         }
                     }
@@ -1010,7 +1040,7 @@ Item {
                                 // Subtitle dengan fade-in effect
                                 ctx.font = "600 13px 'Segoe UI', system-ui, -apple-system"
                                 ctx.fillStyle = Qt.alpha(Theme.primaryColor, 0.8 * animationProgress)
-                                ctx.fillText("Productive", centerX, centerY + 18)
+                                ctx.fillText(Lang.t("Productive"), centerX, centerY + 18)
 
                                 // Decorative center dot
                                 if (animationProgress > 0.7) {
@@ -1029,11 +1059,12 @@ Item {
                 Connections {
                     target: logger
                     function onProductivityStatsChanged() {
+                        var stats = logger.productivityStats
                         // Calculate angles based on percentages
-                        var productive = logger.productivityStats.productive || 0
-                        var nonProductive = logger.productivityStats.nonProductive || 0
-                        var neutral = logger.productivityStats.neutral || 0
-                        var idle = logger.productivityStats.idle || 0
+                        var productive = stats.productive || 0
+                        var nonProductive = stats.nonProductive || 0
+                        var neutral = stats.neutral || 0
+                        var idle = stats.idle || 0
 
                         // Normalize if total exceeds 100%
                         var total = productive + nonProductive + neutral
@@ -1042,6 +1073,13 @@ Item {
                             nonProductive = (nonProductive / total) * 100
                             neutral = (neutral / total) * 100
                             idle = (idle / total) * 100
+                        }
+
+                        if (Math.abs(chartAnimator.productiveTarget - productive) < 0.1 &&
+                            Math.abs(chartAnimator.nonProductiveTarget - nonProductive) < 0.1 &&
+                            Math.abs(chartAnimator.neutralTarget - neutral) < 0.1 &&
+                            Math.abs(chartAnimator.idleTarget - idle) < 0.1) {
+                            return
                         }
 
                         // Stop any ongoing animation and reset angles

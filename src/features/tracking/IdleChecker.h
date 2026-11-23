@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QTimer>
+#include <functional>
 
 class AppController;
 
@@ -11,6 +12,8 @@ class IdleChecker : public QObject
     Q_OBJECT
     Q_PROPERTY(int idleThreshold READ idleThreshold WRITE setIdleThreshold NOTIFY idleThresholdChanged)
 public:
+    using IdleTimeProvider = std::function<qint64()>;
+
     explicit IdleChecker(AppController *appController, QObject *parent = nullptr);
     ~IdleChecker() override;
 
@@ -18,6 +21,7 @@ public:
     void setIdleThreshold(int seconds);
     bool isIdle() const;
     void updateIdleThresholdFromDatabase();
+    void setIdleTimeProvider(IdleTimeProvider provider);
 
 signals:
     void idleDetected(qint64 startTime, qint64 endTime);
@@ -26,11 +30,15 @@ signals:
     void handleSystemNotification(const QString &message);
     void hideIdleNotification();
 
-private slots:
+public slots:
     void checkIdleTime();
+    void checkIdleTimeAt(qint64 currentTime);
+
+protected:
+    virtual qint64 getSystemIdleTime() const;
 
 private:
-    qint64 getSystemIdleTime() const;
+    IdleTimeProvider m_idleTimeProvider;
     bool m_autoPausedByIdle = false;
 
 #ifdef Q_OS_WIN

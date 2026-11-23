@@ -8,6 +8,8 @@
 #include <shlwapi.h>
 #include <UIAutomation.h>
 #include <QFileInfo>
+#include <QMutex>
+#include <QMutexLocker>
 #include <QDebug>
 
 #pragma comment(lib, "psapi.lib")
@@ -15,6 +17,22 @@
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "uiautomationcore.lib")
+
+namespace {
+struct BrowserUrlCache {
+    QMutex mutex;
+    HWND hwnd = nullptr;
+    QString title;
+    QString url;
+    ULONGLONG timestampMs = 0;
+};
+
+BrowserUrlCache& browserUrlCache()
+{
+    static BrowserUrlCache s_cache;
+    return s_cache;
+}
+} // namespace
 
 static QString getAppNameFromHwnd(HWND hwnd) {
     DWORD processId;
@@ -33,17 +51,28 @@ static QString getAppNameFromHwnd(HWND hwnd) {
     return "Unknown";
 }
 
-static QString getBrowserUrlWindows(HWND hwnd) {
-    QString appName = getAppNameFromHwnd(hwnd).toLower();
+static QString getBrowserUrlWindows(HWND hwnd, const QString &appName, const QString &windowTitle) {
+    const QString lowerApp = appName.toLower();
 
     // Hanya proses jika ini adalah peramban yang dikenal
-    if (!appName.contains("chrome") && !appName.contains("firefox") &&
-        !appName.contains("edge") && !appName.contains("opera")) {
+    if (!lowerApp.contains("chrome") && !lowerApp.contains("firefox") &&
+        !lowerApp.contains("edge") && !lowerApp.contains("opera")) {
         return QString();
     }
 
-    HRESULT hr = CoInitialize(NULL);
-    if (FAILED(hr)) {
+    const ULONGLONG nowMs = GetTickCount64();
+    {
+        QMutexLocker locker(&browserUrlCache().mutex);
+        if (browserUrlCache().hwnd == hwnd &&
+            browserUrlCache().title == windowTitle &&
+            (nowMs - browserUrlCache().timestampMs) < 5000) {
+            return browserUrlCache().url;
+        }
+    }
+
+    HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+    const bool shouldUninit = (hr == S_OK || hr == S_FALSE);
+    if (FAILED(hr) && hr != RPC_E_CHANGED_MODE) {
         qWarning() << "Failed to initialize COM for UI Automation";
         return QString();
     }
@@ -52,7 +81,7 @@ static QString getBrowserUrlWindows(HWND hwnd) {
     hr = CoCreateInstance(__uuidof(CUIAutomation), NULL, CLSCTX_INPROC_SERVER, __uuidof(IUIAutomation), (void**)&pAutomation);
     if (FAILED(hr) || !pAutomation) {
         qWarning() << "Failed to create UI Automation instance.";
-        CoUninitialize();
+        if (shouldUninit) CoUninitialize();
         return QString();
     }
 
@@ -61,7 +90,7 @@ static QString getBrowserUrlWindows(HWND hwnd) {
     if (FAILED(hr) || !pRootElement) {
         qWarning() << "Failed to get UI Automation element from handle.";
         pAutomation->Release();
-        CoUninitialize();
+        if (shouldUninit) CoUninitialize();
         return QString();
     }
 
@@ -92,7 +121,15 @@ static QString getBrowserUrlWindows(HWND hwnd) {
 
     pRootElement->Release();
     pAutomation->Release();
-    CoUninitialize();
+    if (shouldUninit) CoUninitialize();
+
+    {
+        QMutexLocker locker(&browserUrlCache().mutex);
+        browserUrlCache().hwnd = hwnd;
+        browserUrlCache().title = windowTitle;
+        browserUrlCache().url = url;
+        browserUrlCache().timestampMs = GetTickCount64();
+    }
 
     return url;
 }
@@ -111,7 +148,7 @@ WindowInfo WindowInfoProvider::getActiveWindowInfo() {
     GetWindowTextW(hwnd, buffer, 256);
     info.title = QString::fromWCharArray(buffer);
     info.appName = getAppNameFromHwnd(hwnd);
-    info.url = getBrowserUrlWindows(hwnd);
+    info.url = getBrowserUrlWindows(hwnd, info.appName, info.title);
 
     if (info.appName.isEmpty()) info.appName = "Unknown";
     if (info.title.isEmpty()) info.title = "No active window";

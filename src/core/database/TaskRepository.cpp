@@ -1,5 +1,6 @@
 #include "TaskRepository.h"
 #include "DatabaseManager.h"
+#include <QHash>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDateTime>
@@ -12,7 +13,149 @@ TaskRepository::TaskRepository(QObject *parent)
 {
 }
 
-QVariantList TaskRepository::getTasksForUser(int userId) const
+bool TaskRepository::syncTasksToDatabase(QSqlDatabase &db,
+                                         int userId,
+                                         const QVector<SyncedTaskRow> &tasks,
+                                         const QSet<int> &serverTaskIds,
+                                         int currentActiveTaskId,
+                                         bool &outActiveTaskRemoved)
+{
+    outActiveTaskRemoved = false;
+    if (!db.isOpen() || userId == -1) return false;
+
+    const bool inTx = db.transaction();
+    if (!inTx) {
+        qWarning() << "Failed to start transaction in syncTasksToDatabase";
+        return false;
+    }
+
+    QHash<int, QPair<int, int>> existingTasks;
+    {
+        QSqlQuery loadQ(db);
+        loadQ.prepare(QStringLiteral("SELECT id, max_time, time_usage FROM tasks WHERE user_id = :user_id"));
+        loadQ.bindValue(":user_id", userId);
+        if (!loadQ.exec()) {
+            qWarning() << "Failed to load existing tasks:" << loadQ.lastError().text();
+            db.rollback();
+            return false;
+        }
+        while (loadQ.next()) {
+            existingTasks.insert(loadQ.value(0).toInt(),
+                                 qMakePair(loadQ.value(1).toInt(), loadQ.value(2).toInt()));
+        }
+    }
+
+    QSqlQuery deleteQ(db);
+    deleteQ.prepare(QStringLiteral("DELETE FROM tasks WHERE id = :id AND user_id = :user_id"));
+
+    for (auto it = existingTasks.constBegin(); it != existingTasks.constEnd(); ++it) {
+        const int localTaskId = it.key();
+        if (!serverTaskIds.contains(localTaskId)) {
+            if (localTaskId == currentActiveTaskId && currentActiveTaskId != -1) {
+                outActiveTaskRemoved = true;
+            }
+            deleteQ.bindValue(":id", localTaskId);
+            deleteQ.bindValue(":user_id", userId);
+            if (!deleteQ.exec()) {
+                qWarning() << "Failed to delete stale task:" << deleteQ.lastError().text();
+                db.rollback();
+                return false;
+            }
+        }
+    }
+
+    QSqlQuery updateQ(db);
+    updateQ.prepare(QStringLiteral("UPDATE tasks SET project_name = :projectName, task_desc = :taskDesc, "
+                                   "max_time = :maxTime, time_usage = :timeUsage, created_at = :createdAt "
+                                   "WHERE id = :id AND user_id = :user_id"));
+
+    QSqlQuery insertQ(db);
+    insertQ.prepare(QStringLiteral("INSERT INTO tasks (id, user_id, project_name, task_desc, max_time, time_usage, active, status, paused, created_at) "
+                                   "VALUES (:id, :user_id, :projectName, :taskDesc, :maxTime, :timeUsage, 0, 'Pending', 0, :createdAt)"));
+
+    for (const SyncedTaskRow &pt : tasks) {
+        if (existingTasks.contains(pt.id)) {
+            const int currentMaxTime = existingTasks.value(pt.id).first;
+            const int currentTimeUsage = existingTasks.value(pt.id).second;
+            const int finalMaxTime = pt.hasDuration ? pt.serverMaxTime : currentMaxTime;
+            int finalTimeUsage = pt.hasTotalDuration ? pt.serverTimeUsage : currentTimeUsage;
+            if (pt.id == currentActiveTaskId && currentTimeUsage > finalTimeUsage) {
+                finalTimeUsage = currentTimeUsage;
+            }
+
+            updateQ.bindValue(":projectName", pt.projectName);
+            updateQ.bindValue(":taskDesc", pt.taskDesc);
+            updateQ.bindValue(":maxTime", finalMaxTime);
+            updateQ.bindValue(":timeUsage", finalTimeUsage);
+            updateQ.bindValue(":createdAt", pt.createdAt);
+            updateQ.bindValue(":id", pt.id);
+            updateQ.bindValue(":user_id", userId);
+            if (!updateQ.exec()) {
+                qWarning() << "Failed to update task in batch sync:" << updateQ.lastError().text();
+                db.rollback();
+                return false;
+            }
+        } else {
+            insertQ.bindValue(":id", pt.id);
+            insertQ.bindValue(":user_id", userId);
+            insertQ.bindValue(":projectName", pt.projectName);
+            insertQ.bindValue(":taskDesc", pt.taskDesc);
+            insertQ.bindValue(":maxTime", pt.serverMaxTime);
+            insertQ.bindValue(":timeUsage", pt.serverTimeUsage);
+            insertQ.bindValue(":createdAt", pt.createdAt);
+            if (!insertQ.exec()) {
+                qWarning() << "Failed to insert task in batch sync:" << insertQ.lastError().text();
+                db.rollback();
+                return false;
+            }
+        }
+    }
+
+    if (!db.commit()) {
+        qWarning() << "Failed to commit syncTasksToDatabase transaction:" << db.lastError().text();
+        db.rollback();
+        return false;
+    }
+
+    return true;
+}
+
+bool TaskRepository::computeIsExpired(const QString &createdAtStr, int maxTimeSeconds, const QDate &today)
+{
+    QDateTime createdDateTime = QDateTime::fromString(createdAtStr, Qt::ISODate);
+    if (!createdDateTime.isValid()) {
+        return false;
+    }
+
+    QDate createdDate = createdDateTime.date();
+    if (createdDate.year() < today.year() ||
+        (createdDate.year() == today.year() && createdDate.month() < today.month())) {
+        double workHoursPerDay = 8.0 * 3600.0;
+        int daysDuration = static_cast<int>(std::ceil(static_cast<double>(maxTimeSeconds) / workHoursPerDay));
+        QDate estimatedFinishDate = createdDate.addDays(daysDuration);
+
+        if (estimatedFinishDate.year() < today.year() ||
+            (estimatedFinishDate.year() == today.year() && estimatedFinishDate.month() < today.month())) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool TaskRepository::isTaskExpired(int taskId) const
+{
+    if (!DatabaseManager::instance().ensureOpen() || taskId <= 0) return false;
+
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("SELECT created_at, max_time FROM tasks WHERE id = :id");
+    query.bindValue(":id", taskId);
+    if (query.exec() && query.next()) {
+        return computeIsExpired(query.value(0).toString(), query.value(1).toInt());
+    }
+    return false;
+}
+
+QVariantList TaskRepository::getTasksForUser(int userId, bool isTaskPaused) const
 {
     QVariantList tasks;
     if (!DatabaseManager::instance().ensureOpen() || userId == -1) return tasks;
@@ -38,28 +181,22 @@ QVariantList TaskRepository::getTasksForUser(int userId) const
         int maxTime = query.value(3).toInt();
         task["max_time"] = maxTime;
         task["time_usage"] = query.value(4).toInt();
-        task["active"] = query.value(5).toBool();
-        task["status"] = query.value(6).toString();
+        bool active = query.value(5).toBool();
+        task["active"] = active;
+        QString rawStatus = query.value(6).toString();
         QString createdAtStr = query.value(7).toString();
 
-        bool isExpired = false;
-        QDateTime createdDateTime = QDateTime::fromString(createdAtStr, Qt::ISODate);
-
-        if (createdDateTime.isValid()) {
-            QDate createdDate = createdDateTime.date();
-            if (createdDate.year() < today.year() ||
-                (createdDate.year() == today.year() && createdDate.month() < today.month())) {
-                double workHoursPerDay = 8.0 * 3600.0;
-                int daysDuration = std::ceil((double)maxTime / workHoursPerDay);
-                QDate estimatedFinishDate = createdDate.addDays(daysDuration);
-
-                if (estimatedFinishDate.year() < today.year() ||
-                    (estimatedFinishDate.year() == today.year() && estimatedFinishDate.month() < today.month())) {
-                    isExpired = true;
-                }
-            }
+        if (rawStatus.toLower() == QStringLiteral("review")) {
+            task["status"] = QStringLiteral("Review");
+        } else if (active) {
+            task["status"] = isTaskPaused ? QStringLiteral("Paused") : QStringLiteral("Is Running");
+        } else if (rawStatus.toLower() == QStringLiteral("pending")) {
+            task["status"] = QStringLiteral("Pending");
+        } else {
+            task["status"] = rawStatus;
         }
-        task["isExpired"] = isExpired;
+
+        task["isExpired"] = computeIsExpired(createdAtStr, maxTime, today);
         tasks.append(task);
     }
     return tasks;
@@ -172,6 +309,81 @@ bool TaskRepository::findActiveTask(int userId, int &outTaskId, bool &outIsPause
     return found;
 }
 
+bool TaskRepository::findStartupTask(int userId, int &outTaskId, bool &outIsPaused, int &outTimeUsage, QString &outStatus) const
+{
+    outTaskId = -1;
+    outIsPaused = false;
+    outTimeUsage = 0;
+    outStatus.clear();
+
+    if (!DatabaseManager::instance().ensureOpen() || userId == -1) return false;
+
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("SELECT id, paused, time_usage, status FROM tasks "
+                  "WHERE user_id = :user_id AND (active = 1 OR LOWER(status) = 'on-progress') "
+                  "ORDER BY (LOWER(status) = 'on-progress') DESC LIMIT 1");
+    query.bindValue(":user_id", userId);
+
+    if (query.exec() && query.next()) {
+        outTaskId = query.value(0).toInt();
+        outIsPaused = query.value(1).toBool();
+        outTimeUsage = query.value(2).toInt();
+        outStatus = query.value(3).toString();
+        return true;
+    }
+    return false;
+}
+
+bool TaskRepository::getTaskDetails(int taskId, int &outMaxTime, int &outTimeUsage, QString &outStatus) const
+{
+    outMaxTime = 0;
+    outTimeUsage = 0;
+    outStatus.clear();
+
+    if (!DatabaseManager::instance().ensureOpen() || taskId <= 0) return false;
+
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("SELECT max_time, time_usage, status FROM tasks WHERE id = :id");
+    query.bindValue(":id", taskId);
+
+    if (query.exec() && query.next()) {
+        outMaxTime = query.value(0).toInt();
+        outTimeUsage = query.value(1).toInt();
+        outStatus = query.value(2).toString();
+        return true;
+    }
+    return false;
+}
+
+int TaskRepository::findNextEligibleTaskId(int userId, int excludedTaskId) const
+{
+    if (!DatabaseManager::instance().ensureOpen() || userId == -1) return -1;
+
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("SELECT id FROM tasks "
+                  "WHERE user_id = :user_id AND id != :excluded AND status NOT IN ('Review', 'Need Review', 'Need Revise') "
+                  "LIMIT 1");
+    query.bindValue(":user_id", userId);
+    query.bindValue(":excluded", excludedTaskId);
+
+    if (query.exec() && query.next()) {
+        return query.value(0).toInt();
+    }
+    return -1;
+}
+
+bool TaskRepository::deactivateTask(int taskId, const QString &status, int timeUsage)
+{
+    if (!DatabaseManager::instance().ensureOpen() || taskId <= 0) return false;
+
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("UPDATE tasks SET active = 0, status = :status, time_usage = :timeUsage, paused = 0 WHERE id = :id");
+    query.bindValue(":status", status);
+    query.bindValue(":timeUsage", timeUsage);
+    query.bindValue(":id", taskId);
+    return query.exec();
+}
+
 bool TaskRepository::resetActiveTaskStatus(int taskIdToKeep)
 {
     if (!DatabaseManager::instance().ensureOpen()) return false;
@@ -266,7 +478,7 @@ bool TaskRepository::logPausePlayData(int taskId, const QString &startTime, cons
     return query.exec();
 }
 
-bool TaskRepository::archiveCompletedTask(int taskId, int userId)
+bool TaskRepository::archiveCompletedTask(int taskId, int userId, int overrideTimeUsage)
 {
     if (!DatabaseManager::instance().ensureOpen()) return false;
 
@@ -279,7 +491,7 @@ bool TaskRepository::archiveCompletedTask(int taskId, int userId)
         QString projectName = selectQuery.value(0).toString();
         QString taskDesc = selectQuery.value(1).toString();
         int maxTime = selectQuery.value(2).toInt();
-        int timeUsage = selectQuery.value(3).toInt();
+        int timeUsage = (overrideTimeUsage >= 0) ? overrideTimeUsage : selectQuery.value(3).toInt();
         qint64 completedTime = QDateTime::currentSecsSinceEpoch();
 
         QSqlQuery insertQuery(DatabaseManager::instance().database());
@@ -307,7 +519,7 @@ int TaskRepository::getPendingStartedTaskCount(int userId) const
     if (!DatabaseManager::instance().ensureOpen() || userId == -1) return 0;
 
     QSqlQuery query(DatabaseManager::instance().database());
-    query.prepare("SELECT COUNT(*) FROM tasks WHERE user_id = :user_id AND status IN ('pending', 'started')");
+    query.prepare("SELECT COUNT(*) FROM tasks WHERE user_id = :user_id AND LOWER(status) = 'pending' AND time_usage > 0");
     query.bindValue(":user_id", userId);
 
     if (query.exec() && query.next()) {

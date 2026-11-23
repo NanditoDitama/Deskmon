@@ -12,7 +12,8 @@ class DatabaseManager : public QObject
 public:
     static DatabaseManager& instance();
 
-    bool initialize();
+    bool initialize(const QString &dbPathOverride = QString());
+    void close();
     bool ensureOpen() const;
     QSqlDatabase database() const;
     QString databasePath() const;
@@ -21,13 +22,15 @@ public:
     bool commit();
     bool rollback();
 
+    void migrateLegacyDatabases();
+
 private:
     explicit DatabaseManager(QObject *parent = nullptr);
     ~DatabaseManager() override;
 
     bool createTables();
+    bool runMigrations();
     bool createViews();
-    void migrateLegacyDatabases();
 
     mutable QSqlDatabase m_db;
     QString m_dbPath;

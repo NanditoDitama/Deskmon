@@ -90,7 +90,7 @@ QString UserRepository::getDepartment(const QString &username) const
     if (!DatabaseManager::instance().ensureOpen()) return "";
 
     QSqlQuery query(DatabaseManager::instance().database());
-    query.prepare("SELECT department FROM users WHERE username = :username");
+    query.prepare("SELECT role FROM users WHERE username = :username");
     query.bindValue(":username", username);
     if (query.exec() && query.next()) {
         return query.value(0).toString();

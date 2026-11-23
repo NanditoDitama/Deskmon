@@ -10,6 +10,8 @@ INSTALLER_DIR = os.path.join(WORKSPACE_DIR, "installer")
 BUILD_DIR = os.path.join(WORKSPACE_DIR, "build")
 
 QT_DIRS = [
+    r"C:\Qt\6.11.2\mingw_64",
+    r"C:\Qt6112\6.11.2\mingw_64",
     r"C:\Qt692\6.9.2\mingw_64",
     r"C:\Qt\6.9.2\mingw_64",
 ]
@@ -27,9 +29,9 @@ def find_qt_dir():
 
 def find_tools():
     qt_dir = find_qt_dir()
-    cmake_dir = r"C:\Qt692\Tools\CMake_64\bin" if os.path.exists(r"C:\Qt692\Tools\CMake_64\bin") else r"C:\Qt\Tools\CMake_64\bin"
-    mingw_dir = r"C:\Qt692\Tools\mingw1310_64\bin" if os.path.exists(r"C:\Qt692\Tools\mingw1310_64\bin") else r"C:\Qt\Tools\mingw1310_64\bin"
-    ninja_dir = r"C:\Qt692\Tools\Ninja" if os.path.exists(r"C:\Qt692\Tools\Ninja") else r"C:\Qt\Tools\Ninja"
+    cmake_dir = r"C:\Qt\Tools\CMake_64\bin" if os.path.exists(r"C:\Qt\Tools\CMake_64\bin") else r"C:\Qt692\Tools\CMake_64\bin"
+    mingw_dir = r"C:\Qt\Tools\mingw1310_64\bin" if os.path.exists(r"C:\Qt\Tools\mingw1310_64\bin") else r"C:\Qt692\Tools\mingw1310_64\bin"
+    ninja_dir = r"C:\Qt\Tools\Ninja" if os.path.exists(r"C:\Qt\Tools\Ninja") else r"C:\Qt692\Tools\Ninja"
     return qt_dir, cmake_dir, mingw_dir, ninja_dir
 
 def find_iscc():
