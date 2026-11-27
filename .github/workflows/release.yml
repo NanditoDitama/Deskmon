@@ -28,28 +28,43 @@ jobs:
           target: "desktop"
           arch: "win64_mingw"
           dir: "${{ github.workspace }}/Qt"
-          tools: "tools_mingw"
 
       - name: Configure & Build
         shell: pwsh
         run: |
           $qtDir = Resolve-Path "${{ github.workspace }}/Qt/6.12.0/mingw_64"
-          $mingwBin = (Get-ChildItem "${{ github.workspace }}/Qt/Tools/mingw*/bin" | Select-Object -First 1).FullName
+          $mingwArch = (python -m aqt list-tool windows desktop tools_mingw | Select-String -Pattern "win64_mingw" | Select-Object -Last 1).ToString().Trim()
+          if ($mingwArch) {
+            python -m aqt install-tool --outputdir "${{ github.workspace }}/Qt" windows desktop tools_mingw $mingwArch
+          }
+          $mingwBin = (Get-ChildItem "${{ github.workspace }}/Qt/Tools/mingw*/bin" -ErrorAction SilentlyContinue | Select-Object -Last 1).FullName
+          if (-not $mingwBin -and (Test-Path "C:\msys64\mingw64\bin\g++.exe")) {
+            $mingwBin = "C:\msys64\mingw64\bin"
+          }
+          if (-not $mingwBin) { throw "MinGW toolchain not found." }
           $env:PATH = "$qtDir\bin;$mingwBin;$env:PATH"
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCONSOLE_LOGS=OFF -DBUILD_TESTING=OFF -DCMAKE_PREFIX_PATH="$qtDir"
-          cmake --build build
+          $genArgs = if (Get-Command ninja -ErrorAction SilentlyContinue) { @("-G", "Ninja") } else { @("-G", "MinGW Makefiles") }
+          cmake -B build @genArgs -DCMAKE_BUILD_TYPE=Release -DCONSOLE_LOGS=OFF -DBUILD_TESTING=OFF -DCMAKE_PREFIX_PATH="$qtDir"
+          cmake --build build --parallel
 
       - name: Package Installer & Update ZIP
         shell: pwsh
         run: |
           $ver = "${{ github.event.inputs.version }}"
           if (-not $ver -and "${{ github.ref_type }}" -eq "tag") {
-            $ver = "${{ github.ref_name }}".TrimStart("v")
+            $ver = "${{ github.ref_name }}"
+          }
+          if ($ver -match '(\d+(?:\.\d+)+)') {
+            $ver = $Matches[1]
+          } else {
+            $ver = ""
           }
           if (-not $ver) {
             $ver = (Get-Content version.txt -Raw).Trim()
           }
           $qtDir = Resolve-Path "${{ github.workspace }}/Qt/6.12.0/mingw_64"
+          $mingwBin = (Get-ChildItem "${{ github.workspace }}/Qt/Tools/mingw*/bin" -ErrorAction SilentlyContinue | Select-Object -Last 1).FullName
+          if ($mingwBin) { $env:PATH = "$mingwBin;$env:PATH" }
           New-Item -ItemType Directory -Force -Path dist/Deskmon | Out-Null
           Copy-Item build/Deskmon.exe dist/Deskmon/
           Copy-Item -Recurse resources dist/Deskmon/resources
@@ -58,7 +73,10 @@ jobs:
           Copy-Item "$qtDir\plugins\imageformats\qsvg.dll" dist/Deskmon/imageformats/ -ErrorAction SilentlyContinue
           Compress-Archive -Path dist/Deskmon/* -DestinationPath "dist/Deskmon-$ver-win64.zip" -Force
           (Get-FileHash "dist/Deskmon-$ver-win64.zip" -Algorithm SHA256).Hash.ToLower() | Out-File -Encoding ascii "dist/Deskmon-$ver-win64.zip.sha256"
-          python installer/generate_installer_assets.py 2>$null; iscc /DAppVersion=$ver installer/Deskmon_Setup.iss
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc -and (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe")) { $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" }
+          if (-not $iscc) { throw "ISCC.exe not found." }
+          & $iscc "/DAppVersion=$ver" installer/Deskmon_Setup.iss
           "VERSION=$ver" >> $env:GITHUB_ENV
 
       - uses: actions/upload-artifact@v4
@@ -89,6 +107,7 @@ jobs:
           if [ -z "$VER" ] && [ "${{ github.ref_type }}" = "tag" ]; then
             VER="${GITHUB_REF_NAME#v}"
           fi
+          VER=$(printf '%s' "$VER" | grep -oE '[0-9]+(\.[0-9]+)+' | head -n 1 || true)
           if [ -z "$VER" ]; then
             VER=$(tr -d '[:space:]' < version.txt)
           fi
@@ -127,6 +146,7 @@ jobs:
           if [ -z "$VER" ] && [ "${{ github.ref_type }}" = "tag" ]; then
             VER="${GITHUB_REF_NAME#v}"
           fi
+          VER=$(printf '%s' "$VER" | grep -oE '[0-9]+(\.[0-9]+)+' | head -n 1 || true)
           if [ -z "$VER" ]; then
             VER=$(tr -d '[:space:]' < version.txt)
           fi
@@ -157,6 +177,7 @@ jobs:
           if [ -z "$VER" ] && [ "${{ github.ref_type }}" = "tag" ]; then
             VER="${GITHUB_REF_NAME#v}"
           fi
+          VER=$(printf '%s' "$VER" | grep -oE '[0-9]+(\.[0-9]+)+' | head -n 1 || true)
           if [ -z "$VER" ]; then
             VER=$(tr -d '[:space:]' < version.txt)
           fi

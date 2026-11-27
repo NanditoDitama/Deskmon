@@ -8,19 +8,17 @@ DIST_DIR="${WORKSPACE_DIR}/dist"
 STAGING_DIR="${DIST_DIR}/Deskmon"
 
 resolve_version() {
+    local raw=""
     if [[ -n "${1:-}" ]]; then
-        echo "$1"
-        return
+        raw="$1"
+    elif [[ -n "${DESKMON_VERSION:-}" ]]; then
+        raw="${DESKMON_VERSION}"
+    elif [[ -f "${WORKSPACE_DIR}/version.txt" ]]; then
+        raw="$(tr -d '[:space:]' < "${WORKSPACE_DIR}/version.txt")"
+    else
+        raw="$(sed -n 's/^[[:space:]]*project([[:space:]]*Deskmon[[:space:]]*VERSION[[:space:]]*\([0-9.]*\).*/\1/p' "${WORKSPACE_DIR}/CMakeLists.txt" | head -n 1)"
     fi
-    if [[ -n "${DESKMON_VERSION:-}" ]]; then
-        echo "${DESKMON_VERSION}"
-        return
-    fi
-    if [[ -f "${WORKSPACE_DIR}/version.txt" ]]; then
-        tr -d '[:space:]' < "${WORKSPACE_DIR}/version.txt"
-        return
-    fi
-    sed -n 's/^[[:space:]]*project([[:space:]]*Deskmon[[:space:]]*VERSION[[:space:]]*\([0-9.]*\).*/\1/p' "${WORKSPACE_DIR}/CMakeLists.txt" | head -n 1
+    printf '%s' "${raw}" | grep -oE '[0-9]+(\.[0-9]+)+' | head -n 1 || true
 }
 
 find_qt_dir() {
