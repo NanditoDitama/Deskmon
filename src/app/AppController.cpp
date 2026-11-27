@@ -91,6 +91,7 @@ void AppController::setupConnections()
         m_taskManager->fetchAndStoreTasks();
         m_prodStatsService->startTimers();
         fetchAndStoreProductivityApps();
+        checkForUpdatesSilent();
     });
 
     connect(m_authManager, &AuthManager::loggedOut, this, [this]() {
@@ -141,6 +142,7 @@ void AppController::setupConnections()
     connect(m_updateManager, &UpdateManager::releasePageUrlChanged, this, &AppController::updateReleasePageUrlChanged);
     connect(m_updateManager, &UpdateManager::updateErrorMessageChanged, this, &AppController::updateErrorMessageChanged);
     connect(m_updateManager, &UpdateManager::updateAvailable, this, &AppController::updateAvailable);
+    connect(m_updateManager, &UpdateManager::updateFailed, this, &AppController::updateFailed);
     connect(m_updateManager, &UpdateManager::updateReadyToRestart, this, &AppController::updateReadyToRestart);
     connect(m_updateManager, &UpdateManager::showNotification, this, QOverload<const QString&, const QString&>::of(&AppController::showNotification));
     connect(m_updateManager, &UpdateManager::quitRequestedForUpdate, this, []() {

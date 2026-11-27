@@ -206,14 +206,14 @@ void UpdateManager::setProgress(int progress)
     emit updateProgressChanged();
 }
 
-void UpdateManager::setError(const QString &message, bool silent)
+void UpdateManager::setError(const QString &sanitizedDetail, const QString &toastSummary, bool notifyUser)
 {
-    m_errorMessage = message;
+    m_errorMessage = sanitizedDetail;
     emit updateErrorMessageChanged();
     setProgress(0);
     setState(State::Error);
-    if (!silent) {
-        emit showNotification(QStringLiteral("error"), message);
+    if (notifyUser) {
+        emit updateFailed(toastSummary);
     }
 }
 
@@ -282,25 +282,31 @@ void UpdateManager::checkForUpdates(bool silent)
         m_activeCheckReply.clear();
 
         if (reply->error() != QNetworkReply::NoError) {
-            const QString errMsg = QStringLiteral("Gagal mengecek update: %1").arg(reply->errorString());
-            qWarning() << "[UpdateManager]" << errMsg;
+            const int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            qWarning() << "[UpdateManager] Check failed. HTTP:" << statusCode
+                       << "URL:" << reply->url().toString()
+                       << "Detail:" << reply->errorString();
+            const QString detail = (statusCode >= 400)
+                ? QStringLiteral("Tidak dapat memeriksa pembaruan dari server (Kode HTTP %1). Silakan coba beberapa saat lagi atau hubungi administrator.").arg(statusCode)
+                : QStringLiteral("Tidak dapat memeriksa pembaruan (Kode ERR-UPD-NET). Periksa koneksi internet Anda lalu coba lagi.");
             if (silent) {
                 setProgress(0);
                 setState(State::Idle);
             } else {
-                setError(errMsg, false);
+                setError(detail, QStringLiteral("Gagal memeriksa pembaruan."), true);
             }
             return;
         }
 
         const QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
         if (!doc.isObject()) {
-            const QString invalidMsg = QStringLiteral("Format file update di server tidak valid.");
+            qWarning() << "[UpdateManager] Invalid manifest JSON from:" << reply->url().toString();
+            const QString detail = QStringLiteral("Data pembaruan tidak dapat dibaca (Kode ERR-UPD-MANIFEST). Silakan coba lagi atau hubungi administrator.");
             if (silent) {
                 setProgress(0);
                 setState(State::Idle);
             } else {
-                setError(invalidMsg, false);
+                setError(detail, QStringLiteral("Gagal memeriksa pembaruan."), true);
             }
             return;
         }
@@ -382,7 +388,9 @@ void UpdateManager::startDownload(const QUrl &assetUrl,
     const QString dlDirPath = downloadsRootPath(updatesRootDir());
     QDir dlDir(dlDirPath);
     if (!dlDir.exists() && !dlDir.mkpath(QStringLiteral("."))) {
-        setError(QStringLiteral("Gagal membuat folder unduhan update."), silent);
+        qWarning() << "[UpdateManager] Failed creating download dir:" << dlDirPath;
+        setError(QStringLiteral("Gagal menyiapkan penyimpanan sementara untuk pembaruan (Kode ERR-UPD-DIR)."),
+                 QStringLiteral("Gagal mengunduh pembaruan."), true);
         return;
     }
 
@@ -395,8 +403,10 @@ void UpdateManager::startDownload(const QUrl &assetUrl,
 
     m_downloadPartFile = std::make_unique<QFile>(partPath);
     if (!m_downloadPartFile->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        qWarning() << "[UpdateManager] Failed opening download file:" << partPath;
         m_downloadPartFile.reset();
-        setError(QStringLiteral("Gagal membuka file unduhan update."), silent);
+        setError(QStringLiteral("Gagal menulis berkas pembaruan di perangkat (Kode ERR-UPD-FILE)."),
+                 QStringLiteral("Gagal mengunduh pembaruan."), true);
         return;
     }
 
@@ -450,15 +460,24 @@ void UpdateManager::startDownload(const QUrl &assetUrl,
         }
 
         if (reply->error() != QNetworkReply::NoError) {
+            const int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
             QFile::remove(partPath);
-            setError(QStringLiteral("Gagal mengunduh update: %1").arg(reply->errorString()), silent);
+            qWarning() << "[UpdateManager] Download failed. HTTP:" << statusCode
+                       << "URL:" << reply->url().toString()
+                       << "Detail:" << reply->errorString();
+            const QString detail = (statusCode >= 400)
+                ? QStringLiteral("Gagal mengunduh paket pembaruan dari server (Kode HTTP %1). Silakan coba lagi nanti atau hubungi administrator.").arg(statusCode)
+                : QStringLiteral("Gagal mengunduh paket pembaruan (Kode ERR-UPD-DL). Periksa koneksi internet Anda lalu coba lagi.");
+            setError(detail, QStringLiteral("Gagal mengunduh pembaruan."), true);
             return;
         }
 
         QFile::remove(finalPath);
         if (!QFile::rename(partPath, finalPath)) {
+            qWarning() << "[UpdateManager] Failed moving download file to:" << finalPath;
             QFile::remove(partPath);
-            setError(QStringLiteral("Gagal menyimpan file paket update."), silent);
+            setError(QStringLiteral("Gagal menyimpan berkas paket pembaruan (Kode ERR-UPD-SAVE)."),
+                     QStringLiteral("Gagal mengunduh pembaruan."), true);
             return;
         }
 
@@ -479,7 +498,8 @@ void UpdateManager::verifyAndExtractDownloadedFile(const QString &archivePath,
         if (actualSha256.isEmpty() || actualSha256.compare(expectedSha256, Qt::CaseInsensitive) != 0) {
             qWarning() << "[UpdateManager] SHA-256 mismatch. Expected:" << expectedSha256 << "Actual:" << actualSha256;
             QFile::remove(archivePath);
-            setError(QStringLiteral("Verifikasi checksum paket update gagal (file korup)."), silent);
+            setError(QStringLiteral("Verifikasi keamanan paket pembaruan gagal (Kode ERR-UPD-CHECKSUM). Unduhan dibatalkan demi keamanan."),
+                     QStringLiteral("Verifikasi paket pembaruan gagal."), true);
             return;
         }
     }
@@ -489,8 +509,10 @@ void UpdateManager::verifyAndExtractDownloadedFile(const QString &archivePath,
 
     const QString stagedVersionDir = QDir(stagedBase).filePath(m_availableVersion);
     if (!QDir().mkpath(stagedVersionDir)) {
+        qWarning() << "[UpdateManager] Failed creating staging dir:" << stagedVersionDir;
         QFile::remove(archivePath);
-        setError(QStringLiteral("Gagal menyiapkan folder staging update."), silent);
+        setError(QStringLiteral("Gagal menyiapkan direktori pembaruan di perangkat (Kode ERR-UPD-STAGE)."),
+                 QStringLiteral("Gagal menyiapkan pembaruan."), true);
         return;
     }
 
@@ -570,9 +592,11 @@ void UpdateManager::startExtractProcess(const QString &archivePath,
 #endif
 
         if (exitStatus != QProcess::NormalExit || exitCode != 0) {
+            qWarning() << "[UpdateManager] Extraction failed:" << errOutput;
             QFile::remove(archivePath);
             clearStagedUpdate(updatesRootDir());
-            setError(QStringLiteral("Gagal mengekstrak paket update: %1").arg(errOutput), silent);
+            setError(QStringLiteral("Gagal mengekstrak berkas pembaruan pada perangkat (Kode ERR-UPD-EXTRACT)."),
+                     QStringLiteral("Gagal menyiapkan pembaruan."), true);
             return;
         }
 
@@ -587,11 +611,14 @@ void UpdateManager::finalizeExtractedArchive(const QString &archivePath,
                                              const QString &archiveType,
                                              bool silent)
 {
+    Q_UNUSED(silent);
     const QString payloadDir = resolveExtractedPayloadDir(stagedVersionDir);
     QFile::remove(archivePath);
     if (!writeReadyMetadata(payloadDir, archiveType)) {
+        qWarning() << "[UpdateManager] Failed writing ready.json in:" << stagedVersionDir;
         clearStagedUpdate(updatesRootDir());
-        setError(QStringLiteral("Gagal menyimpan status staging update."), silent);
+        setError(QStringLiteral("Gagal menyimpan status kesiapan pembaruan (Kode ERR-UPD-META)."),
+                 QStringLiteral("Gagal menyiapkan pembaruan."), true);
         return;
     }
 
@@ -599,7 +626,7 @@ void UpdateManager::finalizeExtractedArchive(const QString &archivePath,
     setState(State::ReadyToRestart);
     emit updateReadyToRestart(m_availableVersion);
     emit showNotification(QStringLiteral("info"),
-                          QStringLiteral("Update v%1 siap diterapkan. Klik Restart untuk memperbarui.").arg(m_availableVersion));
+                          QStringLiteral("Pembaruan v%1 siap. Klik Restart Application untuk menerapkan.").arg(m_availableVersion));
 }
 
 QString UpdateManager::resolveExtractedPayloadDir(const QString &stagedVersionDir) const

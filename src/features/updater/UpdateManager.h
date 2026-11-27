@@ -126,13 +126,14 @@ signals:
     void updateErrorMessageChanged();
     void updateAvailable(const QString &newVersion, const QString &releaseNotes);
     void updateReadyToRestart(const QString &newVersion);
+    void updateFailed(const QString &toastSummary);
     void showNotification(const QString &type, const QString &message);
     void quitRequestedForUpdate();
 
 private:
     void setState(State newState);
     void setProgress(int progress);
-    void setError(const QString &message, bool silent);
+    void setError(const QString &sanitizedDetail, const QString &toastSummary, bool notifyUser);
     void startDownload(const QUrl &assetUrl, const QString &expectedSha256, const QString &archiveType, bool silent);
     void verifyAndExtractDownloadedFile(const QString &archivePath,
                                         const QString &expectedSha256,

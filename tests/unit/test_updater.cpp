@@ -202,6 +202,8 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(mgr.updateState(), QStringLiteral("error"), 10000);
         QVERIFY(!mgr.isReadyToRestart());
         QVERIFY(!mgr.updateErrorMessage().isEmpty());
+        QVERIFY(!mgr.updateErrorMessage().contains(QStringLiteral("http://")));
+        QVERIFY(!mgr.updateErrorMessage().contains(m_tempDir->path()));
         QVERIFY(!UpdateManager::loadReadyMetadata(m_updatesDir).valid);
     }
 

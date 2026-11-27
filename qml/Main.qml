@@ -94,11 +94,45 @@ Window {
         parent: Overlay.overlay
     }
 
+    UpdateDialog {
+        id: updateErrorDialog
+        currentVersion: window.appVersion
+        updateState: (typeof logger !== "undefined" && logger.updateState) ? logger.updateState : "idle"
+        updateProgress: (typeof logger !== "undefined" && logger.updateProgress !== undefined) ? logger.updateProgress : 0
+        newVersion: (typeof logger !== "undefined" && logger.availableUpdateVersion) ? logger.availableUpdateVersion : ""
+        newReleaseNotes: (typeof logger !== "undefined" && logger.updateReleaseNotes) ? logger.updateReleaseNotes : ""
+        errorMessage: (typeof logger !== "undefined" && logger.updateErrorMessage) ? logger.updateErrorMessage : ""
+        onUpdateAccepted: {
+            if (typeof logger !== "undefined")
+                logger.openUpdateReleasePage()
+        }
+        onRestartRequested: {
+            if (typeof logger !== "undefined")
+                logger.restartToApplyUpdate()
+        }
+        onRetryRequested: {
+            if (typeof logger !== "undefined")
+                logger.checkForUpdates()
+        }
+    }
+
     Connections {
         target: (typeof logger !== "undefined") ? logger : null
 
         function onShowNotification(type, message) {
             notification.show(type, message)
+        }
+
+        function onUpdateFailed(toastSummary) {
+            notification.show("error", toastSummary, "View Details", function() {
+                updateErrorDialog.open()
+            })
+        }
+
+        function onUpdateAvailable(version, releaseNotes) {
+            notification.show("info", Lang.t("Update Available") + " v" + version, "View Details", function() {
+                updateErrorDialog.openWith(version, releaseNotes)
+            })
         }
 
         function onRequestLoginPage() {

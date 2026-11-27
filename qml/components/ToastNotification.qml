@@ -6,6 +6,8 @@ Rectangle {
     id: root
 
     property string message: ""
+    property string actionText: ""
+    property var actionCallback: null
     property string ntype: "info"
     property int duration: 3500
     property string iconSource: ""
@@ -59,17 +61,44 @@ Rectangle {
             antialiasing: true
         }
 
-        Text {
-            id: messageText
-            text: root.message
-            width: root.width - 108
+        Column {
             anchors.verticalCenter: parent.verticalCenter
-            color: Theme.textColor
-            font.pixelSize: Theme.fontSizeBody
-            font.weight: Font.Medium
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-            maximumLineCount: 2
+            spacing: 4
+
+            Text {
+                id: messageText
+                text: root.message
+                width: root.width - 108
+                color: Theme.textColor
+                font.pixelSize: Theme.fontSizeBody
+                font.weight: Font.Medium
+                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
+                maximumLineCount: 2
+            }
+
+            Text {
+                id: actionLink
+                visible: root.actionText !== ""
+                text: root.actionText
+                color: root.ntype === "error" ? Theme.dangerColor : Theme.primaryColor
+                font.pixelSize: Theme.fontSizeSmall
+                font.weight: Font.DemiBold
+                font.underline: actionMouse.containsMouse
+
+                MouseArea {
+                    id: actionMouse
+                    anchors.fill: parent
+                    anchors.margins: -4
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        var cb = root.actionCallback
+                        root.hide()
+                        if (cb) cb()
+                    }
+                }
+            }
         }
 
         MouseArea {
@@ -155,8 +184,10 @@ Rectangle {
         easing.type: Easing.Linear
     }
 
-    function show(type, msg) {
+    function show(type, msg, actionLabel, callback) {
         ntype = type
+        actionText = actionLabel ? Lang.t(actionLabel) : ""
+        actionCallback = callback || null
         var translated = Lang.t(msg)
         if (translated === msg && typeof msg === "string" && msg.indexOf("Gagal mengecek update: ") === 0) {
             translated = Lang.t("Failed to check for updates: ") + msg.substring("Gagal mengecek update: ".length)
@@ -180,7 +211,9 @@ Rectangle {
         }
 
         var wordCount = msg.split(' ').length
-        if (wordCount > 15) {
+        if (actionText !== "") {
+            duration = 7000
+        } else if (wordCount > 15) {
             duration = 5000
         } else {
             duration = 3500

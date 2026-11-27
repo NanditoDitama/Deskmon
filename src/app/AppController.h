@@ -216,6 +216,7 @@ signals:
     void showStatusMessage(const QString &message);
     void statusMessageChanged();
     void updateAvailable(const QString &newVersion, const QString &releaseNotes);
+    void updateFailed(const QString &toastSummary);
     void updateStateChanged();
     void updateProgressChanged();
     void availableUpdateVersionChanged();

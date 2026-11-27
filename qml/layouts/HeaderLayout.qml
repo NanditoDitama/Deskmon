@@ -533,10 +533,10 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         text: {
                             if (updateBtn.isReady) {
-                                return Lang.t("Restart to Update")
+                                return Lang.t("Restart Application")
                             }
                             if (updateBtn.updState === "downloading" || updateBtn.updState === "verifying" || updateBtn.updState === "extracting") {
-                                return Lang.t("Updating") + " " + updateBtn.updProgress + "%"
+                                return Lang.t("Downloading") + " " + updateBtn.updProgress + "%"
                             }
                             if (updateBtn.updState === "checking") {
                                 return Lang.t("Checking...")
@@ -564,8 +564,11 @@ Rectangle {
                         }
                         if (updateBtn.isReady) {
                             logger.restartToApplyUpdate()
-                        } else if (updateBtn.isWorking || updateBtn.isManual || updateBtn.updState === "error") {
-                            updateDialog.open()
+                        } else if (updateBtn.isWorking) {
+                            // Keep progress silently inside the header button without blocking modal dialog
+                            return
+                        } else if (updateBtn.isManual) {
+                            logger.openUpdateReleasePage()
                         } else {
                             logger.checkForUpdates()
                         }
@@ -575,10 +578,10 @@ Rectangle {
                 CustomToolTip {
                     text: {
                         if (updateBtn.isReady) {
-                            return Lang.t("Ready to Restart") + " (v" + (logger.availableUpdateVersion || "") + ")"
+                            return Lang.t("Restart Application") + " (v" + (logger.availableUpdateVersion || "") + ")"
                         }
                         if (updateBtn.isWorking) {
-                            return Lang.t("Updating") + " " + updateBtn.updProgress + "%"
+                            return Lang.t("Downloading") + " " + updateBtn.updProgress + "%"
                         }
                         return Lang.t("Check Update")
                     }
@@ -669,34 +672,8 @@ Rectangle {
         }
     }
 
-    UpdateDialog {
-        id: updateDialog
-        updateState: (typeof logger !== "undefined" && logger.updateState) ? logger.updateState : "idle"
-        updateProgress: (typeof logger !== "undefined" && logger.updateProgress !== undefined) ? logger.updateProgress : 0
-        newVersion: (typeof logger !== "undefined" && logger.availableUpdateVersion) ? logger.availableUpdateVersion : ""
-        newReleaseNotes: (typeof logger !== "undefined" && logger.updateReleaseNotes) ? logger.updateReleaseNotes : ""
-        errorMessage: (typeof logger !== "undefined" && logger.updateErrorMessage) ? logger.updateErrorMessage : ""
-        onUpdateAccepted: {
-            if (typeof logger !== "undefined")
-                logger.openUpdateReleasePage()
-        }
-        onRestartRequested: {
-            if (typeof logger !== "undefined")
-                logger.restartToApplyUpdate()
-        }
-        onRetryRequested: {
-            if (typeof logger !== "undefined")
-                logger.checkForUpdates()
-        }
-    }
-
     Connections {
         target: (typeof logger !== "undefined") ? logger : null
-
-        function onUpdateAvailable(version, releaseNotes) {
-            console.log("QML: Update manual tersedia!", version)
-            updateDialog.openWith(version, releaseNotes)
-        }
 
         function onShowStatusMessage(message) {
             statusLabel.text = message
