@@ -1,0 +1,197 @@
+name: Release Deskmon (Multi-OS)
+
+on:
+  push:
+    tags:
+      - "v*.*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 2.0.1.0, defaults to tag/CMake)"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows (x64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt 6 (MinGW)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.12.0"
+          host: "windows"
+          target: "desktop"
+          arch: "win64_mingw"
+          dir: "${{ github.workspace }}/Qt"
+          tools: "tools_mingw"
+
+      - name: Configure & Build
+        shell: pwsh
+        run: |
+          $qtDir = Resolve-Path "${{ github.workspace }}/Qt/6.12.0/mingw_64"
+          $mingwBin = (Get-ChildItem "${{ github.workspace }}/Qt/Tools/mingw*/bin" | Select-Object -First 1).FullName
+          $env:PATH = "$qtDir\bin;$mingwBin;$env:PATH"
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCONSOLE_LOGS=OFF -DBUILD_TESTING=OFF -DCMAKE_PREFIX_PATH="$qtDir"
+          cmake --build build
+
+      - name: Package Installer & Update ZIP
+        shell: pwsh
+        run: |
+          $ver = "${{ github.event.inputs.version }}"
+          if (-not $ver -and "${{ github.ref_type }}" -eq "tag") {
+            $ver = "${{ github.ref_name }}".TrimStart("v")
+          }
+          if (-not $ver) {
+            $ver = (Get-Content version.txt -Raw).Trim()
+          }
+          $qtDir = Resolve-Path "${{ github.workspace }}/Qt/6.12.0/mingw_64"
+          New-Item -ItemType Directory -Force -Path dist/Deskmon | Out-Null
+          Copy-Item build/Deskmon.exe dist/Deskmon/
+          Copy-Item -Recurse resources dist/Deskmon/resources
+          & "$qtDir\bin\windeployqt.exe" --qmldir qml --no-translations dist/Deskmon/Deskmon.exe
+          Copy-Item "$qtDir\plugins\sqldrivers\qsqlite.dll" dist/Deskmon/sqldrivers/ -ErrorAction SilentlyContinue
+          Copy-Item "$qtDir\plugins\imageformats\qsvg.dll" dist/Deskmon/imageformats/ -ErrorAction SilentlyContinue
+          Compress-Archive -Path dist/Deskmon/* -DestinationPath "dist/Deskmon-$ver-win64.zip" -Force
+          (Get-FileHash "dist/Deskmon-$ver-win64.zip" -Algorithm SHA256).Hash.ToLower() | Out-File -Encoding ascii "dist/Deskmon-$ver-win64.zip.sha256"
+          python installer/generate_installer_assets.py 2>$null; iscc /DAppVersion=$ver installer/Deskmon_Setup.iss
+          "VERSION=$ver" >> $env:GITHUB_ENV
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deskmon-windows
+          path: |
+            dist/Deskmon-*-win64.zip
+            dist/Deskmon-*-win64.zip.sha256
+            dist/Deskmon-Setup-*.exe
+
+  build-macos:
+    name: Build macOS (Universal)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt 6 (macOS)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.12.0"
+          host: "mac"
+          target: "desktop"
+          arch: "clang_64"
+
+      - name: Package DMG & Update ZIP
+        run: |
+          VER="${{ github.event.inputs.version }}"
+          if [ -z "$VER" ] && [ "${{ github.ref_type }}" = "tag" ]; then
+            VER="${GITHUB_REF_NAME#v}"
+          fi
+          if [ -z "$VER" ]; then
+            VER=$(tr -d '[:space:]' < version.txt)
+          fi
+          bash installer/package_mac.sh "$VER"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deskmon-macos
+          path: |
+            dist/Deskmon-*-macos.zip
+            dist/Deskmon-*-macos.zip.sha256
+            dist/Deskmon-*-macos.dmg
+
+  build-linux:
+    name: Build Linux (x64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libx11-dev libxss-dev libxcb-cursor0 libxkbcommon-dev patchelf dpkg-dev
+
+      - name: Install Qt 6 (Linux)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.12.0"
+          host: "linux"
+          target: "desktop"
+          arch: "linux_gcc_64"
+
+      - name: Package tar.gz & .deb Installer
+        run: |
+          VER="${{ github.event.inputs.version }}"
+          if [ -z "$VER" ] && [ "${{ github.ref_type }}" = "tag" ]; then
+            VER="${GITHUB_REF_NAME#v}"
+          fi
+          if [ -z "$VER" ]; then
+            VER=$(tr -d '[:space:]' < version.txt)
+          fi
+          bash installer/package_linux.sh "$VER"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deskmon-linux
+          path: |
+            dist/Deskmon-*-linux-x64.tar.gz
+            dist/Deskmon-*-linux-x64.tar.gz.sha256
+            dist/Deskmon-*-amd64.deb
+
+  publish-release:
+    name: Generate version.json & Publish Release
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate version.json
+        run: |
+          VER="${{ github.event.inputs.version }}"
+          if [ -z "$VER" ] && [ "${{ github.ref_type }}" = "tag" ]; then
+            VER="${GITHUB_REF_NAME#v}"
+          fi
+          if [ -z "$VER" ]; then
+            VER=$(tr -d '[:space:]' < version.txt)
+          fi
+          REPO_SLUG="NanditoDitama/DeskmonUpdater"
+          TAG="v${VER}"
+          WIN_SHA=$(cat artifacts/deskmon-windows/Deskmon-${VER}-win64.zip.sha256 | tr -d '[:space:]')
+          MAC_SHA=$(cat artifacts/deskmon-macos/Deskmon-${VER}-macos.zip.sha256 | tr -d '[:space:]')
+          LIN_SHA=$(cat artifacts/deskmon-linux/Deskmon-${VER}-linux-x64.tar.gz.sha256 | tr -d '[:space:]')
+          cat > artifacts/version.json <<EOF
+          {
+            "version": "${VER}",
+            "releaseNotes": "Deskmon v${VER}",
+            "releasePageUrl": "https://github.com/${REPO_SLUG}/releases",
+            "platforms": {
+              "windows-x64": {
+                "url": "https://github.com/${REPO_SLUG}/releases/download/${TAG}/Deskmon-${VER}-win64.zip",
+                "sha256": "${WIN_SHA}",
+                "type": "zip"
+              },
+              "macos-universal": {
+                "url": "https://github.com/${REPO_SLUG}/releases/download/${TAG}/Deskmon-${VER}-macos.zip",
+                "sha256": "${MAC_SHA}",
+                "type": "zip"
+              },
+              "linux-x64": {
+                "url": "https://github.com/${REPO_SLUG}/releases/download/${TAG}/Deskmon-${VER}-linux-x64.tar.gz",
+                "sha256": "${LIN_SHA}",
+                "type": "tar.gz"
+              }
+            }
+          }
+          EOF
+          cat artifacts/version.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-manifest
+          path: artifacts/version.json

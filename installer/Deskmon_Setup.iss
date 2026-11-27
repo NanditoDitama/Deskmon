@@ -4,7 +4,9 @@
 ; ===================================================================
 
 #ifndef AppVersion
-  #define AppVersion "1.0.3.4"
+  #define VerFile FileOpen(SourcePath + "..\version.txt")
+  #define AppVersion Trim(FileRead(VerFile))
+  #expr FileClose(VerFile)
 #endif
 
 #define AppName "Deskmon"
@@ -57,7 +59,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "autostart"; Description: "Jalankan otomatis saat startup Windows (Start with Windows)"; GroupDescription: "Preferensi:"; Flags: unchecked
+Name: "autostart"; Description: "Start Deskmon automatically when Windows starts"; GroupDescription: "Preferences:"; Flags: unchecked
 
 [Files]
 ; Seluruh file biner dan pustaka hasil windeployqt

@@ -459,27 +459,130 @@ Rectangle {
                 }
             }
 
-            // Cek Update button
-            CustomButton {
+            // Dynamic Auto-Update Pill Button (Check Update -> Updating XX% -> Restart to Update)
+            Rectangle {
                 id: updateBtn
                 anchors.verticalCenter: parent.verticalCenter
-                text: Lang.t("Check Update")
-                implicitHeight: Theme.controlHeight
-                leftPadding: root.isCompact ? 10 : 12
-                rightPadding: root.isCompact ? 10 : 12
-                btnRadius: Theme.radiusSmall
-                btnColor: "transparent"
-                btnHoverColor: Theme.isDarkMode ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(0, 0, 0, 0.06)
-                btnTextColor: Theme.textColor
-                btnBorderColor: Theme.isDarkMode ? Qt.rgba(1, 1, 1, 0.22) : Theme.borderColor
-                btnBorderWidth: 1
-                font.pixelSize: 12
-                font.family: "Segoe UI"
-                font.weight: Font.Medium
 
-                onClicked: {
-                    if (typeof logger !== "undefined")
-                        logger.checkForUpdates()
+                readonly property string updState: (typeof logger !== "undefined" && logger.updateState) ? logger.updateState : "idle"
+                readonly property int updProgress: (typeof logger !== "undefined" && logger.updateProgress !== undefined) ? logger.updateProgress : 0
+                readonly property bool isWorking: updState === "checking" || updState === "downloading" || updState === "verifying" || updState === "extracting"
+                readonly property bool isReady: updState === "ready"
+                readonly property bool isManual: updState === "manual"
+
+                implicitHeight: Theme.controlHeight
+                implicitWidth: Math.max(updateContentRow.implicitWidth + (root.isCompact ? 20 : 24), 96)
+                height: Theme.controlHeight
+                width: implicitWidth
+                radius: Theme.radiusSmall
+                clip: true
+
+                color: isReady
+                       ? (updateArea.containsMouse ? Qt.lighter(Theme.primaryColor, 1.12) : Theme.primaryColor)
+                       : (updateArea.containsMouse
+                          ? (Theme.isDarkMode ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(0, 0, 0, 0.06))
+                          : "transparent")
+                border.color: isReady
+                              ? Theme.primaryColor
+                              : (isWorking
+                                 ? Theme.primaryColor
+                                 : (isManual
+                                    ? Theme.accentColor
+                                    : (Theme.isDarkMode ? Qt.rgba(1, 1, 1, 0.22) : Theme.borderColor)))
+                border.width: 1
+
+                Behavior on color { ColorAnimation { duration: 150 } }
+                Behavior on border.color { ColorAnimation { duration: 150 } }
+                Behavior on width { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+
+                // Smooth progress fill layer while downloading/verifying/extracting
+                Rectangle {
+                    visible: updateBtn.isWorking && updateBtn.updProgress > 0
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: Math.round(parent.width * (Math.min(100, Math.max(0, updateBtn.updProgress)) / 100.0))
+                    color: Qt.alpha(Theme.primaryColor, Theme.isDarkMode ? 0.28 : 0.18)
+
+                    Behavior on width { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                }
+
+                Row {
+                    id: updateContentRow
+                    anchors.centerIn: parent
+                    spacing: 6
+
+                    Rectangle {
+                        id: updatePulseDot
+                        visible: updateBtn.isWorking
+                        width: 7
+                        height: 7
+                        radius: 3.5
+                        color: Theme.primaryColor
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        SequentialAnimation on opacity {
+                            running: updatePulseDot.visible
+                            loops: Animation.Infinite
+                            NumberAnimation { from: 1.0; to: 0.3; duration: 600 }
+                            NumberAnimation { from: 0.3; to: 1.0; duration: 600 }
+                        }
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: {
+                            if (updateBtn.isReady) {
+                                return Lang.t("Restart to Update")
+                            }
+                            if (updateBtn.updState === "downloading" || updateBtn.updState === "verifying" || updateBtn.updState === "extracting") {
+                                return Lang.t("Updating") + " " + updateBtn.updProgress + "%"
+                            }
+                            if (updateBtn.updState === "checking") {
+                                return Lang.t("Checking...")
+                            }
+                            if (updateBtn.isManual) {
+                                return Lang.t("Update Available")
+                            }
+                            return Lang.t("Check Update")
+                        }
+                        color: updateBtn.isReady ? "#FFFFFF" : Theme.textColor
+                        font.pixelSize: 12
+                        font.family: "Segoe UI"
+                        font.weight: updateBtn.isReady ? Font.DemiBold : Font.Medium
+                    }
+                }
+
+                MouseArea {
+                    id: updateArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (typeof logger === "undefined") {
+                            return
+                        }
+                        if (updateBtn.isReady) {
+                            logger.restartToApplyUpdate()
+                        } else if (updateBtn.isWorking || updateBtn.isManual || updateBtn.updState === "error") {
+                            updateDialog.open()
+                        } else {
+                            logger.checkForUpdates()
+                        }
+                    }
+                }
+
+                CustomToolTip {
+                    text: {
+                        if (updateBtn.isReady) {
+                            return Lang.t("Ready to Restart") + " (v" + (logger.availableUpdateVersion || "") + ")"
+                        }
+                        if (updateBtn.isWorking) {
+                            return Lang.t("Updating") + " " + updateBtn.updProgress + "%"
+                        }
+                        return Lang.t("Check Update")
+                    }
+                    shown: updateArea.containsMouse
                 }
             }
 
@@ -568,9 +671,22 @@ Rectangle {
 
     UpdateDialog {
         id: updateDialog
+        updateState: (typeof logger !== "undefined" && logger.updateState) ? logger.updateState : "idle"
+        updateProgress: (typeof logger !== "undefined" && logger.updateProgress !== undefined) ? logger.updateProgress : 0
+        newVersion: (typeof logger !== "undefined" && logger.availableUpdateVersion) ? logger.availableUpdateVersion : ""
+        newReleaseNotes: (typeof logger !== "undefined" && logger.updateReleaseNotes) ? logger.updateReleaseNotes : ""
+        errorMessage: (typeof logger !== "undefined" && logger.updateErrorMessage) ? logger.updateErrorMessage : ""
         onUpdateAccepted: {
             if (typeof logger !== "undefined")
-                logger.launchMaintenanceTool()
+                logger.openUpdateReleasePage()
+        }
+        onRestartRequested: {
+            if (typeof logger !== "undefined")
+                logger.restartToApplyUpdate()
+        }
+        onRetryRequested: {
+            if (typeof logger !== "undefined")
+                logger.checkForUpdates()
         }
     }
 
@@ -578,7 +694,7 @@ Rectangle {
         target: (typeof logger !== "undefined") ? logger : null
 
         function onUpdateAvailable(version, releaseNotes) {
-            console.log("QML: Update tersedia!", version)
+            console.log("QML: Update manual tersedia!", version)
             updateDialog.openWith(version, releaseNotes)
         }
 

@@ -30,6 +30,7 @@ AppController::AppController(QObject *parent)
     , m_activityTracker(new ActivityTracker(m_workLogRepo, m_authManager, this))
     , m_taskManager(new TaskManager(m_apiClient, m_taskRepo, m_authManager, this))
     , m_prodStatsService(new ProductivityStatsService(m_apiClient, m_workLogRepo, m_prodRepo, m_authManager, this))
+    , m_updateManager(new UpdateManager(m_apiClient, appVersion(), this))
 {
     DatabaseManager::instance().initialize();
     m_workLogRepo->initialize();
@@ -131,6 +132,20 @@ void AppController::setupConnections()
     // Productivity Stats Signals
     connect(m_prodStatsService, &ProductivityStatsService::productivityStatsChanged, this, &AppController::productivityStatsChanged);
     connect(m_prodStatsService, &ProductivityStatsService::refreshRequested, this, &AppController::refreshAll);
+
+    // Updater Signals
+    connect(m_updateManager, &UpdateManager::updateStateChanged, this, &AppController::updateStateChanged);
+    connect(m_updateManager, &UpdateManager::updateProgressChanged, this, &AppController::updateProgressChanged);
+    connect(m_updateManager, &UpdateManager::availableVersionChanged, this, &AppController::availableUpdateVersionChanged);
+    connect(m_updateManager, &UpdateManager::releaseNotesChanged, this, &AppController::updateReleaseNotesChanged);
+    connect(m_updateManager, &UpdateManager::releasePageUrlChanged, this, &AppController::updateReleasePageUrlChanged);
+    connect(m_updateManager, &UpdateManager::updateErrorMessageChanged, this, &AppController::updateErrorMessageChanged);
+    connect(m_updateManager, &UpdateManager::updateAvailable, this, &AppController::updateAvailable);
+    connect(m_updateManager, &UpdateManager::updateReadyToRestart, this, &AppController::updateReadyToRestart);
+    connect(m_updateManager, &UpdateManager::showNotification, this, QOverload<const QString&, const QString&>::of(&AppController::showNotification));
+    connect(m_updateManager, &UpdateManager::quitRequestedForUpdate, this, []() {
+        QApplication::quit();
+    });
 }
 
 // Property Getters
@@ -138,7 +153,7 @@ QString AppController::appVersion() const {
 #ifdef APP_VERSION
     return QStringLiteral(APP_VERSION);
 #else
-    return QStringLiteral("2.0.0.0");
+    return QStringLiteral("1.0.3.4");
 #endif
 }
 QString AppController::currentAppName() const { return m_activityTracker->currentAppName(); }
@@ -169,7 +184,7 @@ QSqlQueryModel* AppController::logModel() const { return m_workLogRepo->logModel
 QString AppController::authenticate(const QString &loginInput, const QString &password) {
     QString result = m_authManager->authenticate(loginInput, password);
     if (result.isEmpty()) {
-        checkForUpdates();
+        checkForUpdatesSilent();
     }
     return result;
 }
@@ -407,46 +422,79 @@ void AppController::launchMaintenanceTool() {
     }
 #endif
 
-    // Cross-platform fallback: open releases page in system browser
-    QDesktopServices::openUrl(QUrl(QStringLiteral("https://github.com/NanditoDitama/DeskmonUpdateRepo/releases")));
+    // Cross-platform fallback: open configured releases page in system browser
+    openUpdateReleasePage();
 }
 
 void AppController::checkForUpdates() {
-    const QString currentVersion = appVersion();
-    const QString updateUrlOverride = qEnvironmentVariable("DESKMON_UPDATE_URL").trimmed();
-    QUrl url = updateUrlOverride.isEmpty()
-        ? QUrl(QStringLiteral("https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdateRepo/main/version.json"))
-        : QUrl(updateUrlOverride);
-    QNetworkReply *reply = m_apiClient->get(url, false);
+    if (m_updateManager) {
+        m_updateManager->checkForUpdates(false);
+    }
+}
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply, currentVersion]() {
-        if (reply->error() != QNetworkReply::NoError) {
-            emit showNotification("error", "Gagal mengecek update: " + reply->errorString());
-            reply->deleteLater();
-            return;
-        }
+void AppController::checkForUpdatesSilent() {
+    if (m_updateManager) {
+        m_updateManager->checkForUpdates(true);
+    }
+}
 
-        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
-        if (!doc.isObject()) {
-            emit showNotification("warning", "Format file update di server tidak valid.");
-            reply->deleteLater();
-            return;
-        }
+void AppController::restartToApplyUpdate() {
+    if (m_updateManager) {
+        m_updateManager->armRestartToUpdate();
+    }
+}
 
-        QJsonObject obj = doc.object();
-        QString serverVersion = obj.value("version").toString();
+void AppController::openUpdateReleasePage() {
+    const QString urlStr = m_updateManager ? m_updateManager->releasePageUrl() : UpdateManager::defaultReleasePageUrl();
+    QDesktopServices::openUrl(QUrl(urlStr));
+}
 
-        QVersionNumber serverVer = QVersionNumber::fromString(serverVersion);
-        QVersionNumber currentVer = QVersionNumber::fromString(currentVersion);
+QString AppController::updateState() const {
+    return m_updateManager ? m_updateManager->updateState() : QStringLiteral("idle");
+}
 
-        if (serverVer > currentVer) {
-            QString notes = obj.value("releaseNotes").toString();
-            emit updateAvailable(serverVersion, notes);
-        } else {
-            emit showNotification("success", "Aplikasi Anda sudah versi terbaru.");
-        }
-        reply->deleteLater();
-    });
+int AppController::updateProgress() const {
+    return m_updateManager ? m_updateManager->updateProgress() : 0;
+}
+
+QString AppController::availableUpdateVersion() const {
+    return m_updateManager ? m_updateManager->availableVersion() : QString();
+}
+
+QString AppController::updateReleaseNotes() const {
+    return m_updateManager ? m_updateManager->releaseNotes() : QString();
+}
+
+QString AppController::updateReleasePageUrl() const {
+    return m_updateManager ? m_updateManager->releasePageUrl() : UpdateManager::defaultReleasePageUrl();
+}
+
+QString AppController::updateErrorMessage() const {
+    return m_updateManager ? m_updateManager->updateErrorMessage() : QString();
+}
+
+bool AppController::isUpdateBusy() const {
+    return m_updateManager && m_updateManager->isUpdateBusy();
+}
+
+bool AppController::isUpdateReadyToRestart() const {
+    return m_updateManager && m_updateManager->isReadyToRestart();
+}
+
+void AppController::armApplyUpdateOnQuitIfReady() {
+    if (m_updateManager) {
+        m_updateManager->armApplyOnQuitIfReady();
+    }
+}
+
+bool AppController::launchArmedExitUpdateHelper() {
+    if (!m_updateManager) {
+        return false;
+    }
+    return m_updateManager->launchArmedExitHelper(
+        QCoreApplication::applicationDirPath(),
+        QCoreApplication::applicationFilePath(),
+        QCoreApplication::applicationPid());
 }
 
 QString AppController::apiBaseUrl() const {

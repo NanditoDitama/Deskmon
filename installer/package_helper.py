@@ -1,7 +1,10 @@
+import hashlib
+import json
 import os
 import sys
 import shutil
 import subprocess
+import zipfile
 
 WORKSPACE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DIST_DIR = os.path.join(WORKSPACE_DIR, "dist")
@@ -10,6 +13,7 @@ INSTALLER_DIR = os.path.join(WORKSPACE_DIR, "installer")
 BUILD_DIR = os.path.join(WORKSPACE_DIR, "build")
 
 QT_DIRS = [
+    r"C:\Qt\6.12.0\mingw_64",
     r"C:\Qt\6.11.2\mingw_64",
     r"C:\Qt6112\6.11.2\mingw_64",
     r"C:\Qt692\6.9.2\mingw_64",
@@ -41,6 +45,12 @@ def find_iscc():
     raise RuntimeError("Inno Setup 6 (ISCC.exe) not found! Checked: " + ", ".join(ISCC_PATHS))
 
 def get_app_version():
+    version_file = os.path.join(WORKSPACE_DIR, "version.txt")
+    if os.path.exists(version_file):
+        with open(version_file, "r", encoding="utf-8") as f:
+            ver = f.read().strip()
+            if ver:
+                return ver
     cmake_path = os.path.join(WORKSPACE_DIR, "CMakeLists.txt")
     if os.path.exists(cmake_path):
         with open(cmake_path, "r", encoding="utf-8") as f:
@@ -51,7 +61,7 @@ def get_app_version():
                         idx = parts.index("VERSION")
                         if idx + 1 < len(parts):
                             return parts[idx + 1].strip('"\'')
-    return "1.0.3.4"
+    raise RuntimeError("version.txt file not found or empty at project root.")
 
 def step_build_gui_executable(qt_dir, cmake_dir, mingw_dir, ninja_dir):
     print("\n[STEP 1/4] Compiling clean GUI binary (CONSOLE_LOGS=OFF - no terminal window)...")
@@ -192,28 +202,79 @@ def step_compile_installer(iscc_path, version):
     else:
         print(f"Warning: Installer output file not found at {output_exe}")
 
+def step_create_update_zip(version):
+    zip_name = f"Deskmon-{version}-win64.zip"
+    zip_path = os.path.join(DIST_DIR, zip_name)
+    print(f"\n[UPDATE PACKAGE] Creating portable auto-update archive: {zip_path}...")
+
+    if os.path.exists(zip_path):
+        os.remove(zip_path)
+
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+        for root, _, files in os.walk(APP_STAGING_DIR):
+            for fname in files:
+                full_path = os.path.join(root, fname)
+                rel_path = os.path.relpath(full_path, APP_STAGING_DIR)
+                zf.write(full_path, rel_path)
+
+    sha256 = hashlib.sha256()
+    with open(zip_path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            sha256.update(chunk)
+    digest = sha256.hexdigest()
+
+    sha_path = zip_path + ".sha256"
+    with open(sha_path, "w", encoding="utf-8") as sf:
+        sf.write(f"{digest}  {zip_name}\n")
+
+    size_mb = os.path.getsize(zip_path) / (1024 * 1024)
+    print(f"Update ZIP Created: {zip_path} ({size_mb:.2f} MB)")
+    print(f"SHA-256:            {digest}")
+    snippet = {
+        "version": version,
+        "releaseNotes": f"Deskmon v{version}",
+        "platforms": {
+            "windows-x64": {
+                "url": f"https://github.com/NanditoDitama/DeskmonUpdateRepo/releases/download/v{version}/{zip_name}",
+                "sha256": digest,
+                "type": "zip"
+            }
+        }
+    }
+    print("version.json snippet:")
+    print(json.dumps(snippet, indent=2))
+
+
 def main():
     keep_folder = False
+    zip_only = False
     for arg in sys.argv[1:]:
-        if arg.lower() in ["folder_build", "folder", "--folder", "-f", "keep_folder"]:
+        lower = arg.lower()
+        if lower in ["folder_build", "folder", "--folder", "-f", "keep_folder"]:
             keep_folder = True
+        elif lower in ["--zip-only", "zip_only"]:
+            zip_only = True
 
     qt_dir, cmake_dir, mingw_dir, ninja_dir = find_tools()
-    iscc_path = find_iscc()
+    iscc_path = None if zip_only else find_iscc()
     version = get_app_version()
 
-    mode_label = "Installer + Folder (folder_build)" if keep_folder else "Installer Only (clean)"
+    mode_label = "Update ZIP Only" if zip_only else ("Installer + Folder + Update ZIP" if keep_folder else "Installer + Update ZIP")
     print(f"Deskmon Installer Builder")
     print(f"- Workspace:   {WORKSPACE_DIR}")
     print(f"- Version:     {version}")
     print(f"- Output Mode: {mode_label}")
     print(f"- Qt 6 Dir:    {qt_dir}")
-    print(f"- ISCC Path:   {iscc_path}")
+    if iscc_path:
+        print(f"- ISCC Path:   {iscc_path}")
 
     step_build_gui_executable(qt_dir, cmake_dir, mingw_dir, ninja_dir)
-    step_generate_assets()
+    if not zip_only:
+        step_generate_assets()
     step_stage_files(qt_dir)
-    step_compile_installer(iscc_path, version)
+    step_create_update_zip(version)
+    if not zip_only:
+        step_compile_installer(iscc_path, version)
 
     # Bersihkan folder staging jika opsi folder_build tidak diberikan
     if not keep_folder:
@@ -227,7 +288,7 @@ def main():
             except Exception:
                 kill_running_instances()
                 time.sleep(0.5)
-        print("[CLEANUP] Output folder 'dist/' now contains ONLY the installer (.exe).")
+        print("[CLEANUP] Output folder 'dist/' contains installer (.exe) and update archive (.zip).")
     else:
         print(f"\n[INFO] Build folder retained at: {APP_STAGING_DIR}")
 

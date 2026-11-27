@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Deskmon VERSION 1.0.3.4 LANGUAGES CXX)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" DESKMON_VERSION_RAW)
+string(STRIP "${DESKMON_VERSION_RAW}" DESKMON_VERSION)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt")
+
+project(Deskmon VERSION ${DESKMON_VERSION} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -42,6 +46,7 @@ set(CORE_SOURCES
     src/features/tracking/IdleChecker.cpp
     src/features/tasks/TaskManager.cpp
     src/features/productivity/ProductivityStatsService.cpp
+    src/features/updater/UpdateManager.cpp
 )
 
 if(WIN32)
@@ -79,6 +84,7 @@ set(CORE_HEADERS
     src/features/tracking/IdleChecker.h
     src/features/tasks/TaskManager.h
     src/features/productivity/ProductivityStatsService.h
+    src/features/updater/UpdateManager.h
 )
 
 set(APP_SOURCES
@@ -226,7 +232,14 @@ target_include_directories(DeskmonCore PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/features/tracking
 )
 
-target_compile_definitions(DeskmonCore PUBLIC APP_VERSION="${PROJECT_VERSION}")
+set(DESKMON_UPDATE_MANIFEST_URL "https://raw.githubusercontent.com/NanditoDitama/DeskmonUpdater/main/version.json" CACHE STRING "Default update manifest URL")
+set(DESKMON_UPDATE_RELEASE_URL "https://github.com/NanditoDitama/DeskmonUpdater/releases" CACHE STRING "Default releases fallback URL")
+
+target_compile_definitions(DeskmonCore PUBLIC
+    APP_VERSION="${PROJECT_VERSION}"
+    DESKMON_UPDATE_MANIFEST_URL="${DESKMON_UPDATE_MANIFEST_URL}"
+    DESKMON_UPDATE_RELEASE_URL="${DESKMON_UPDATE_RELEASE_URL}"
+)
 
 target_link_libraries(DeskmonCore
     PUBLIC

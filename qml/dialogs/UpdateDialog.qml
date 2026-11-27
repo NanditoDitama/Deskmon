@@ -13,14 +13,26 @@ Dialog {
     x: parent ? Math.round((parent.width - width) / 2) : 0
     y: parent ? Math.round((parent.height - height) / 2) : 0
 
+    property string updateState: "idle"
+    property int updateProgress: 0
     property string newVersion: ""
     property string newReleaseNotes: ""
+    property string errorMessage: ""
+
+    readonly property bool isWorking: updateState === "checking" || updateState === "downloading" || updateState === "verifying" || updateState === "extracting"
+    readonly property bool isReady: updateState === "ready"
+    readonly property bool isManual: updateState === "manual"
+    readonly property bool isError: updateState === "error"
 
     signal updateAccepted()
+    signal restartRequested()
+    signal retryRequested()
 
     function openWith(version, releaseNotes) {
-        newVersion = version
-        newReleaseNotes = releaseNotes
+        if (version !== undefined && version !== "")
+            newVersion = version
+        if (releaseNotes !== undefined)
+            newReleaseNotes = releaseNotes
         open()
     }
 
@@ -60,7 +72,7 @@ Dialog {
                     width: 56
                     height: 56
                     radius: Theme.radiusMedium
-                    color: Theme.accentColor
+                    color: root.isReady ? Theme.primaryColor : Theme.accentColor
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
 
@@ -75,7 +87,7 @@ Dialog {
                             width: 8
                             height: 8
                             radius: 4
-                            color: Theme.accentColor
+                            color: root.isReady ? Theme.primaryColor : Theme.accentColor
                             anchors.centerIn: parent
                         }
                     }
@@ -88,17 +100,85 @@ Dialog {
                     spacing: 4
 
                     Label {
-                        text: Lang.t("Update Available")
+                        text: root.isReady ? Lang.t("Ready to Restart") : Lang.t("Update Available")
                         font.pixelSize: 20
                         font.weight: Font.DemiBold
                         color: Theme.textColor
                     }
 
                     Label {
-                        text: Lang.t("Version") + " " + root.newVersion
+                        text: root.newVersion !== ""
+                              ? (Lang.t("Version") + " " + root.newVersion)
+                              : Lang.t("Checking...")
                         font.pixelSize: 14
-                        color: Theme.accentColor
+                        color: root.isReady ? Theme.primaryColor : Theme.accentColor
                         font.weight: Font.Medium
+                    }
+                }
+            }
+
+            // Progress & status banner
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: visible ? 58 : 0
+                Layout.topMargin: 8
+                visible: root.isWorking || root.isReady || root.isError
+                radius: Theme.radiusSmall
+                color: Qt.alpha(root.isError ? Theme.dangerColor : Theme.primaryColor, 0.08)
+                border.width: 1
+                border.color: Qt.alpha(root.isError ? Theme.dangerColor : Theme.primaryColor, 0.25)
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    spacing: 6
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label {
+                            Layout.fillWidth: true
+                            text: {
+                                if (root.isReady) {
+                                    return Lang.t("Update is ready (100%). Click Restart to Update now, or close and reopen Deskmon later to apply it.")
+                                }
+                                if (root.isError) {
+                                    return root.errorMessage !== "" ? root.errorMessage : Lang.t("An Error Occurred")
+                                }
+                                if (root.updateState === "verifying" || root.updateState === "extracting") {
+                                    return Lang.t("Updating") + " " + root.updateProgress + "%..."
+                                }
+                                if (root.updateState === "downloading") {
+                                    return Lang.t("Updating") + " " + root.updateProgress + "%"
+                                }
+                                return Lang.t("Checking...")
+                            }
+                            elide: Text.ElideRight
+                            font.pixelSize: 12
+                            color: root.isError ? Theme.dangerColor : Theme.textColor
+                        }
+                        Label {
+                            visible: root.isWorking || root.isReady
+                            text: root.updateProgress + "%"
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                            color: Theme.primaryColor
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 6
+                        visible: !root.isError
+                        radius: 3
+                        color: Qt.alpha(Theme.textColor, 0.12)
+
+                        Rectangle {
+                            height: parent.height
+                            radius: 3
+                            width: Math.round(parent.width * (Math.min(100, Math.max(0, root.updateProgress)) / 100.0))
+                            color: Theme.primaryColor
+                            Behavior on width { NumberAnimation { duration: 160 } }
+                        }
                     }
                 }
             }
@@ -107,8 +187,8 @@ Dialog {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 1
-                Layout.topMargin: 16
-                Layout.bottomMargin: 20
+                Layout.topMargin: 14
+                Layout.bottomMargin: 16
                 color: Theme.dividerColor
             }
 
@@ -116,7 +196,7 @@ Dialog {
             ScrollView {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.maximumHeight: 120
+                Layout.minimumHeight: 120
                 clip: true
                 ScrollBar.vertical: CustomScrollBar {}
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
@@ -133,7 +213,7 @@ Dialog {
                     text: root.newReleaseNotes
                     wrapMode: Text.Wrap
                     font.pixelSize: 13
-                    color: Qt.alpha(Theme.textColor, 0.8)
+                    color: Qt.alpha(Theme.textColor, 0.85)
                     lineHeight: 1.4
                     padding: 16
                 }
@@ -141,8 +221,8 @@ Dialog {
 
             // Spacer
             Item {
-                Layout.fillHeight: true
-                Layout.minimumHeight: 20
+                Layout.fillHeight: false
+                Layout.preferredHeight: 16
             }
 
             // Action buttons
@@ -151,7 +231,7 @@ Dialog {
                 Layout.preferredHeight: 44
                 spacing: 12
 
-                Item { Layout.fillWidth: true } // Push buttons to right
+                Item { Layout.fillWidth: true }
 
                 CustomButton {
                     id: laterBtn
@@ -168,18 +248,30 @@ Dialog {
                 }
 
                 CustomButton {
-                    id: updateNowBtn
-                    Layout.preferredWidth: 140
+                    id: primaryActionBtn
+                    visible: root.isReady || root.isManual || root.isError
+                    Layout.preferredWidth: 165
                     Layout.preferredHeight: Theme.controlHeight
-                    text: Lang.t("Update Now")
-                    btnColor: Theme.accentColor
-                    btnHoverColor: Qt.lighter(Theme.accentColor, 1.1)
+                    text: {
+                        if (root.isReady) return Lang.t("Restart to Update")
+                        if (root.isManual) return Lang.t("Open Releases")
+                        return Lang.t("Retry")
+                    }
+                    btnColor: root.isReady ? Theme.primaryColor : Theme.accentColor
+                    btnHoverColor: Qt.lighter(btnColor, 1.1)
                     btnTextColor: "#ffffff"
                     font.pixelSize: 13
                     font.weight: Font.DemiBold
                     onClicked: {
-                        root.updateAccepted()
-                        root.close()
+                        if (root.isReady) {
+                            root.restartRequested()
+                            root.close()
+                        } else if (root.isManual) {
+                            root.updateAccepted()
+                            root.close()
+                        } else {
+                            root.retryRequested()
+                        }
                     }
                 }
             }

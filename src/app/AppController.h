@@ -20,6 +20,7 @@
 #include "features/tracking/ActivityTracker.h"
 #include "features/tasks/TaskManager.h"
 #include "features/productivity/ProductivityStatsService.h"
+#include "features/updater/UpdateManager.h"
 
 class AppController : public QObject
 {
@@ -52,6 +53,14 @@ class AppController : public QObject
     Q_PROPERTY(int workTimeElapsedSeconds READ workTimeElapsedSeconds NOTIFY workTimeElapsedSecondsChanged)
     Q_PROPERTY(QSqlQueryModel* logModel READ logModel CONSTANT)
     Q_PROPERTY(QString appVersion READ appVersion CONSTANT)
+    Q_PROPERTY(QString updateState READ updateState NOTIFY updateStateChanged)
+    Q_PROPERTY(int updateProgress READ updateProgress NOTIFY updateProgressChanged)
+    Q_PROPERTY(QString availableUpdateVersion READ availableUpdateVersion NOTIFY availableUpdateVersionChanged)
+    Q_PROPERTY(QString updateReleaseNotes READ updateReleaseNotes NOTIFY updateReleaseNotesChanged)
+    Q_PROPERTY(QString updateReleasePageUrl READ updateReleasePageUrl NOTIFY updateReleasePageUrlChanged)
+    Q_PROPERTY(QString updateErrorMessage READ updateErrorMessage NOTIFY updateErrorMessageChanged)
+    Q_PROPERTY(bool isUpdateBusy READ isUpdateBusy NOTIFY updateStateChanged)
+    Q_PROPERTY(bool isUpdateReadyToRestart READ isUpdateReadyToRestart NOTIFY updateStateChanged)
 
 public:
     explicit AppController(QObject *parent = nullptr);
@@ -150,8 +159,23 @@ public:
     Q_INVOKABLE void notify(const QString &type, const QString &message);
     Q_INVOKABLE void launchMaintenanceTool();
     Q_INVOKABLE void checkForUpdates();
+    Q_INVOKABLE void checkForUpdatesSilent();
+    Q_INVOKABLE void restartToApplyUpdate();
+    Q_INVOKABLE void openUpdateReleasePage();
     Q_INVOKABLE QString apiBaseUrl() const;
     QString statusMessage() const;
+
+    QString updateState() const;
+    int updateProgress() const;
+    QString availableUpdateVersion() const;
+    QString updateReleaseNotes() const;
+    QString updateReleasePageUrl() const;
+    QString updateErrorMessage() const;
+    bool isUpdateBusy() const;
+    bool isUpdateReadyToRestart() const;
+
+    void armApplyUpdateOnQuitIfReady();
+    bool launchArmedExitUpdateHelper();
 
     static QString resolveInstanceKey();
 
@@ -192,6 +216,13 @@ signals:
     void showStatusMessage(const QString &message);
     void statusMessageChanged();
     void updateAvailable(const QString &newVersion, const QString &releaseNotes);
+    void updateStateChanged();
+    void updateProgressChanged();
+    void availableUpdateVersionChanged();
+    void updateReleaseNotesChanged();
+    void updateReleasePageUrlChanged();
+    void updateErrorMessageChanged();
+    void updateReadyToRestart(const QString &newVersion);
     void requestLoginPage();
     void currentAppIconPathChanged();
     void showPingErrorDialog(const QString &message);
@@ -218,6 +249,7 @@ private:
     ActivityTracker *m_activityTracker;
     TaskManager *m_taskManager;
     ProductivityStatsService *m_prodStatsService;
+    UpdateManager *m_updateManager;
 
     QString m_startDateFilter;
     QString m_endDateFilter;

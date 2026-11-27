@@ -20,6 +20,7 @@
 #include <cstdio>
 #include "AppController.h"
 #include "features/tracking/IdleChecker.h"
+#include "features/updater/UpdateManager.h"
 #include "core/platform/ThemedIconProvider.h"
 #include "core/platform/AppIconProvider.h"
 
@@ -125,6 +126,18 @@ int main(int argc, char *argv[])
     // Inisialisasi logging ke folder logs/
     initLogging();
 
+    // Terapkan update yang sudah 100% staged sebelum mengunci single-instance / memuat QML
+    const QString startupVersion = QCoreApplication::applicationVersion().isEmpty()
+        ? QStringLiteral("1.0.3.4")
+        : QCoreApplication::applicationVersion();
+    if (UpdateManager::tryApplyStagedUpdateOnStartup(startupVersion,
+                                                     QCoreApplication::applicationDirPath(),
+                                                     QCoreApplication::applicationFilePath(),
+                                                     QCoreApplication::applicationPid())) {
+        closeLogging();
+        return 0;
+    }
+
     QSharedMemory sharedMemory(AppController::resolveInstanceKey());
     if (!sharedMemory.create(1)) {
         // Coba detach jika ada stale shared memory dari proses yang crash
@@ -149,6 +162,7 @@ int main(int argc, char *argv[])
         logger.saveWorkTimeData();
         logger.sendWorkTimeToAPI();
         logger.logout();
+        logger.armApplyUpdateOnQuitIfReady();
         closeLogging();
     });
 
@@ -299,6 +313,10 @@ int main(int argc, char *argv[])
     updateTrayIcon();
     showQmlWindow();
 
+    if (qEnvironmentVariableIntValue("DESKMON_DISABLE_STARTUP_UPDATE_CHECK") != 1) {
+        QTimer::singleShot(1200, &logger, &AppController::checkForUpdatesSilent);
+    }
+
     QTimer timer;
     QObject::connect(&timer, &QTimer::timeout, &app, [&]() {
         if (!idleChecker.isIdle()) {
@@ -321,5 +339,7 @@ int main(int argc, char *argv[])
 
     int result = app.exec();
     closeLogging();
+    sharedMemory.detach();
+    logger.launchArmedExitUpdateHelper();
     return result;
 }
