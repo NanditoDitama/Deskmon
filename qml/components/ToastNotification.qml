@@ -188,11 +188,7 @@ Rectangle {
         ntype = type
         actionText = actionLabel ? Lang.t(actionLabel) : ""
         actionCallback = callback || null
-        var translated = Lang.t(msg)
-        if (translated === msg && typeof msg === "string" && msg.indexOf("Gagal mengecek update: ") === 0) {
-            translated = Lang.t("Failed to check for updates: ") + msg.substring("Gagal mengecek update: ".length)
-        }
-        message = translated
+        message = Lang.t(msg)
         leaving = false
 
         switch(type) {

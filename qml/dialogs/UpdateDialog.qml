@@ -196,7 +196,7 @@ Dialog {
                         text: {
                             if (root.isError) {
                                 return root.errorMessage !== ""
-                                    ? root.errorMessage
+                                    ? Lang.t(root.errorMessage)
                                     : Lang.t("Please check your internet connection or contact your administrator if this issue persists.")
                             }
                             if (root.isReady) {

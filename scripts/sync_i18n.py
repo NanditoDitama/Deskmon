@@ -176,12 +176,42 @@ QtObject {{
     }})
 
     /**
+     * Menerjemahkan pesan dinamis yang memiliki parameter (mis. versi atau kode HTTP).
+     */
+    function translateDynamic(key) {{
+        if (typeof key !== "string" || key === "") {{
+            return null;
+        }}
+        var m = key.match(/^Pembaruan v(.+) siap\\. Klik Restart Application untuk menerapkan\\.$/);
+        if (m) {{
+            return t("Pembaruan v%1 siap. Klik Restart Application untuk menerapkan.").replace("%1", m[1]);
+        }}
+        m = key.match(/^Tidak dapat memeriksa pembaruan dari server \\(Kode HTTP (\\d+)\\)\\. Silakan coba beberapa saat lagi atau hubungi administrator\\.$/);
+        if (m) {{
+            return t("Tidak dapat memeriksa pembaruan dari server (Kode HTTP %1). Silakan coba beberapa saat lagi atau hubungi administrator.").replace("%1", m[1]);
+        }}
+        m = key.match(/^Gagal mengunduh paket pembaruan dari server \\(Kode HTTP (\\d+)\\)\\. Silakan coba lagi nanti atau hubungi administrator\\.$/);
+        if (m) {{
+            return t("Gagal mengunduh paket pembaruan dari server (Kode HTTP %1). Silakan coba lagi nanti atau hubungi administrator.").replace("%1", m[1]);
+        }}
+        m = key.match(/^Gagal mengecek update: (.+)$/);
+        if (m) {{
+            return t("Failed to check for updates: ") + m[1];
+        }}
+        return null;
+    }}
+
+    /**
      * Fungsi penerjemah: I18n.t("key", "Default Fallback")
      */
     function t(key, fallback) {{
         var langDict = strings[currentLanguage];
         if (langDict && langDict[key] !== undefined) {{
             return langDict[key];
+        }}
+        var pattern = translateDynamic(key);
+        if (pattern !== null) {{
+            return pattern;
         }}
         var enDict = strings["en"];
         if (enDict && enDict[key] !== undefined) {{

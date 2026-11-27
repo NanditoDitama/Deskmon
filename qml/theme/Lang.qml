@@ -67,6 +67,7 @@ QtObject {
             "currentWindow": "Current Window",
             "Dark Mode": "Dark Mode",
             "darkMode": "Dark Mode",
+            "Data pembaruan tidak dapat dibaca (Kode ERR-UPD-MANIFEST). Silakan coba lagi atau hubungi administrator.": "Unable to read update information (Code ERR-UPD-MANIFEST). Please try again or contact your administrator.",
             "Date Range": "Date Range",
             "delete": "Delete",
             "deskmon": "Deskmon",
@@ -104,8 +105,17 @@ QtObject {
             "For": "For",
             "Format file update di server tidak valid.": "Invalid update manifest format on server.",
             "Gagal memeriksa pembaruan.": "Failed to check for updates.",
+            "Gagal mengekstrak berkas pembaruan pada perangkat (Kode ERR-UPD-EXTRACT).": "Failed to extract the update files on this device (Code ERR-UPD-EXTRACT).",
+            "Gagal mengunduh paket pembaruan (Kode ERR-UPD-DL). Periksa koneksi internet Anda lalu coba lagi.": "Failed to download the update package (Code ERR-UPD-DL). Please check your internet connection and try again.",
+            "Gagal mengunduh paket pembaruan dari server (Kode HTTP %1). Silakan coba lagi nanti atau hubungi administrator.": "Failed to download the update package from the server (HTTP Code %1). Please try again later or contact your administrator.",
             "Gagal mengunduh pembaruan.": "Failed to download update.",
+            "Gagal menulis berkas pembaruan di perangkat (Kode ERR-UPD-FILE).": "Failed to write the update file on this device (Code ERR-UPD-FILE).",
+            "Gagal menyimpan berkas paket pembaruan (Kode ERR-UPD-SAVE).": "Failed to save the update package file (Code ERR-UPD-SAVE).",
+            "Gagal menyimpan status kesiapan pembaruan (Kode ERR-UPD-META).": "Failed to save update readiness status (Code ERR-UPD-META).",
+            "Gagal menyiapkan direktori pembaruan di perangkat (Kode ERR-UPD-STAGE).": "Failed to prepare the update directory on this device (Code ERR-UPD-STAGE).",
             "Gagal menyiapkan pembaruan.": "Failed to prepare update.",
+            "Gagal menyiapkan penyimpanan sementara untuk pembaruan (Kode ERR-UPD-DIR).": "Failed to prepare temporary storage for the update (Code ERR-UPD-DIR).",
+            "Verifikasi keamanan paket pembaruan gagal (Kode ERR-UPD-CHECKSUM). Unduhan dibatalkan demi keamanan.": "Update package security verification failed (Code ERR-UPD-CHECKSUM). Download canceled for security reasons.",
             "Verifikasi paket pembaruan gagal.": "Update package verification failed.",
             "Gagal: Token otentikasi tidak ditemukan.": "Failed: Authentication token not found.",
             "Idle": "Idle",
@@ -156,6 +166,7 @@ QtObject {
             "Pause": "Pause",
             "Paused": "Paused",
             "pauseTask": "Pause Task",
+            "Pembaruan v%1 siap. Klik Restart Application untuk menerapkan.": "Update v%1 is ready. Click Restart Application to apply.",
             "Pending": "Pending",
             "Pending Application Requests": "Pending Application Requests",
             "Please check your internet connection or contact your administrator if this issue persists.": "Please check your internet connection or contact your administrator if this issue persists.",
@@ -242,6 +253,8 @@ QtObject {
             "Terjadi kesalahan.": "An error occurred.",
             "The task will be moved to ": "The task will be moved to ",
             "There are %1 pending tasks already started. Please review them soon.": "There are %1 pending tasks already started. Please review them soon.",
+            "Tidak dapat memeriksa pembaruan (Kode ERR-UPD-NET). Periksa koneksi internet Anda lalu coba lagi.": "Unable to check for updates (Code ERR-UPD-NET). Please check your internet connection and try again.",
+            "Tidak dapat memeriksa pembaruan dari server (Kode HTTP %1). Silakan coba beberapa saat lagi atau hubungi administrator.": "Unable to check for updates from the server (HTTP Code %1). Please try again later or contact your administrator.",
             "This is a status message": "This is a status message",
             "This Month": "This Month",
             "This Week": "This Week",
@@ -340,6 +353,7 @@ QtObject {
             "currentWindow": "Jendela Saat Ini",
             "Dark Mode": "Mode Gelap",
             "darkMode": "Mode Gelap",
+            "Data pembaruan tidak dapat dibaca (Kode ERR-UPD-MANIFEST). Silakan coba lagi atau hubungi administrator.": "Data pembaruan tidak dapat dibaca (Kode ERR-UPD-MANIFEST). Silakan coba lagi atau hubungi administrator.",
             "Date Range": "Rentang Tanggal",
             "delete": "Hapus",
             "deskmon": "Deskmon",
@@ -377,8 +391,17 @@ QtObject {
             "For": "Untuk",
             "Format file update di server tidak valid.": "Format file update di server tidak valid.",
             "Gagal memeriksa pembaruan.": "Gagal memeriksa pembaruan.",
+            "Gagal mengekstrak berkas pembaruan pada perangkat (Kode ERR-UPD-EXTRACT).": "Gagal mengekstrak berkas pembaruan pada perangkat (Kode ERR-UPD-EXTRACT).",
+            "Gagal mengunduh paket pembaruan (Kode ERR-UPD-DL). Periksa koneksi internet Anda lalu coba lagi.": "Gagal mengunduh paket pembaruan (Kode ERR-UPD-DL). Periksa koneksi internet Anda lalu coba lagi.",
+            "Gagal mengunduh paket pembaruan dari server (Kode HTTP %1). Silakan coba lagi nanti atau hubungi administrator.": "Gagal mengunduh paket pembaruan dari server (Kode HTTP %1). Silakan coba lagi nanti atau hubungi administrator.",
             "Gagal mengunduh pembaruan.": "Gagal mengunduh pembaruan.",
+            "Gagal menulis berkas pembaruan di perangkat (Kode ERR-UPD-FILE).": "Gagal menulis berkas pembaruan di perangkat (Kode ERR-UPD-FILE).",
+            "Gagal menyimpan berkas paket pembaruan (Kode ERR-UPD-SAVE).": "Gagal menyimpan berkas paket pembaruan (Kode ERR-UPD-SAVE).",
+            "Gagal menyimpan status kesiapan pembaruan (Kode ERR-UPD-META).": "Gagal menyimpan status kesiapan pembaruan (Kode ERR-UPD-META).",
+            "Gagal menyiapkan direktori pembaruan di perangkat (Kode ERR-UPD-STAGE).": "Gagal menyiapkan direktori pembaruan di perangkat (Kode ERR-UPD-STAGE).",
             "Gagal menyiapkan pembaruan.": "Gagal menyiapkan pembaruan.",
+            "Gagal menyiapkan penyimpanan sementara untuk pembaruan (Kode ERR-UPD-DIR).": "Gagal menyiapkan penyimpanan sementara untuk pembaruan (Kode ERR-UPD-DIR).",
+            "Verifikasi keamanan paket pembaruan gagal (Kode ERR-UPD-CHECKSUM). Unduhan dibatalkan demi keamanan.": "Verifikasi keamanan paket pembaruan gagal (Kode ERR-UPD-CHECKSUM). Unduhan dibatalkan demi keamanan.",
             "Verifikasi paket pembaruan gagal.": "Verifikasi paket pembaruan gagal.",
             "Gagal: Token otentikasi tidak ditemukan.": "Gagal: Token otentikasi tidak ditemukan.",
             "Idle": "Tidak Aktif",
@@ -429,6 +452,7 @@ QtObject {
             "Pause": "Jeda",
             "Paused": "Dijeda",
             "pauseTask": "Jeda Pekerjaan",
+            "Pembaruan v%1 siap. Klik Restart Application untuk menerapkan.": "Pembaruan v%1 siap. Klik Restart Aplikasi untuk menerapkan.",
             "Pending": "Tertunda",
             "Pending Application Requests": "Permintaan Aplikasi yang Tertunda",
             "Please check your internet connection or contact your administrator if this issue persists.": "Periksa koneksi internet Anda atau hubungi administrator jika masalah berlanjut.",
@@ -515,6 +539,8 @@ QtObject {
             "Terjadi kesalahan.": "Terjadi kesalahan.",
             "The task will be moved to ": "Tugas akan dipindahkan ke",
             "There are %1 pending tasks already started. Please review them soon.": "Terdapat %1 tugas pending yang sudah berjalan. Mohon segera ditinjau.",
+            "Tidak dapat memeriksa pembaruan (Kode ERR-UPD-NET). Periksa koneksi internet Anda lalu coba lagi.": "Tidak dapat memeriksa pembaruan (Kode ERR-UPD-NET). Periksa koneksi internet Anda lalu coba lagi.",
+            "Tidak dapat memeriksa pembaruan dari server (Kode HTTP %1). Silakan coba beberapa saat lagi atau hubungi administrator.": "Tidak dapat memeriksa pembaruan dari server (Kode HTTP %1). Silakan coba beberapa saat lagi atau hubungi administrator.",
             "This is a status message": "Ini adalah pesan status",
             "This Month": "Bulan ini",
             "This Week": "Minggu ini",
@@ -567,12 +593,42 @@ QtObject {
     })
 
     /**
+     * Menerjemahkan pesan dinamis yang memiliki parameter (mis. versi atau kode HTTP).
+     */
+    function translateDynamic(key) {
+        if (typeof key !== "string" || key === "") {
+            return null;
+        }
+        var m = key.match(/^Pembaruan v(.+) siap\. Klik Restart Application untuk menerapkan\.$/);
+        if (m) {
+            return t("Pembaruan v%1 siap. Klik Restart Application untuk menerapkan.").replace("%1", m[1]);
+        }
+        m = key.match(/^Tidak dapat memeriksa pembaruan dari server \(Kode HTTP (\d+)\)\. Silakan coba beberapa saat lagi atau hubungi administrator\.$/);
+        if (m) {
+            return t("Tidak dapat memeriksa pembaruan dari server (Kode HTTP %1). Silakan coba beberapa saat lagi atau hubungi administrator.").replace("%1", m[1]);
+        }
+        m = key.match(/^Gagal mengunduh paket pembaruan dari server \(Kode HTTP (\d+)\)\. Silakan coba lagi nanti atau hubungi administrator\.$/);
+        if (m) {
+            return t("Gagal mengunduh paket pembaruan dari server (Kode HTTP %1). Silakan coba lagi nanti atau hubungi administrator.").replace("%1", m[1]);
+        }
+        m = key.match(/^Gagal mengecek update: (.+)$/);
+        if (m) {
+            return t("Failed to check for updates: ") + m[1];
+        }
+        return null;
+    }
+
+    /**
      * Fungsi penerjemah: I18n.t("key", "Default Fallback")
      */
     function t(key, fallback) {
         var langDict = strings[currentLanguage];
         if (langDict && langDict[key] !== undefined) {
             return langDict[key];
+        }
+        var pattern = translateDynamic(key);
+        if (pattern !== null) {
+            return pattern;
         }
         var enDict = strings["en"];
         if (enDict && enDict[key] !== undefined) {
