@@ -6,6 +6,7 @@ import QtQuick.Dialogs
 import QtQuick.Effects
 import QtQuick.Window
 import "../theme"
+import "../components"
 
 ApplicationWindow {
     id: warningWindowComponent
@@ -114,32 +115,12 @@ ApplicationWindow {
                 spacing: 10
                 layoutDirection: Qt.RightToLeft
 
-                Button {
+                CustomButton {
                     id: closeButton
                     text: Lang.t("Close")
-
-                    leftPadding: 24
-                    rightPadding: 24
-                    topPadding: 10
-                    bottomPadding: 10
-
-                    background: Rectangle {
-                        radius: 8
-                        color: closeButton.pressed ? Qt.darker(Theme.primaryColor, 1.1) :
-                               closeButton.hovered ? Qt.lighter(Theme.primaryColor, 1.05) : Theme.primaryColor
-                        border.width: 0
-
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                    }
-
-                    contentItem: Text {
-                        text: closeButton.text
-                        font.pixelSize: 13
-                        font.weight: Font.DemiBold
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        color: "white"
-                    }
+                    btnColor: Theme.primaryColor
+                    btnHoverColor: Qt.lighter(Theme.primaryColor, 1.05)
+                    font.pixelSize: 13
 
                     onClicked: {
                         warningWindowComponent.close()

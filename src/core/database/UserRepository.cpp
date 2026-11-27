@@ -32,8 +32,15 @@ bool UserRepository::saveUser(int userId, const QString &username, const QString
     if (!DatabaseManager::instance().ensureOpen()) return false;
 
     QSqlQuery query(DatabaseManager::instance().database());
-    query.prepare("INSERT OR REPLACE INTO users (id, username, password, email, department, role, token) "
-                  "VALUES (:id, :username, :password, :email, :department, :role, :token)");
+    query.prepare("INSERT INTO users (id, username, password, email, department, role, token) "
+                  "VALUES (:id, :username, :password, :email, :department, :role, :token) "
+                  "ON CONFLICT(id) DO UPDATE SET "
+                  "username = excluded.username, "
+                  "password = excluded.password, "
+                  "email = excluded.email, "
+                  "department = excluded.department, "
+                  "role = excluded.role, "
+                  "token = excluded.token");
     query.bindValue(":id", userId);
     query.bindValue(":username", username);
     query.bindValue(":password", password);
@@ -57,6 +64,30 @@ bool UserRepository::clearToken(int userId)
     query.prepare("UPDATE users SET token = '' WHERE id = :id");
     query.bindValue(":id", userId);
     return query.exec();
+}
+
+bool UserRepository::saveLastLoginEmail(const QString &email)
+{
+    if (email.trimmed().isEmpty() || !DatabaseManager::instance().ensureOpen()) return false;
+
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.exec("CREATE TABLE IF NOT EXISTS app_preferences (key TEXT PRIMARY KEY, value TEXT)");
+    query.prepare("INSERT INTO app_preferences (key, value) VALUES ('last_login_email', :value) "
+                  "ON CONFLICT(key) DO UPDATE SET value = excluded.value");
+    query.bindValue(":value", email.trimmed());
+    return query.exec();
+}
+
+QString UserRepository::lastLoginEmail() const
+{
+    if (!DatabaseManager::instance().ensureOpen()) return "";
+
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("SELECT value FROM app_preferences WHERE key = 'last_login_email' LIMIT 1");
+    if (query.exec() && query.next()) {
+        return query.value(0).toString();
+    }
+    return "";
 }
 
 QString UserRepository::getPassword(const QString &username) const

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "../theme"
+import "../components"
 
 Dialog {
     id: root
@@ -117,6 +118,8 @@ Dialog {
                 Layout.fillHeight: true
                 Layout.maximumHeight: 120
                 clip: true
+                ScrollBar.vertical: CustomScrollBar {}
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                 background: Rectangle {
                     color: Qt.alpha(Theme.cardColor, 0.5)
@@ -150,66 +153,30 @@ Dialog {
 
                 Item { Layout.fillWidth: true } // Push buttons to right
 
-                Button {
+                CustomButton {
                     id: laterBtn
                     Layout.preferredWidth: 100
-                    Layout.preferredHeight: 36
+                    Layout.preferredHeight: Theme.controlHeight
                     text: Lang.t("Later")
-
-                    background: Rectangle {
-                        radius: Theme.radiusSmall
-                        color: laterBtn.hovered ? Qt.alpha(Theme.textColor, 0.12) :
-                                                  Qt.alpha(Theme.textColor, 0.06)
-                        border.width: 1
-                        border.color: laterBtn.hovered ? Qt.alpha(Theme.textColor, 0.2) : Theme.dividerColor
-
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                        Behavior on border.color { ColorAnimation { duration: 150 } }
-                    }
-
-                    contentItem: Text {
-                        text: laterBtn.text
-                        font.pixelSize: 13
-                        font.weight: Font.Medium
-                        color: Theme.textColor
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
+                    btnColor: Qt.alpha(Theme.textColor, 0.06)
+                    btnHoverColor: Qt.alpha(Theme.textColor, 0.12)
+                    btnTextColor: Theme.textColor
+                    btnBorderColor: Theme.dividerColor
+                    btnBorderWidth: 1
+                    font.weight: Font.Medium
                     onClicked: root.close()
                 }
 
-                Button {
+                CustomButton {
                     id: updateNowBtn
                     Layout.preferredWidth: 140
-                    Layout.preferredHeight: 36
+                    Layout.preferredHeight: Theme.controlHeight
                     text: Lang.t("Update Now")
-
-                    background: Rectangle {
-                        radius: Theme.radiusSmall
-                        color: updateNowBtn.hovered ? Qt.lighter(Theme.accentColor, 1.1) : Theme.accentColor
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: parent.radius
-                            color: "transparent"
-                            border.width: 1
-                            border.color: Qt.lighter(Theme.accentColor, 1.3)
-                            opacity: 0.3
-                        }
-
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                    }
-
-                    contentItem: Text {
-                        text: updateNowBtn.text
-                        font.pixelSize: 13
-                        font.weight: Font.DemiBold
-                        color: "#ffffff"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
+                    btnColor: Theme.accentColor
+                    btnHoverColor: Qt.lighter(Theme.accentColor, 1.1)
+                    btnTextColor: "#ffffff"
+                    font.pixelSize: 13
+                    font.weight: Font.DemiBold
                     onClicked: {
                         root.updateAccepted()
                         root.close()

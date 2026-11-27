@@ -57,6 +57,14 @@ QtObject {
     readonly property real radiusLarge: 16
     readonly property real radiusRound: 9999
 
+    // Spacing & Control Sizing
+    readonly property int spacingSmall: 8
+    readonly property int spacingMedium: 12
+    readonly property int spacingLarge: 16
+    readonly property int dialogPadding: 20
+    readonly property int controlHeight: 32
+    readonly property int controlHeightSmall: 28
+
     // Font Sizes
     readonly property int fontSizeSmall: 13
     readonly property int fontSizeBody: 14
@@ -64,8 +72,10 @@ QtObject {
     readonly property int fontSizeHeader: 20
     readonly property int fontSizeLargeHeader: 24
 
+    signal themeToggleRequested()
+
     // Helper method to toggle dark mode
     function toggleDarkMode() {
-        isDarkMode = !isDarkMode
+        themeToggleRequested()
     }
 }

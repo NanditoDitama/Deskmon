@@ -28,10 +28,14 @@ class AppController : public QObject
     // QML Properties (persis sama dengan Logger lama)
     Q_PROPERTY(QString currentAppName READ currentAppName NOTIFY currentAppNameChanged)
     Q_PROPERTY(QString currentWindowTitle READ currentWindowTitle NOTIFY currentWindowTitleChanged)
+    Q_PROPERTY(QString currentWindowUrl READ currentWindowUrl NOTIFY currentWindowUrlChanged)
     Q_PROPERTY(int logCount READ logCount NOTIFY logCountChanged)
     Q_PROPERTY(QString logContent READ logContent NOTIFY logContentChanged)
+    Q_PROPERTY(int todayLogCount READ todayLogCount NOTIFY logCountChanged)
+    Q_PROPERTY(QString todayLogContent READ todayLogContent NOTIFY logContentChanged)
     Q_PROPERTY(QVariantMap productivityStats READ productivityStats NOTIFY productivityStatsChanged)
     Q_PROPERTY(QVariantList taskList READ taskList NOTIFY taskListChanged)
+    Q_PROPERTY(QVariantList pendingNeedReviewTaskIds READ pendingNeedReviewTaskIds NOTIFY pendingNeedReviewTasksChanged)
     Q_PROPERTY(int activeTaskId READ activeTaskId NOTIFY activeTaskChanged)
     Q_PROPERTY(bool isTaskPaused READ isTaskPaused NOTIFY taskPausedChanged)
     Q_PROPERTY(qint64 globalTimeUsage READ globalTimeUsage NOTIFY globalTimeUsageChanged)
@@ -57,10 +61,14 @@ public:
     QString appVersion() const;
     QString currentAppName() const;
     QString currentWindowTitle() const;
+    QString currentWindowUrl() const;
     int logCount() const;
     QString logContent() const;
+    int todayLogCount() const;
+    QString todayLogContent() const;
     QVariantMap productivityStats() const;
     QVariantList taskList() const;
+    QVariantList pendingNeedReviewTaskIds() const;
     int activeTaskId() const;
     bool isTaskPaused() const;
     qint64 globalTimeUsage() const;
@@ -98,6 +106,7 @@ public:
     Q_INVOKABLE void revertTaskChange();
     Q_INVOKABLE void submitTaskDetails(int taskId, const QString &details, const QString &action, int nextTaskId = -1);
     Q_INVOKABLE void taskDetailsDialogClosed(const QString &action);
+    Q_INVOKABLE void submitNeedReview(int taskId, const QString &reason);
     Q_INVOKABLE bool isTaskExpired(int taskId);
     Q_INVOKABLE int getPendingStartedTaskCount();
     Q_INVOKABLE QString getTaskName(int taskId);
@@ -152,10 +161,12 @@ public slots:
 signals:
     void currentAppNameChanged();
     void currentWindowTitleChanged();
+    void currentWindowUrlChanged();
     void logCountChanged();
     void logContentChanged();
     void productivityStatsChanged();
     void taskListChanged();
+    void pendingNeedReviewTasksChanged();
     void activeTaskChanged();
     void taskPausedChanged();
     void globalTimeUsageChanged();

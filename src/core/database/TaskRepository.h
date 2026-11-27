@@ -25,7 +25,10 @@ public:
         bool hasTotalDuration = false;
         int serverTimeUsage = 0;
         QString createdAt;
+        QString status = QStringLiteral("Pending");
     };
+
+    static QString mapServerStatus(const QString &apiStatus);
 
     explicit TaskRepository(QObject *parent = nullptr);
     ~TaskRepository() override = default;

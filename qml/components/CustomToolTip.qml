@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Window
-import "../theme"
 
 Popup {
     id: root
@@ -89,13 +88,6 @@ Popup {
 
     onWidthChanged: if (root.visible) Qt.callLater(updatePosition)
     onHeightChanged: if (root.visible) Qt.callLater(updatePosition)
-
-    Connections {
-        target: Theme
-        function onIsDarkModeChanged() {
-            bubbleCanvas.requestPaint()
-        }
-    }
 
     Timer {
         id: delayTimer
@@ -200,13 +192,9 @@ Popup {
                 ctx.quadraticCurveTo(left, top, left + r, top)
                 ctx.closePath()
 
-                // Warna modern dengan kontras tinggi & aksen border halus
-                ctx.fillStyle = Theme.isDarkMode ? "#252B3B" : "#1E293B"
+                // Background hitam polos tanpa border
+                ctx.fillStyle = "#000000"
                 ctx.fill()
-
-                ctx.lineWidth = 1.2
-                ctx.strokeStyle = Theme.isDarkMode ? Qt.alpha(Theme.primaryColor, 0.45) : Qt.rgba(1, 1, 1, 0.18)
-                ctx.stroke()
             }
         }
     }
@@ -222,7 +210,7 @@ Popup {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
             anchors.verticalCenterOffset: root.isTopArrow ? (root.arrowHeight / 2) : (-root.arrowHeight / 2)
-            color: "#F8FAFC"
+            color: "#FFFFFF"
             font.family: "Segoe UI"
             font.pixelSize: 12
             font.weight: Font.Medium

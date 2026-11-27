@@ -3,6 +3,8 @@
 
 #include <QObject>
 #include <QVariantList>
+#include <QHash>
+#include <QSet>
 #include <QTimer>
 #include <QDateTime>
 #include "core/network/ApiClient.h"
@@ -39,6 +41,9 @@ public:
 
     void submitTaskDetails(int taskId, const QString &details, const QString &action, int nextTaskId = -1);
     void taskDetailsDialogClosed(const QString &action);
+    void submitNeedReview(int taskId, const QString &reason);
+    QVariantList pendingNeedReviewTaskIds() const;
+    bool isTaskPendingNeedReview(int taskId) const;
     bool isTaskExpired(int taskId);
     int getPendingStartedTaskCount();
     QString getTaskName(int taskId);
@@ -68,13 +73,20 @@ signals:
     void readyToProceedWithQuit();
     void readyToProceedWithLogout();
     void saveWorkTimeRequested();
+    void pendingNeedReviewTasksChanged();
 
 private slots:
     void handleTaskFetchReply(QNetworkReply *reply);
     void handleTaskStatusReply(QNetworkReply *reply, int taskId);
+    void processPendingNeedReviewQueue();
 
 private:
     void sendTaskDetailsToAPI(int taskId, const QString &details, const QString &action, int nextTaskId);
+    void sendNeedReviewToAPI(int taskId, const QString &reason, bool notifyFailure);
+    void loadPendingNeedReviewQueue(int userId);
+    void savePendingNeedReviewQueue(int userId) const;
+    void clearPendingNeedReviewTask(int taskId);
+    void deactivateCurrentTaskWithoutSwitch(const QString &statusToStore = QString());
     void invalidateTaskCache();
 
     ApiClient *m_apiClient;
@@ -97,6 +109,11 @@ private:
     QTimer m_pingTimer;
     int m_pingRetryCount = 0;
     QTimer m_taskRefreshTimer;
+    QTimer m_needReviewRetryTimer;
+    QHash<int, QString> m_pendingNeedReviewReasons;
+    QSet<int> m_awaitingNeedReviewConfirm;
+    QSet<int> m_inFlightNeedReviewPosts;
+    QSet<int> m_notifiedNeedReviewFailure;
     quint64 m_activationSequence = 0;
     quint64 m_fetchSequence = 0;
 };

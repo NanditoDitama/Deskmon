@@ -13,6 +13,24 @@ TaskRepository::TaskRepository(QObject *parent)
 {
 }
 
+QString TaskRepository::mapServerStatus(const QString &apiStatus)
+{
+    const QString s = apiStatus.trimmed().toLower();
+    if (s == QStringLiteral("on-progress")) {
+        return QStringLiteral("on-progress");
+    }
+    if (s == QStringLiteral("on-review") || s == QStringLiteral("review")) {
+        return QStringLiteral("Review");
+    }
+    if (s == QStringLiteral("need-review") || s == QStringLiteral("need review")) {
+        return QStringLiteral("Need Review");
+    }
+    if (s == QStringLiteral("need-revise") || s == QStringLiteral("need revise")) {
+        return QStringLiteral("Need Revise");
+    }
+    return QStringLiteral("Pending");
+}
+
 bool TaskRepository::syncTasksToDatabase(QSqlDatabase &db,
                                          int userId,
                                          const QVector<SyncedTaskRow> &tasks,
@@ -66,14 +84,26 @@ bool TaskRepository::syncTasksToDatabase(QSqlDatabase &db,
 
     QSqlQuery updateQ(db);
     updateQ.prepare(QStringLiteral("UPDATE tasks SET project_name = :projectName, task_desc = :taskDesc, "
-                                   "max_time = :maxTime, time_usage = :timeUsage, created_at = :createdAt "
+                                   "max_time = :maxTime, time_usage = :timeUsage, created_at = :createdAt, "
+                                   "status = :status "
                                    "WHERE id = :id AND user_id = :user_id"));
+
+    QSqlQuery updateRestrictedQ(db);
+    updateRestrictedQ.prepare(QStringLiteral("UPDATE tasks SET project_name = :projectName, task_desc = :taskDesc, "
+                                             "max_time = :maxTime, time_usage = :timeUsage, created_at = :createdAt, "
+                                             "status = :status, active = 0, paused = 0 "
+                                             "WHERE id = :id AND user_id = :user_id"));
 
     QSqlQuery insertQ(db);
     insertQ.prepare(QStringLiteral("INSERT INTO tasks (id, user_id, project_name, task_desc, max_time, time_usage, active, status, paused, created_at) "
-                                   "VALUES (:id, :user_id, :projectName, :taskDesc, :maxTime, :timeUsage, 0, 'Pending', 0, :createdAt)"));
+                                   "VALUES (:id, :user_id, :projectName, :taskDesc, :maxTime, :timeUsage, 0, :status, 0, :createdAt)"));
 
     for (const SyncedTaskRow &pt : tasks) {
+        const QString finalStatus = pt.status.isEmpty() ? QStringLiteral("Pending") : pt.status;
+        const bool isRestricted = (finalStatus == QStringLiteral("Review") ||
+                                   finalStatus == QStringLiteral("Need Review") ||
+                                   finalStatus == QStringLiteral("Need Revise"));
+
         if (existingTasks.contains(pt.id)) {
             const int currentMaxTime = existingTasks.value(pt.id).first;
             const int currentTimeUsage = existingTasks.value(pt.id).second;
@@ -82,16 +112,21 @@ bool TaskRepository::syncTasksToDatabase(QSqlDatabase &db,
             if (pt.id == currentActiveTaskId && currentTimeUsage > finalTimeUsage) {
                 finalTimeUsage = currentTimeUsage;
             }
+            if (isRestricted && pt.id == currentActiveTaskId && currentActiveTaskId != -1) {
+                outActiveTaskRemoved = true;
+            }
 
-            updateQ.bindValue(":projectName", pt.projectName);
-            updateQ.bindValue(":taskDesc", pt.taskDesc);
-            updateQ.bindValue(":maxTime", finalMaxTime);
-            updateQ.bindValue(":timeUsage", finalTimeUsage);
-            updateQ.bindValue(":createdAt", pt.createdAt);
-            updateQ.bindValue(":id", pt.id);
-            updateQ.bindValue(":user_id", userId);
-            if (!updateQ.exec()) {
-                qWarning() << "Failed to update task in batch sync:" << updateQ.lastError().text();
+            QSqlQuery &q = isRestricted ? updateRestrictedQ : updateQ;
+            q.bindValue(":projectName", pt.projectName);
+            q.bindValue(":taskDesc", pt.taskDesc);
+            q.bindValue(":maxTime", finalMaxTime);
+            q.bindValue(":timeUsage", finalTimeUsage);
+            q.bindValue(":createdAt", pt.createdAt);
+            q.bindValue(":status", finalStatus);
+            q.bindValue(":id", pt.id);
+            q.bindValue(":user_id", userId);
+            if (!q.exec()) {
+                qWarning() << "Failed to update task in batch sync:" << q.lastError().text();
                 db.rollback();
                 return false;
             }
@@ -102,6 +137,7 @@ bool TaskRepository::syncTasksToDatabase(QSqlDatabase &db,
             insertQ.bindValue(":taskDesc", pt.taskDesc);
             insertQ.bindValue(":maxTime", pt.serverMaxTime);
             insertQ.bindValue(":timeUsage", pt.serverTimeUsage);
+            insertQ.bindValue(":status", finalStatus);
             insertQ.bindValue(":createdAt", pt.createdAt);
             if (!insertQ.exec()) {
                 qWarning() << "Failed to insert task in batch sync:" << insertQ.lastError().text();

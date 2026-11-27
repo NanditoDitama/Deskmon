@@ -9,7 +9,18 @@ import "../dialogs"
 import "../components"
 
 Item {
+    id: currentTaskRoot
     anchors.fill: parent
+
+    function formatMaxDuration(seconds) {
+        if (!seconds || seconds <= 0) return "0m"
+        var hours = Math.floor(seconds / 3600)
+        var minutes = Math.floor((seconds % 3600) / 60)
+        var text = ""
+        if (hours > 0) text += hours + "h "
+        text += minutes + "m"
+        return text
+    }
     MessageDialog {
         id: warningDialog
         title: Lang.t("Warning")
@@ -261,51 +272,26 @@ Item {
 
                             // Max Time
                             Label {
-                                text: {
-                                    if (activeTaskObj) {
-                                        var hours = Math.floor(activeTaskObj.max_time / 3600)
-                                        var minutes = Math.floor((activeTaskObj.max_time % 3600) / 60)
-                                        var timeText = ""
-                                        if (hours > 0) timeText += hours + "h "
-                                        timeText += minutes + "m"
-                                        return timeText
-                                    }
-                                    return "0m"
-                                }
+                                text: activeTaskObj ? currentTaskRoot.formatMaxDuration(activeTaskObj.max_time) : "0m"
                                 font.pixelSize: 13
                                 font.family: "Segoe UI"
                                 color: Theme.lightTextColor
                             }
 
                             // Pause/Resume Button
-                            Button {
+                            CustomButton {
                                 id: pauseResumeButton
                                 visible: activeTaskObj !== null && activeTaskObj.status !== "Review"
 
                                 text: logger.isTaskPaused ? Lang.t("Resume") : Lang.t("Pause")
                                 Layout.preferredWidth: 92
-                                Layout.preferredHeight: 40
+                                Layout.preferredHeight: Theme.controlHeight
+                                btnRadius: Theme.radiusSmall
+                                btnColor: logger.isTaskPaused ? Theme.accentColor : Theme.productiveColor
+                                btnHoverColor: logger.isTaskPaused ? Qt.lighter(Theme.accentColor, 1.15) : Qt.lighter(Theme.productiveColor, 1.15)
+                                btnTextColor: "white"
                                 font.pixelSize: 13
                                 font.weight: Font.DemiBold
-
-                                background: Rectangle {
-                                    radius: 17
-                                    color: pauseResumeButton.hovered ?
-                                        (logger.isTaskPaused ? Qt.lighter(Theme.accentColor, 1.15) : Qt.lighter(Theme.productiveColor, 1.15)) :
-                                        (logger.isTaskPaused ? Theme.accentColor : Theme.productiveColor)
-
-                                    Behavior on color {
-                                        ColorAnimation { duration: 150 }
-                                    }
-                                }
-
-                                contentItem: Text {
-                                    text: pauseResumeButton.text
-                                    font: pauseResumeButton.font
-                                    color: "white"
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                }
 
                                 onClicked: {
                                     taskControlRow.isLoading = true
@@ -376,13 +362,22 @@ Item {
             }
         }
 
+        HoverHandler {
+            id: taskScrollHover
+        }
+
         ScrollView {
+            id: taskScrollView
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
             visible: taskListView.count > 0
+            rightPadding: taskScrollBar.isScrollable ? 14 : 0
 
-            ScrollBar.vertical: CustomScrollBar {}
+            ScrollBar.vertical: CustomScrollBar {
+                id: taskScrollBar
+                containerHovered: taskScrollHover.hovered
+            }
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
 
@@ -471,9 +466,13 @@ Item {
                     readonly property bool isReview: modelData.status === "Review"
                     readonly property bool isNeedReview: modelData.status === "Need Review"
                     readonly property bool isNeedRevise: modelData.status === "Need Revise"
-                    readonly property bool isActive: modelData.active
+                    readonly property bool isPendingNeedReview: logger && logger.pendingNeedReviewTaskIds
+                                                                ? logger.pendingNeedReviewTaskIds.indexOf(modelData.id) !== -1
+                                                                : false
+                    readonly property bool isActive: modelData.active && !isPendingNeedReview
                     readonly property bool isExpired: modelData.isExpired
                     color: {
+                        if (isPendingNeedReview) return Qt.alpha(Theme.neutralColor, 0.14)
                         if (isExpired) return Qt.alpha(Theme.neutralColor, 0.15)
                         if (isReview) {
                             return Qt.alpha(Theme.warningColor, 0.08)
@@ -483,6 +482,7 @@ Item {
                         return isActive ? Qt.lighter(Theme.cardColor, 1.6) : Theme.cardColor
                     }
                     border.color: {
+                        if (isPendingNeedReview) return Qt.alpha(Theme.neutralColor, 0.4)
                         if (isExpired) return Qt.alpha(Theme.neutralColor, 0.4)
                         if (isReview) {
                             return Qt.alpha(Theme.warningColor, 0.3)
@@ -490,10 +490,10 @@ Item {
                         if (isNeedReview) return Qt.alpha(Theme.infoColor, 0.4);
                         if (isNeedRevise) return Qt.alpha(Theme.dangerColor, 0.4);
 
-                        return isActive ? Theme.secondaryColor : Qt.alpha(Theme.dividerColor, 0.3)
+                        return isActive ? Theme.secondaryColor : Theme.borderColor
                     }
                     border.width: 1
-                    opacity: isExpired ? 0.7 : (isReview ? 0.85 : 1.0)
+                    opacity: isPendingNeedReview ? 0.68 : (isExpired ? 0.7 : (isReview ? 0.85 : 1.0))
 
 
                     // Subtle shadow effect
@@ -507,7 +507,7 @@ Item {
 
                     MouseArea {
                         anchors.fill: parent
-                        enabled: !(delegateRoot.isReview || delegateRoot.isNeedReview)
+                        enabled: !(delegateRoot.isReview || delegateRoot.isNeedReview || delegateRoot.isPendingNeedReview)
 
                         onClicked: {
                             // === LOGIKA 1: CEK TASK EXPIRED (Bulan Lalu) ===
@@ -518,22 +518,25 @@ Item {
                                 return;
                             }
 
-                            // === LOGIKA 2: CEK WARNING TASK PENDING ===
+                            // === LOGIKA 2 & 3: CEK WARNING PENDING & JALANKAN TASK ===
+                            var pendingWarningText = ""
                             if (!delegateRoot.isActive) {
                                 var pendingStartedCount = logger.getPendingStartedTaskCount();
-
                                 if (pendingStartedCount >= 3) {
-                                    customWarningDialog.titleText = Lang.t("Warning")
-                                    customWarningDialog.newText = Lang.t("There are %1 pending tasks already started. Please review them soon.").arg(pendingStartedCount)
-                                    customWarningDialog.showAnimated()
+                                    pendingWarningText = Lang.t("There are %1 pending tasks already started. Please review them soon.").arg(pendingStartedCount)
                                 }
                             }
 
-                            // === LOGIKA 3: JALANKAN TASK (Jika lolos validasi) ===
                             if (!delegateRoot.isActive && logger.activeTaskId !== -1) {
                                 confirmSwitchDialog.taskId = modelData.id
+                                confirmSwitchDialog.warningMessage = pendingWarningText
                                 confirmSwitchDialog.open()
                             } else if (!delegateRoot.isActive) {
+                                if (pendingWarningText !== "") {
+                                    customWarningDialog.titleText = Lang.t("Warning")
+                                    customWarningDialog.newText = pendingWarningText
+                                    customWarningDialog.showAnimated()
+                                }
                                 logger.setActiveTask(modelData.id)
                             }
                         }
@@ -562,7 +565,7 @@ Item {
                                 Layout.preferredHeight: 12
                                 radius: 16
                                 color: menuMouseArea.containsMouse ? Qt.rgba(0, 0, 0, 0.1) : "transparent"
-                                visible: !(delegateRoot.isReview || delegateRoot.isNeedReview)
+                                visible: !(delegateRoot.isReview || delegateRoot.isNeedReview || delegateRoot.isPendingNeedReview)
 
                                 Rectangle {
                                     anchors.centerIn: parent
@@ -653,6 +656,7 @@ Item {
 
                         RowLayout {
                             Layout.fillWidth: true
+                            spacing: 6
 
                             // Status badge
                             Rectangle {
@@ -660,7 +664,7 @@ Item {
                                 Layout.preferredWidth: statusText.implicitWidth + 12
                                 radius: 9
                                 color: {
-                                    if (isExpired) return Qt.alpha(Theme.neutralColor, 0.2);
+                                    if (delegateRoot.isPendingNeedReview || isExpired) return Qt.alpha(Theme.neutralColor, 0.2);
                                     if (modelData.status === "Review") return Qt.alpha(Theme.warningColor, 0.15);
                                     if (modelData.status === "Need Review") return Qt.alpha(Theme.infoColor, 0.15);
                                     if (modelData.status === "Need Revise") return Qt.alpha(Theme.dangerColor, 0.15);
@@ -669,7 +673,7 @@ Item {
                                 }
 
                                 border.color: {
-                                    if (isExpired) return Qt.alpha(Theme.neutralColor, 0.5);
+                                    if (delegateRoot.isPendingNeedReview || isExpired) return Qt.alpha(Theme.neutralColor, 0.5);
                                     if (modelData.status === "Review") return Qt.alpha(Theme.warningColor, 0.4);
                                     if (modelData.status === "Need Review") return Qt.alpha(Theme.infoColor, 0.4);
                                     if (modelData.status === "Need Revise") return Qt.alpha(Theme.dangerColor, 0.4);
@@ -682,6 +686,7 @@ Item {
                                     id: statusText
                                     anchors.centerIn: parent
                                     text: {
+                                        if (delegateRoot.isPendingNeedReview) return Lang.t("Syncing Need Review...");
                                         if (modelData.status === "Review") return Lang.t("Review");
                                         if (modelData.status === "Need Review") return Lang.t("Need Review");
                                         if (modelData.status === "Need Revise") return Lang.t("Need Revise");
@@ -691,6 +696,7 @@ Item {
                                     font.pixelSize: 10
                                     font.bold: true
                                     color: {
+                                        if (delegateRoot.isPendingNeedReview) return Theme.mutedTextColor;
                                         if (modelData.status === "Review") return Theme.warningColor;
                                         if (modelData.status === "Need Review") return Theme.infoColor;
                                         if (modelData.status === "Need Revise") return Theme.dangerColor;
@@ -700,22 +706,66 @@ Item {
                                 }
                             }
 
+                            BusyIndicator {
+                                visible: delegateRoot.isPendingNeedReview
+                                running: delegateRoot.isPendingNeedReview
+                                Layout.preferredWidth: 16
+                                Layout.preferredHeight: 16
+                            }
+
                             Item { Layout.fillWidth: true }
 
                             // Time display with subtle background
                             Rectangle {
-                                Layout.preferredWidth: timeLabel.implicitWidth + 8
+                                Layout.preferredWidth: timeRow.implicitWidth + 10
                                 Layout.preferredHeight: 18
                                 radius: 4
-                                color: Qt.alpha(Theme.lightTextColor, 0.05)
+                                color: (modelData.max_time > 0 && modelData.time_usage > modelData.max_time)
+                                       ? Qt.alpha(Theme.nonProductiveColor, 0.1)
+                                       : Qt.alpha(Theme.lightTextColor, 0.06)
 
-                                Label {
-                                    id: timeLabel
+                                RowLayout {
+                                    id: timeRow
                                     anchors.centerIn: parent
-                                    text: logger.formatDuration(modelData.time_usage)
-                                    font.pixelSize: 11
-                                    font.bold: true
-                                    color: delegateRoot.isReview ? Theme.warningColor : Theme.lightTextColor
+                                    spacing: 4
+
+                                    Label {
+                                        id: timeLabel
+                                        Layout.alignment: Qt.AlignBaseline
+                                        text: currentTaskRoot.formatMaxDuration(modelData.time_usage)
+                                        font.pixelSize: 11
+                                        font.bold: true
+                                        color: {
+                                            if (modelData.max_time > 0 && modelData.time_usage > modelData.max_time)
+                                                return Theme.nonProductiveColor
+                                            if (delegateRoot.isPendingNeedReview)
+                                                return Theme.mutedTextColor
+                                            if (delegateRoot.isReview)
+                                                return Theme.warningColor
+                                            if (modelData.active)
+                                                return modelData.isTaskPaused ? Theme.warningColor : Theme.primaryColor
+                                            return Theme.textColor
+                                        }
+                                    }
+
+                                    Label {
+                                        Layout.alignment: Qt.AlignBaseline
+                                        visible: modelData.max_time > 0
+                                        text: "/"
+                                        font.pixelSize: 10
+                                        color: Theme.mutedTextColor
+                                        opacity: 0.6
+                                    }
+
+                                    Label {
+                                        id: maxTimeLabel
+                                        Layout.alignment: Qt.AlignBaseline
+                                        visible: modelData.max_time > 0
+                                        text: currentTaskRoot.formatMaxDuration(modelData.max_time)
+                                        font.pixelSize: 10
+                                        font.weight: Font.Normal
+                                        color: Theme.mutedTextColor
+                                    }
                                 }
                             }
                         }

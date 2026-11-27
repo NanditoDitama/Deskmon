@@ -6,66 +6,17 @@ import QtQuick.Dialogs
 import QtQuick.Effects
 import QtQuick.Window
 import "../theme"
+import "../components"
 
-Dialog {
+CustomDialog {
     id: requestDialog
-    title: Lang.t("Application Requests")
-    modal: true
+    dialogTitle: Lang.t("Application Requests")
     width: parent ? Math.min(parent.width * 0.8, 800) : 800
     height: parent ? Math.min(parent.height * 0.8, 600) : 600
-    x: parent ? Math.round((parent.width - width) / 2) : 0
-    y: parent ? Math.round((parent.height - height) / 2) : 0
     padding: 16
     dim: true
 
     property var pendingRequests: logger.getPendingApplicationRequests()
-
-    background: Rectangle {
-        color: Theme.cardColor
-        radius: Theme.radiusLarge
-        border.color: Theme.borderColor
-        border.width: 1
-    }
-
-    header: Item {
-        implicitHeight: 56
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 24
-            anchors.rightMargin: 20
-            Label {
-                text: Lang.t("Application Requests")
-                font.pixelSize: 18
-                font.weight: Font.DemiBold
-                font.family: "Segoe UI"
-                color: Theme.textColor
-                Layout.fillWidth: true
-            }
-            Button {
-                width: 32
-                height: 32
-                flat: true
-                onClicked: requestDialog.close()
-                background: Rectangle {
-                    radius: 8
-                    color: parent.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
-                }
-                contentItem: Text {
-                    text: "×"
-                    font.pixelSize: 20
-                    color: Theme.lightTextColor
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-            }
-        }
-        Rectangle {
-            anchors.bottom: parent.bottom
-            width: parent.width
-            height: 1
-            color: Theme.dividerColor
-        }
-    }
 
     contentItem: ColumnLayout {
         spacing: 16
@@ -82,10 +33,21 @@ Dialog {
                 color: Theme.lightTextColor
             }
 
+            HoverHandler {
+                id: requestScrollHover
+            }
+
             ScrollView {
+                id: requestScrollView
                 anchors.fill: parent
                 clip: true
                 visible: requestListView.count > 0
+                rightPadding: requestScrollBar.isScrollable ? 14 : 0
+                ScrollBar.vertical: CustomScrollBar {
+                    id: requestScrollBar
+                    containerHovered: requestScrollHover.hovered
+                }
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
             ListView {
                 id: requestListView
@@ -93,41 +55,23 @@ Dialog {
                 spacing: 8
                 boundsBehavior: Flickable.StopAtBounds
 
-                delegate: Rectangle {
+                delegate: CustomCard {
                     width: requestListView.width
-                    height: 100
-                    radius: Theme.radiusSmall
-                    color: index % 2 === 0 ? Qt.lighter(Theme.cardColor, 1.1) : Theme.cardColor
-                    border.color: Theme.dividerColor
-                    border.width: 1
+                    height: 92
+                    cardRadius: Theme.radiusSmall
+                    cardColor: Theme.cardHeaderColor
 
                     RowLayout {
                         anchors.fill: parent
                         anchors.margins: 12
-                        spacing: 16
+                        spacing: 14
 
-                        // App icon placeholder
-                        Rectangle {
-                            Layout.preferredWidth: 48
-                            Layout.preferredHeight: 48
-                            radius: Theme.radiusSmall
-                            color: Qt.rgba(
-                                       Math.random() * 0.5 + 0.3,
-                                       Math.random() * 0.5 + 0.3,
-                                       Math.random() * 0.5 + 0.3,
-                                       0.2
-                                       )
-
-                            Label {
-                                text: modelData.app_name.charAt(0).toUpperCase()
-                                anchors.centerIn: parent
-                                font {
-                                    family: "Segoe UI"
-                                    weight: Font.Bold
-                                    pixelSize: 18
-                                }
-                                color: Theme.primaryColor
-                            }
+                        AppIconBadge {
+                            appName: modelData.app_name || ""
+                            url: modelData.url || ""
+                            accentColor: modelData.productivity === 2 ? Theme.nonProductiveColor : Theme.primaryColor
+                            badgeSize: 42
+                            iconSize: 24
                         }
 
                         ColumnLayout {
@@ -206,27 +150,30 @@ Dialog {
             }
         }
         }
+    }
 
-        Button {
+    footer: DialogButtonBox {
+        alignment: Qt.AlignRight
+        leftPadding: Theme.dialogPadding
+        rightPadding: Theme.dialogPadding
+        topPadding: 12
+        bottomPadding: 12
+        background: Rectangle {
+            color: Theme.cardColor
+            radius: Theme.radiusLarge
+            Rectangle {
+                anchors.top: parent.top
+                width: parent.width
+                height: 1
+                color: Theme.dividerColor
+            }
+        }
+        CustomButton {
             text: Lang.t("Close")
-            Layout.alignment: Qt.AlignRight
-            Layout.preferredWidth: 110
-            Layout.preferredHeight: 38
+            btnColor: Theme.primaryColor
+            btnHoverColor: Theme.primaryHoverColor
+            font.pixelSize: Theme.fontSizeSmall
             onClicked: requestDialog.close()
-
-            background: Rectangle {
-                radius: Theme.radiusSmall
-                color: parent.hovered ? Theme.primaryHoverColor : Theme.primaryColor
-            }
-
-            contentItem: Text {
-                text: parent.text
-                font.pixelSize: Theme.fontSizeSmall
-                font.weight: Font.DemiBold
-                color: "white"
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
         }
     }
 

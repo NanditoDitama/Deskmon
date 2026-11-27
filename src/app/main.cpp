@@ -21,6 +21,7 @@
 #include "AppController.h"
 #include "features/tracking/IdleChecker.h"
 #include "core/platform/ThemedIconProvider.h"
+#include "core/platform/AppIconProvider.h"
 
 // ===================================================================
 // Sistem Logging ke File dan Terminal
@@ -144,6 +145,7 @@ int main(int argc, char *argv[])
     QObject::connect(&idleChecker, &IdleChecker::idleDetected, &logger, &AppController::logIdle);
     QObject::connect(&app, &QApplication::aboutToQuit, [&]() {
         qDebug() << "Application is about to quit, saving final data...";
+        idleChecker.flushPendingIdle();
         logger.saveWorkTimeData();
         logger.sendWorkTimeToAPI();
         logger.logout();
@@ -159,6 +161,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     engine.addImageProvider("icon", new ThemedIconProvider);
+    engine.addImageProvider("appicon", new AppIconProvider);
     engine.rootContext()->setContextProperty("logger", &logger);
     engine.rootContext()->setContextProperty("idleChecker", &idleChecker);
     engine.loadFromModule("window_logger", "Main");

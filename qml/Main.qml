@@ -19,11 +19,19 @@ Window {
     visibility: Window.Maximized
     minimumWidth: 900
     minimumHeight: 700
+    flags: Qt.platform.os === "osx"
+           ? (Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint)
+           : (Qt.Window | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint | Qt.WindowMinMaxButtonsHint)
     property string appVersion: (typeof logger !== "undefined" && logger.appVersion) ? logger.appVersion : (Qt.application.version || "")
     color: Theme.cardColor
 
     // Sinkronisasi tema Material dengan mode singleton Theme
     Material.theme: Theme.isDarkMode ? Material.Dark : Material.Light
+    Material.accent: Theme.primaryColor
+
+    Overlay.modal: Rectangle {
+        color: Theme.isDarkMode ? Qt.rgba(0, 0, 0, 0.65) : Qt.rgba(0, 0, 0, 0.45)
+    }
 
     onClosing: function(close) {
         console.log("Tombol 'X' ditekan. Menyembunyikan window ke tray.")
@@ -323,39 +331,117 @@ Window {
     // =========================================================================
     // Page Views (Login, Profile, Dashboard)
     // =========================================================================
-
-    // 1. Halaman Login
-    Rectangle {
+    Item {
+        id: pageContainer
         anchors.fill: parent
-        color: Theme.backgroundColor
-        visible: !isLoggedIn
 
-        LoginPage {
+        // 1. Halaman Login
+        Rectangle {
             anchors.fill: parent
+            color: Theme.backgroundColor
+            visible: !isLoggedIn
+
+            LoginPage {
+                anchors.fill: parent
+            }
+        }
+
+        // 2. Halaman Dashboard Utama
+        Rectangle {
+            anchors.fill: parent
+            color: Theme.backgroundColor
+            visible: isLoggedIn
+
+            DashboardPage {
+                username: currentUsername
+                onLogoutRequested: {
+                    if (typeof logger !== "undefined" && logger.activeTaskId && logger.activeTaskId > 0) {
+                        console.log("Task aktif terdeteksi (ID: " + logger.activeTaskId + "). Membuka dialog detail.")
+                        taskDetailsDialog.show(logger.activeTaskId, "logout", -1)
+                    } else {
+                        console.log("Tidak ada task aktif. Langsung logout.")
+                        if (typeof logger !== "undefined")
+                            logger.taskDetailsDialogClosed("logout")
+                    }
+                }
+                onNeedReviewRequested: function(taskId) {
+                    needReviewReasonDialog.openWithTaskId(taskId, logger)
+                }
+            }
         }
     }
 
-    // 2. Halaman Dashboard Utama
-    Rectangle {
-        anchors.fill: parent
-        color: Theme.backgroundColor
-        visible: isLoggedIn
+    LiquidThemeOverlay {
+        id: liquidThemeOverlay
+        targetItem: pageContainer
+    }
 
-        DashboardPage {
-            username: currentUsername
-            onLogoutRequested: {
-                if (typeof logger !== "undefined" && logger.activeTaskId && logger.activeTaskId > 0) {
-                    console.log("Task aktif terdeteksi (ID: " + logger.activeTaskId + "). Membuka dialog detail.")
-                    taskDetailsDialog.show(logger.activeTaskId, "logout", -1)
-                } else {
-                    console.log("Tidak ada task aktif. Langsung logout.")
-                    if (typeof logger !== "undefined")
-                        logger.taskDetailsDialogClosed("logout")
-                }
-            }
-            onNeedReviewRequested: function(taskId) {
-                needReviewReasonDialog.openWithTaskId(taskId, logger)
-            }
+    // Cross-platform frameless window edge/corner resize handles (Windows & Linux)
+    Item {
+        id: resizeHandles
+        anchors.fill: parent
+        z: 999
+        visible: window.visibility === Window.Windowed && Qt.platform.os !== "osx"
+
+        readonly property int edgeSize: 5
+        readonly property int cornerSize: 10
+
+        MouseArea {
+            anchors { top: parent.top; left: parent.left; right: parent.right; leftMargin: resizeHandles.cornerSize; rightMargin: resizeHandles.cornerSize }
+            height: resizeHandles.edgeSize
+            cursorShape: Qt.SizeVerCursor
+            onPressed: window.startSystemResize(Qt.TopEdge)
+        }
+        MouseArea {
+            anchors { bottom: parent.bottom; left: parent.left; right: parent.right; leftMargin: resizeHandles.cornerSize; rightMargin: resizeHandles.cornerSize }
+            height: resizeHandles.edgeSize
+            cursorShape: Qt.SizeVerCursor
+            onPressed: window.startSystemResize(Qt.BottomEdge)
+        }
+        MouseArea {
+            anchors { left: parent.left; top: parent.top; bottom: parent.bottom; topMargin: resizeHandles.cornerSize; bottomMargin: resizeHandles.cornerSize }
+            width: resizeHandles.edgeSize
+            cursorShape: Qt.SizeHorCursor
+            onPressed: window.startSystemResize(Qt.LeftEdge)
+        }
+        MouseArea {
+            anchors { right: parent.right; top: parent.top; bottom: parent.bottom; topMargin: resizeHandles.cornerSize; bottomMargin: resizeHandles.cornerSize }
+            width: resizeHandles.edgeSize
+            cursorShape: Qt.SizeHorCursor
+            onPressed: window.startSystemResize(Qt.RightEdge)
+        }
+        MouseArea {
+            anchors { top: parent.top; left: parent.left }
+            width: resizeHandles.cornerSize; height: resizeHandles.cornerSize
+            cursorShape: Qt.SizeFDiagCursor
+            onPressed: window.startSystemResize(Qt.TopEdge | Qt.LeftEdge)
+        }
+        MouseArea {
+            anchors { top: parent.top; right: parent.right }
+            width: resizeHandles.cornerSize; height: resizeHandles.cornerSize
+            cursorShape: Qt.SizeBDiagCursor
+            onPressed: window.startSystemResize(Qt.TopEdge | Qt.RightEdge)
+        }
+        MouseArea {
+            anchors { bottom: parent.bottom; left: parent.left }
+            width: resizeHandles.cornerSize; height: resizeHandles.cornerSize
+            cursorShape: Qt.SizeBDiagCursor
+            onPressed: window.startSystemResize(Qt.BottomEdge | Qt.LeftEdge)
+        }
+        MouseArea {
+            anchors { bottom: parent.bottom; right: parent.right }
+            width: resizeHandles.cornerSize; height: resizeHandles.cornerSize
+            cursorShape: Qt.SizeFDiagCursor
+            onPressed: window.startSystemResize(Qt.BottomEdge | Qt.RightEdge)
+        }
+    }
+
+    Connections {
+        target: Theme
+        function onThemeToggleRequested() {
+            liquidThemeOverlay.startWithToggle(function() {
+                Theme.isDarkMode = !Theme.isDarkMode
+            })
         }
     }
 }

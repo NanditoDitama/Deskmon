@@ -4,6 +4,7 @@ import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
+import QtQuick.Window
 import "../theme"
 import "../components"
 
@@ -18,7 +19,10 @@ Item {
     Component.onCompleted: {
         usernameField.text = logger.savedUsername()
         passwordField.text = logger.savedPassword()
-        usernameField.forceActiveFocus()
+        if (usernameField.text.length > 0 && passwordField.text.length === 0)
+            passwordField.forceActiveFocus()
+        else
+            usernameField.forceActiveFocus()
     }
 
     onVisibleChanged: {
@@ -26,7 +30,10 @@ Item {
             usernameField.text = logger.savedUsername()
             passwordField.text = logger.savedPassword()
             error_Label.text = ""
-            usernameField.forceActiveFocus()
+            if (usernameField.text.length > 0 && passwordField.text.length === 0)
+                passwordField.forceActiveFocus()
+            else
+                usernameField.forceActiveFocus()
         }
     }
 
@@ -34,6 +41,40 @@ Item {
         sequences: ["Return", "Enter"]
         enabled: loginPageRoot.visible && !loginPageRoot.isLoading
         onActivated: loginButton.clicked()
+    }
+
+    // Window drag & controls bar on Login screen (frameless Windows/Linux & expanded macOS)
+    Item {
+        id: loginTitleBar
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 44
+        z: 50
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            onPressed: function(mouse) {
+                if (Window.window && mouse.button === Qt.LeftButton)
+                    Window.window.startSystemMove()
+            }
+            onDoubleClicked: {
+                var win = Window.window
+                if (!win)
+                    return
+                if (win.visibility === Window.Maximized)
+                    win.showNormal()
+                else
+                    win.showMaximized()
+            }
+        }
+
+        WindowControls {
+            anchors.right: parent.right
+            anchors.rightMargin: 12
+            anchors.verticalCenter: parent.verticalCenter
+        }
     }
         // Background dengan gradient modern yang responsif terhadap tema
     Rectangle {
@@ -259,7 +300,7 @@ Item {
                     width: 170 + (index % 2) * 50
                     height: 60
                     y: parent.height * (0.1 + index * 0.14)
-                    opacity: 0.22 + (index % 2) * 0.08
+                    opacity: 0.55 + (index % 2) * 0.12
                     readonly property real startX: lightSkyBackdrop.width * (0.14 + index * 0.21)
                     readonly property int fullDuration: 42000 + index * 11000
                     x: startX
@@ -482,7 +523,7 @@ Item {
                     spacing: 8
 
                     Label {
-                        text: Lang.t("Username")
+                        text: Lang.t("Email")
                         font {
                             pixelSize: Theme.fontSizeBody
                             family: "Segoe UI"
@@ -491,30 +532,20 @@ Item {
                         color: Theme.textColor
                     }
 
-                    TextField {
+                    CustomTextField {
                         id: usernameField
-                        placeholderText: Lang.t("Enter your username")
+                        placeholderText: Lang.t("Enter your email")
                         text: (typeof logger !== "undefined") ? logger.savedUsername() : ""
                         enabled: !loginPageRoot.isLoading
                         Layout.fillWidth: true
                         Layout.preferredHeight: 50
                         font.pixelSize: Theme.fontSizeTitle
-                        font.family: "Segoe UI"
                         leftPadding: 16
                         rightPadding: 16
-                        color: Theme.textColor
                         placeholderTextColor: Qt.alpha(Theme.textColor, 0.6)
-
-                        background: Rectangle {
-                            radius: Theme.radiusMedium
-                            color: Theme.isDarkMode ? Qt.alpha(Theme.textColor, 0.1) : Qt.rgba(1, 1, 1, 0.1)
-                            border.color: usernameField.activeFocus ? Theme.primaryColor : Theme.dividerColor
-                            border.width: usernameField.activeFocus ? 2 : 1
-
-                            Behavior on border.color {
-                                ColorAnimation { duration: 200 }
-                            }
-                        }
+                        fieldRadius: Theme.radiusMedium
+                        fieldBackgroundColor: Theme.isDarkMode ? Qt.alpha(Theme.textColor, 0.1) : Qt.rgba(1, 1, 1, 0.1)
+                        fieldBorderColor: Theme.dividerColor
                         onAccepted: if (!loginPageRoot.isLoading) loginButton.clicked()
                     }
                 }
@@ -550,7 +581,7 @@ Item {
                             anchors.fill: parent
                             spacing: 8
 
-                            TextField {
+                            CustomTextField {
                                 id: passwordField
                                 placeholderText: Lang.t("Enter your password")
                                 enabled: !loginPageRoot.isLoading
@@ -558,16 +589,12 @@ Item {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
                                 font.pixelSize: Theme.fontSizeTitle
-                                font.family: "Segoe UI"
                                 leftPadding: 16
                                 rightPadding: 16
-                                color: Theme.textColor
                                 placeholderTextColor: Qt.alpha(Theme.textColor, 0.6)
-
-                                background: Rectangle {
-                                    color: "transparent"
-                                }
-
+                                fieldBackgroundColor: "transparent"
+                                fieldBorderColor: "transparent"
+                                fieldFocusBorderColor: "transparent"
                                 onAccepted: if (!loginPageRoot.isLoading) loginButton.clicked()
                             }
 
@@ -744,6 +771,9 @@ Item {
                     color: Theme.nonProductiveColor
                     font.pixelSize: Theme.fontSizeBody
                     font.family: "Segoe UI"
+                    wrapMode: Text.Wrap
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.fillWidth: true
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 8
 
@@ -822,8 +852,13 @@ Item {
             Image {
                 id: themeIcon
                 source: Theme.isDarkMode ? ("image://icon/light_mode.svg?" + Theme.textColor) : ("image://icon/dark_mode.svg?" + Theme.textColor)
-                sourceSize.width: 18
-                sourceSize.height: 18
+                width: 18
+                height: 18
+                sourceSize.width: 64
+                sourceSize.height: 64
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                mipmap: true
                 anchors.centerIn: parent
                 opacity: 0.9
 
@@ -838,7 +873,7 @@ Item {
         }
 
         onClicked: {
-            Theme.isDarkMode = !Theme.isDarkMode
+            Theme.toggleDarkMode()
             pulseAnim.start()
             flipAnim.start()
         }

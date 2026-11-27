@@ -16,6 +16,7 @@
 #include "core/database/UserRepository.h"
 #include "core/database/WorkLogRepository.h"
 #include "core/database/WorkTimeRepository.h"
+#include "core/platform/AppIconProvider.h"
 
 class TestDatabaseAndRepos : public QObject
 {
@@ -187,6 +188,21 @@ private slots:
         repo.updateProductivityCache(1);
         QCOMPARE(repo.getAppProductivityType("Chrome", "https://unknown-site.org", 1), 0);
         QCOMPARE(repo.getAppProductivityType("Chrome", "", 1), 1);
+
+        // 6. getAvailableApps excludes desktop apps already marked productive for the user
+        QVERIFY(repo.addProductivityApp("Blender", "", "", 1));
+        QSqlQuery approveBlender(DatabaseManager::instance().database());
+        QVERIFY(approveBlender.exec("UPDATE productivity_apps SET productivity_type = 1, for_user = '0' WHERE app_name = 'Blender'"));
+
+        const QVariantList availableForUser1 = repo.getAvailableApps(1);
+        QVERIFY(!availableForUser1.contains(QVariant(QStringLiteral("Blender"))));
+        QVERIFY(availableForUser1.contains(QVariant(QStringLiteral("Other"))));
+        QVERIFY(availableForUser1.contains(QVariant(QStringLiteral("Chrome")))); // Browsers remain for adding websites
+        QVERIFY(availableForUser1.contains(QVariant(QStringLiteral("Figma"))));  // Figma is productive only for user 10
+
+        const QVariantList availableForUser10 = repo.getAvailableApps(10);
+        QVERIFY(!availableForUser10.contains(QVariant(QStringLiteral("Figma"))));
+        QVERIFY(!availableForUser10.contains(QVariant(QStringLiteral("Blender"))));
     }
 
     void testUserRepositoryGetDepartmentReturnsRole()
@@ -213,23 +229,54 @@ private slots:
         WindowInfo validWin{"Chrome", "GitHub", "https://github.com/org/repo"};
         logRepo.logWindowChange(validWin, now - 50, now, 7);
 
-        QCOMPARE(logRepo.logCount(7), 2);
+        WindowInfo extWin{"Chrome", "Tampermonkey", "chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/options.html"};
+        logRepo.logWindowChange(extWin, now, now + 10, 7);
+
+        WindowInfo xboxWin{"Chrome", "Xbox Cloud", "https://play.xbox.com/en-US"};
+        logRepo.logWindowChange(xboxWin, now + 10, now + 20, 7);
+
+        // Non-web filenames and version strings must be stripped as URLs
+        WindowInfo pngWin{"Chrome", "Antigravity Chat", "pasted-1795667467642.png"};
+        logRepo.logWindowChange(pngWin, now + 20, now + 30, 7);
+        WindowInfo verWin{"Chrome", "Antigravity Chat", "ponytail-4.8.4"};
+        logRepo.logWindowChange(verWin, now + 30, now + 40, 7);
+
+        // Yesterday log must not appear in todayLogCount / todayLogContent
+        WindowInfo yestWin{"Code", "yesterday.cpp", "https://github.com/org/old"};
+        logRepo.logWindowChange(yestWin, now - 86400, now - 86350, 7);
+
+        QCOMPARE(logRepo.logCount(7), 7);
+        QCOMPARE(logRepo.todayLogCount(7), 6);
         QString csv = logRepo.logContent(7);
-        // Search query with spaces should be stripped from URL
+        QString todayCsv = logRepo.todayLogContent(7);
+        // Search query with spaces, chrome-extension URLs, filenames, and version strings should be stripped
         QVERIFY(csv.contains(",Chrome,Google Search,\n"));
         QVERIFY(csv.contains(",Chrome,GitHub,https://github.com/org/repo\n"));
+        QVERIFY(csv.contains(",Chrome,Tampermonkey,\n"));
+        QVERIFY(csv.contains(",Chrome,Xbox Cloud,https://play.xbox.com/en-US\n"));
+        QVERIFY(!csv.contains("pasted-1795667467642.png\n"));
+        QVERIFY(!csv.contains("ponytail-4.8.4\n"));
+        QVERIFY(!todayCsv.contains("yesterday.cpp"));
 
         const QString today = QDate::currentDate().toString("yyyy-MM-dd");
         logRepo.setLogFilter(today, today, 7);
-        QCOMPARE(logRepo.logCount(7), 2);
+        QCOMPARE(logRepo.logCount(7), 6);
+
+        // Re-saving user on re-login must NOT trigger ON DELETE CASCADE on activity_logs
+        QVERIFY(userRepo.saveUser(7, "bob", "pw2", "bob@example.com", "QA", "Lead Tester", "tok-new"));
+        logRepo.showLogs(7);
+        QCOMPARE(logRepo.logCount(7), 6);
 
         const QString tomorrow = QDate::currentDate().addDays(1).toString("yyyy-MM-dd");
         logRepo.setLogFilter(tomorrow, tomorrow, 7);
         QCOMPARE(logRepo.logCount(7), 0);
+        // Today-only logs stay strictly scoped to today even when global filter points to tomorrow
+        QCOMPARE(logRepo.todayLogCount(7), 6);
 
         // showLogs must not silently reset filters
         logRepo.showLogs(7);
         QCOMPARE(logRepo.logCount(7), 0);
+        QCOMPARE(logRepo.todayLogCount(7), 6);
 
         WorkTimeRepository wtRepo;
         QVERIFY(!wtRepo.hasRecordForDate(7, today));
@@ -448,6 +495,21 @@ private slots:
 
         const qint64 elapsedMs = timer.elapsed();
         QVERIFY2(elapsedMs < 1000, qPrintable(QString("Bulk sync + indexed filter took %1 ms").arg(elapsedMs)));
+    }
+
+    void testAppIconDomainRootAndExeRegistryHelpers()
+    {
+        QCOMPARE(AppIconProvider::extractDomain("https://www.web.whatsapp.com/chat"), QStringLiteral("web.whatsapp.com"));
+        QCOMPARE(AppIconProvider::extractDomain("https://portal.pranala-dt.co.id/dashboard"), QStringLiteral("portal.pranala-dt.co.id"));
+        QCOMPARE(AppIconProvider::extractDomain("chrome-extension://abc/index.html"), QString());
+
+        QCOMPARE(AppIconProvider::extractRootDomain("portal.pranala-dt.co.id"), QStringLiteral("pranala-dt.co.id"));
+        QCOMPARE(AppIconProvider::extractRootDomain("pranala-dt.co.id"), QString());
+        QCOMPARE(AppIconProvider::extractRootDomain("team.dandedev.my.id"), QStringLiteral("dandedev.my.id"));
+        QCOMPARE(AppIconProvider::extractRootDomain("play.xbox.com"), QStringLiteral("xbox.com"));
+
+        AppIconProvider::registerAppExecutable("iStow.exe", "C:/Apps/iStow/iStow.exe");
+        QCOMPARE(AppIconProvider::lookupRegisteredExecutable("iStow"), QStringLiteral("C:/Apps/iStow/iStow.exe"));
     }
 
 private:

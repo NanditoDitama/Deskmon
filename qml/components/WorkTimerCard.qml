@@ -110,11 +110,11 @@ Rectangle {
         // Clock In/Out row di bawah
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: 4
 
             // Clock In
             Rectangle {
-                Layout.preferredWidth: 60
+                Layout.preferredWidth: Math.max(54, clockInRow.implicitWidth + 12)
                 Layout.preferredHeight: 24
                 radius: Theme.radiusSmall
                 color: Qt.alpha(Theme.primaryColor, 0.06)
@@ -122,10 +122,9 @@ Rectangle {
                 border.color: Qt.alpha(Theme.primaryColor, 0.15)
 
                 RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 8
-                    anchors.rightMargin: 8
-                    spacing: 4
+                    id: clockInRow
+                    anchors.centerIn: parent
+                    spacing: 3
 
                     Label {
                         text: "↓"
@@ -142,7 +141,6 @@ Rectangle {
                             family: "Consolas, Monaco, monospace"
                         }
                         color: Theme.primaryColor
-                        Layout.fillWidth: true
                     }
                 }
 
@@ -180,7 +178,7 @@ Rectangle {
 
             // Clock Out
             Rectangle {
-                Layout.preferredWidth: root.clockOut === "Online" ? 65 : 60
+                Layout.preferredWidth: Math.max(56, clockOutRow.implicitWidth + 12)
                 Layout.preferredHeight: 24
                 radius: Theme.radiusSmall
                 color: root.clockOut === "Online" ?
@@ -192,9 +190,8 @@ Rectangle {
                                   Qt.alpha(Theme.primaryColor, 0.15)
 
                 RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 8
-                    anchors.rightMargin: 8
+                    id: clockOutRow
+                    anchors.centerIn: parent
                     spacing: 4
 
                     Rectangle {
@@ -243,7 +240,6 @@ Rectangle {
                             family: root.clockOut === "Online" ? "Segoe UI" : "Consolas, Monaco, monospace"
                         }
                         color: root.clockOut === "Online" ? Theme.successColor : Theme.primaryColor
-                        Layout.fillWidth: true
                     }
 
                     Label {

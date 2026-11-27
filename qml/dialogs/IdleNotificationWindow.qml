@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import "../theme"
+import "../components"
 
 ApplicationWindow {
     id: root
@@ -93,64 +94,17 @@ ApplicationWindow {
             // TOMBOL AKSI
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 10
 
-                Item { Layout.fillWidth: true }
-
-                Button {
-                    id: btnDismiss
-                    text: Lang.t("Dismiss")
-                    leftPadding: 18
-                    rightPadding: 18
-                    topPadding: 10
-                    bottomPadding: 10
-
-                    background: Rectangle {
-                        radius: Theme.radiusSmall
-                        color: btnDismiss.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
-                        border.width: 0
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                    }
-
-                    contentItem: Text {
-                        text: btnDismiss.text
-                        font.pixelSize: 13
-                        font.weight: Font.Medium
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        color: Qt.alpha(Theme.textColor, 0.7)
-                    }
-
-                    onClicked: {
-                        root.dismissRequested()
-                        root.close()
-                    }
-                }
-
-                Button {
+                CustomButton {
                     id: btnResume
                     text: Lang.t("Resume")
-                    leftPadding: 24
-                    rightPadding: 24
-                    topPadding: 10
-                    bottomPadding: 10
-
-                    background: Rectangle {
-                        radius: Theme.radiusSmall
-                        color: btnResume.pressed ? Qt.darker(Theme.primaryColor, 1.1) :
-                                                   btnResume.hovered ? Qt.lighter(Theme.primaryColor, 1.05) : Theme.primaryColor
-                        border.width: 0
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                    }
-
-                    contentItem: Text {
-                        text: btnResume.text
-                        font.pixelSize: 13
-                        font.weight: Font.DemiBold
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        color: "white"
-                    }
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 36
+                    btnColor: Theme.primaryColor
+                    btnHoverColor: Theme.primaryHoverColor
+                    btnTextColor: Theme.isDarkMode ? "#0F172A" : "#FFFFFF"
+                    font.pixelSize: 13
+                    font.weight: Font.DemiBold
 
                     onClicked: {
                         root.resumeRequested()

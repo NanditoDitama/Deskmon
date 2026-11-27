@@ -7,14 +7,13 @@ import "../components"
 
 ApplicationWindow {
     id: needReviewDialog
-    width: 510
-    height: 490
+    width: 440
+    height: 350
     title: Lang.t("Review Request Reason")
     modality: Qt.ApplicationModal
     flags: Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
 
-    // Pusatkan window
     x: (Screen.width - width) / 2
     y: (Screen.height - height) / 2
 
@@ -23,131 +22,131 @@ ApplicationWindow {
     property int taskId: -1
     property var loggerRef: (typeof logger !== "undefined") ? logger : null
 
-    // Modern background without shadow
     Rectangle {
         id: card
         anchors.fill: parent
-        radius: 16
+        radius: Theme.radiusLarge
         color: Theme.cardColor
-        border.color: Qt.alpha(Theme.primaryColor, 0.15)
+        border.color: Theme.borderColor
         border.width: 1
         opacity: needReviewDialog.visible ? 1 : 0
         scale: needReviewDialog.visible ? 1 : 0.96
 
-        Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
-        Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutBack; easing.overshoot: 1.2 } }
+        Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+        Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 24
-            spacing: 20
+            spacing: 0
 
-            // HEADER: ikon + judul
-            RowLayout {
+            // Clean Header
+            Item {
                 Layout.fillWidth: true
-                spacing: 14
-
-                // Icon modern
-                Rectangle {
-                    width: 40
-                    height: 40
-                    radius: 20
-                    color: Qt.alpha(Theme.primaryColor, 0.12)
-                    Layout.alignment: Qt.AlignTop
-
-                    // Animasi pulse halus
-                    SequentialAnimation on scale {
-                        running: needReviewDialog.visible
-                        loops: Animation.Infinite
-                        NumberAnimation { from: 1.0; to: 1.08; duration: 1200; easing.type: Easing.InOutQuad }
-                        NumberAnimation { from: 1.08; to: 1.0; duration: 1200; easing.type: Easing.InOutQuad }
-                    }
-
-                    Image {
-                        anchors.centerIn: parent
-                        width: 24
-                        height: 24
-                        source: "qrc:/icon.ico"
-                        fillMode: Image.PreserveAspectFit
-                        smooth: true
-                    }
-                }
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 2
-
-                    Label {
-                        text: Lang.t("Review Request")
-                        font.pixelSize: 17
-                        font.weight: Font.DemiBold
-                        color: Theme.textColor
-                        Layout.fillWidth: true
-                    }
-
-                    Label {
-                        text: Lang.t("Provide a clear reason for review")
-                        font.pixelSize: 13
-                        color: Qt.alpha(Theme.textColor, 0.6)
-                        Layout.fillWidth: true
-                    }
-                }
-            }
-
-            // Info box
-            Rectangle {
-                Layout.fillWidth: true
-                height: 64
-                radius: 10
-                color: Qt.alpha(Theme.primaryColor, 0.08)
-                border.color: Qt.alpha(Theme.primaryColor, 0.2)
-                border.width: 1
+                Layout.preferredHeight: headerCol.implicitHeight + 28
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: 12
-                    spacing: 10
+                    anchors.leftMargin: 20
+                    anchors.rightMargin: 16
+                    anchors.topMargin: 16
+                    anchors.bottomMargin: 12
+                    spacing: 12
 
-                    Label {
-                        text: "💡"
-                        font.pixelSize: 16
-                        Layout.alignment: Qt.AlignTop
-                    }
-
-                    Label {
-                        text: Lang.t("The task will be moved to 'Need Review' status. The manager will receive a notification to conduct a review.")
-                        wrapMode: Text.Wrap
+                    ColumnLayout {
+                        id: headerCol
                         Layout.fillWidth: true
-                        color: Theme.textColor
-                        font.pixelSize: 12
-                        lineHeight: 1.2
+                        spacing: 3
+
+                        Label {
+                            text: Lang.t("Review Request")
+                            font.pixelSize: 16
+                            font.weight: Font.DemiBold
+                            font.family: "Segoe UI"
+                            color: Theme.textColor
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            text: Lang.t("The task will be moved to 'Need Review' status. The manager will receive a notification to conduct a review.")
+                            font.pixelSize: 12
+                            font.family: "Segoe UI"
+                            color: Theme.mutedTextColor
+                            wrapMode: Text.Wrap
+                            Layout.fillWidth: true
+                            lineHeight: 1.3
+                        }
                     }
+
+                    Button {
+                        id: closeBtn
+                        Layout.alignment: Qt.AlignTop
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        topInset: 0
+                        bottomInset: 0
+                        leftInset: 0
+                        rightInset: 0
+                        padding: 0
+                        flat: true
+                        onClicked: needReviewDialog.close()
+                        background: Rectangle {
+                            radius: Theme.radiusSmall
+                            color: closeBtn.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
+                        }
+                        contentItem: Text {
+                            text: "×"
+                            font.pixelSize: 18
+                            color: Theme.lightTextColor
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                }
+
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    width: parent.width
+                    height: 1
+                    color: Theme.dividerColor
                 }
             }
 
-            // Text input section
+            // Body
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.margins: 20
+                Layout.bottomMargin: 14
                 spacing: 8
 
-                Label {
-                    text: Lang.t("Review Request Reason") + " *"
-                    font.pixelSize: 13
-                    font.weight: Font.Medium
-                    color: Theme.textColor
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Label {
+                        text: Lang.t("Review Request Reason") + " *"
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                        font.family: "Segoe UI"
+                        color: Theme.textColor
+                        Layout.fillWidth: true
+                    }
+
+                    Label {
+                        text: reasonInput.text.length + "/" + reasonInput.maxLength
+                        font.pixelSize: 11
+                        font.family: "Segoe UI"
+                        color: reasonInput.text.length > reasonInput.maxLength * 0.9 ? Theme.dangerColor : Theme.mutedTextColor
+                    }
                 }
 
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.minimumHeight: 120
-                    radius: 10
-                    color: Qt.alpha(Theme.textColor, 0.03)
-                    border.color: reasonInput.activeFocus ? Theme.primaryColor : Theme.dividerColor
-                    border.width: reasonInput.activeFocus ? 2 : 1
-                    Behavior on border.color { ColorAnimation { duration: 200 } }
-                    Behavior on border.width { NumberAnimation { duration: 200 } }
+                    radius: Theme.radiusSmall
+                    color: Theme.surfaceColor
+                    border.color: reasonInput.activeFocus ? Theme.primaryColor : Theme.borderColor
+                    border.width: 1
+                    Behavior on border.color { ColorAnimation { duration: 150 } }
 
                     ScrollView {
                         anchors.fill: parent
@@ -161,15 +160,16 @@ ApplicationWindow {
                             id: reasonInput
                             width: parent.width
                             placeholderText: Lang.t("Example: Need verification from project manager, technical issues, etc.")
-                            placeholderTextColor: Theme.lightTextColor
+                            placeholderTextColor: Theme.mutedTextColor
                             wrapMode: Text.Wrap
                             font.pixelSize: 13
+                            font.family: "Segoe UI"
                             color: Theme.textColor
                             selectByMouse: true
                             leftPadding: 10
                             rightPadding: 10
-                            topPadding: 10
-                            bottomPadding: 10
+                            topPadding: 8
+                            bottomPadding: 8
                             background: Item {}
 
                             property int maxLength: 500
@@ -179,131 +179,47 @@ ApplicationWindow {
                                 }
                             }
                         }
-
-                        // Style scrollbar setelah component complete
-                        Component.onCompleted: {
-                            if (ScrollBar.vertical) {
-                                ScrollBar.vertical.width = 6
-                                ScrollBar.vertical.opacity = 0.5
-                            }
-                        }
-                    }
-
-                    // Character counter
-                    Label {
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        anchors.margins: 8
-                        text: reasonInput.text.length + "/" + reasonInput.maxLength
-                        font.pixelSize: 10
-                        color: reasonInput.text.length > reasonInput.maxLength * 0.9 ? Theme.dangerColor : Theme.lightTextColor
-                        opacity: 0.6
-                        z: 1  // Pastikan label di atas scrollbar
                     }
                 }
             }
 
-            // TOMBOL AKSI
+            // Footer Buttons
             RowLayout {
                 Layout.fillWidth: true
+                Layout.leftMargin: 20
+                Layout.rightMargin: 20
+                Layout.bottomMargin: 18
                 spacing: 10
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                CustomButton {
                     id: cancelButton
                     text: Lang.t("Cancel")
+                    Layout.preferredHeight: Theme.controlHeight
+                    btnColor: "transparent"
+                    btnHoverColor: Qt.alpha(Theme.textColor, 0.08)
+                    btnTextColor: Theme.textColor
+                    btnBorderColor: Theme.borderColor
+                    btnBorderWidth: 1
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
 
-                    leftPadding: 18
-                    rightPadding: 18
-                    topPadding: 10
-                    bottomPadding: 10
-
-                    background: Rectangle {
-                        radius: 8
-                        color: cancelButton.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
-                        border.width: 1
-                        border.color: Theme.dividerColor
-
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                    }
-
-                    contentItem: Text {
-                        text: cancelButton.text
-                        font.pixelSize: 13
-                        font.weight: Font.Medium
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        color: Qt.alpha(Theme.textColor, 0.7)
-                    }
-
-                    onClicked: {
-                        needReviewDialog.close()
-                    }
+                    onClicked: needReviewDialog.close()
                 }
 
-                Button {
+                CustomButton {
                     id: submitButton
+                    property bool isLoading: false
                     text: enabled ? Lang.t("Submit") : Lang.t("Sending...")
                     enabled: reasonInput.text.trim().length > 0
-
-                    leftPadding: 24
-                    rightPadding: submitButton.isLoading ? 40 : 24
-                    topPadding: 10
-                    bottomPadding: 10
-
-                    property bool isLoading: false
-
-                    background: Rectangle {
-                        radius: 8
-                        color: submitButton.enabled ?
-                                   (submitButton.pressed ? Qt.darker(Theme.primaryColor, 1.1) :
-                                    submitButton.hovered ? Qt.lighter(Theme.primaryColor, 1.05) : Theme.primaryColor) :
-                                   Qt.alpha(Theme.primaryColor, 0.4)
-                        border.width: 0
-
-                        Behavior on color { ColorAnimation { duration: 150 } }
-
-                        // Loading spinner
-                        Rectangle {
-                            width: 14
-                            height: 14
-                            radius: 7
-                            color: "transparent"
-                            border.color: "white"
-                            border.width: 2
-                            anchors.right: parent.right
-                            anchors.rightMargin: 12
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: submitButton.isLoading
-
-                            Rectangle {
-                                width: 6
-                                height: 6
-                                radius: 3
-                                color: "white"
-                                anchors.top: parent.top
-                                anchors.horizontalCenter: parent.horizontalCenter
-                            }
-
-                            RotationAnimation on rotation {
-                                running: submitButton.isLoading
-                                from: 0
-                                to: 360
-                                duration: 800
-                                loops: Animation.Infinite
-                            }
-                        }
-                    }
-
-                    contentItem: Text {
-                        text: submitButton.text
-                        font.pixelSize: 13
-                        font.weight: Font.DemiBold
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        color: "white"
-                    }
+                    Layout.preferredHeight: Theme.controlHeight
+                    btnColor: Theme.primaryColor
+                    btnHoverColor: Theme.primaryHoverColor
+                    btnTextColor: Theme.isDarkMode ? "#0F172A" : "#FFFFFF"
+                    font.pixelSize: 13
+                    font.weight: Font.DemiBold
+                    opacity: enabled ? 1.0 : 0.45
 
                     onClicked: {
                         var activeLogger = needReviewDialog.loggerRef ? needReviewDialog.loggerRef : ((typeof logger !== "undefined") ? logger : null);
@@ -312,66 +228,25 @@ ApplicationWindow {
                             return;
                         }
 
-                        isLoading = true;
-                        enabled = false;
-
-                        var payload = {
-                            "status": "need-review",
-                            "alasan": reasonInput.text.trim()
-                        };
-
-                        var baseUrl = (activeLogger.apiBaseUrl ? activeLogger.apiBaseUrl() : "https://deskmon.pranala-dt.co.id/api");
-                        var apiUrl = baseUrl + "/update-status-task/" +
-                                needReviewDialog.taskId + "/" + activeLogger.currentUserId;
-
-                        var request = new XMLHttpRequest();
-                        request.open("POST", apiUrl);
-                        request.setRequestHeader("Content-Type", "application/json");
-                        request.setRequestHeader("Authorization", "Bearer " + activeLogger.authToken);
-
-                        request.onreadystatechange = function() {
-                            if (request.readyState === XMLHttpRequest.DONE) {
-                                submitButton.isLoading = false;
-                                if (request.status === 200) {
-                                    console.log("Task status updated to 'need review' with reason.");
-                                    if (activeLogger && activeLogger.fetchAndStoreTasks) {
-                                        activeLogger.fetchAndStoreTasks();
-                                    }
-                                    needReviewDialog.close();
-                                    if (activeLogger && activeLogger.notify) {
-                                        activeLogger.notify("success", Lang.t("Successfully submitted Need Review"));
-                                        activeLogger.refreshAll();
-                                    }
-                                } else {
-                                    console.error("Failed to update task status:", request.status, request.responseText);
-                                    submitButton.enabled = true;
-                                    if (activeLogger && activeLogger.notify) {
-                                        activeLogger.notify("warning", Lang.t("Failed to submit Need Review"));
-                                    }
-                                }
-                            }
-                        };
-
-                        request.send(JSON.stringify(payload));
+                        activeLogger.submitNeedReview(needReviewDialog.taskId, reasonInput.text.trim());
+                        needReviewDialog.close();
                     }
                 }
             }
         }
     }
 
-    // Fungsi untuk membuka dialog
     function openWithTaskId(id, loggerInstance) {
         taskId = id;
         if (loggerInstance) {
             loggerRef = loggerInstance;
         }
         reasonInput.text = "";
-        submitButton.isLoading = false
-        submitButton.enabled = true
+        submitButton.isLoading = false;
         show();
+        reasonInput.forceActiveFocus();
     }
 
-    // Keyboard shortcuts
     Shortcut {
         sequences: ["Escape"]
         onActivated: cancelButton.clicked()
@@ -380,15 +255,9 @@ ApplicationWindow {
     Shortcut {
         sequences: ["Return", "Enter"]
         enabled: submitButton.enabled
-        onActivated: {
-            if (Qt.platform.os === "windows" || Qt.platform.os === "linux" || Qt.platform.os === "osx") {
-                // Ctrl on Windows/Linux, Cmd on macOS
-                submitButton.clicked()
-            }
-        }
+        onActivated: submitButton.clicked()
     }
 
-    // Fokus awal
     Component.onCompleted: {
         if (!loggerRef && typeof logger !== "undefined") {
             needReviewDialog.loggerRef = logger;

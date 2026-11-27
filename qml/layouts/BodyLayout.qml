@@ -1,18 +1,20 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Window
 import "../theme"
 import "../dashboard"
 import "../dialogs"
 
 GridLayout {
     id: root
+    readonly property bool isCompact: Window.window ? Window.window.width < 1060 : false
     Layout.fillWidth: true
     Layout.fillHeight: true
-    Layout.margins: 10
+    Layout.margins: isCompact ? Theme.spacingMedium : Theme.spacingLarge
     columns: 1
-    columnSpacing: 16
-    rowSpacing: 16
+    columnSpacing: isCompact ? Theme.spacingMedium : Theme.spacingLarge
+    rowSpacing: isCompact ? Theme.spacingMedium : Theme.spacingLarge
 
     signal needReviewRequested(int taskId)
 
@@ -20,12 +22,12 @@ GridLayout {
     Frame {
         id: combinedCard
         Layout.fillWidth: true
-        Layout.preferredHeight: 320
-        padding: 16
+        Layout.preferredHeight: root.isCompact ? 295 : 320
+        padding: root.isCompact ? Theme.spacingMedium : Theme.spacingLarge
 
         background: Rectangle {
             color: Theme.cardColor
-            radius: Theme.radiusLarge
+            radius: Theme.radiusMedium
             layer.enabled: true
             border.color: Theme.dividerColor
             border.width: 1
@@ -41,16 +43,16 @@ GridLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         columns: 2
-        columnSpacing: 14
-        rowSpacing: 14
+        columnSpacing: root.isCompact ? Theme.spacingMedium : Theme.spacingLarge
+        rowSpacing: root.isCompact ? Theme.spacingMedium : Theme.spacingLarge
 
         Frame {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            padding: 16
+            padding: root.isCompact ? Theme.spacingMedium : Theme.spacingLarge
             background: Rectangle {
                 color: Theme.cardColor
-                radius: Theme.radiusSmall
+                radius: Theme.radiusMedium
                 border.color: Theme.dividerColor
                 border.width: 1
             }
@@ -64,10 +66,10 @@ GridLayout {
         Frame {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            padding: 16
+            padding: root.isCompact ? Theme.spacingMedium : Theme.spacingLarge
             background: Rectangle {
                 color: Theme.cardColor
-                radius: Theme.radiusSmall
+                radius: Theme.radiusMedium
                 border.color: Theme.dividerColor
                 border.width: 1
             }

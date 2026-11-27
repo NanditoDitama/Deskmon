@@ -32,7 +32,7 @@ public:
     static int lookupProductivityType(const QString &appName, const QString &url,
                                       const QHash<QString, int> &appTypes,
                                       const QHash<QString, int> &domainTypes);
-    QVariantList getAvailableApps() const;
+    QVariantList getAvailableApps(int userId = -1) const;
     QVariantList getProductivityApps(int userId) const;
     QVariantList getPendingApplicationRequests() const;
 

@@ -33,6 +33,7 @@ signals:
 public slots:
     void checkIdleTime();
     void checkIdleTimeAt(qint64 currentTime);
+    void flushPendingIdle();
 
 protected:
     virtual qint64 getSystemIdleTime() const;

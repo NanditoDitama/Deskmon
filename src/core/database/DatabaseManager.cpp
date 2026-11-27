@@ -166,6 +166,17 @@ bool DatabaseManager::createTables()
         return false;
     }
 
+    const char *appPrefsTable = R"(
+        CREATE TABLE IF NOT EXISTS app_preferences (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
+    )";
+    if (!query.exec(appPrefsTable)) {
+        qWarning() << "Failed to create app_preferences table:" << query.lastError().text();
+        return false;
+    }
+
     // 2. Domain Pencatatan Aktivitas Window
     const char *activityLogsTable = R"(
         CREATE TABLE IF NOT EXISTS activity_logs (

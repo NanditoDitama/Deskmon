@@ -45,17 +45,27 @@ set(CORE_SOURCES
 )
 
 if(WIN32)
-    list(APPEND CORE_SOURCES src/core/platform/WindowInfoProvider_Win.cpp)
+    list(APPEND CORE_SOURCES
+        src/core/platform/WindowInfoProvider_Win.cpp
+        src/core/platform/AppIconProvider.cpp
+    )
 elseif(APPLE)
-    list(APPEND CORE_SOURCES src/core/platform/WindowInfoProvider_Mac.cpp)
+    list(APPEND CORE_SOURCES
+        src/core/platform/WindowInfoProvider_Mac.cpp
+        src/core/platform/AppIconProvider.cpp
+    )
 else()
-    list(APPEND CORE_SOURCES src/core/platform/WindowInfoProvider_Linux.cpp)
+    list(APPEND CORE_SOURCES
+        src/core/platform/WindowInfoProvider_Linux.cpp
+        src/core/platform/AppIconProvider.cpp
+    )
 endif()
 
 set(CORE_HEADERS
     src/app/AppController.h
     src/core/platform/WindowInfoProvider.h
     src/core/platform/ThemedIconProvider.h
+    src/core/platform/AppIconProvider.h
     src/core/network/ApiClient.h
     src/core/database/DatabaseManager.h
     src/core/database/UserRepository.h
@@ -81,10 +91,16 @@ set(QML_FILES
     qml/theme/Lang.qml
     qml/components/ToastNotification.qml
     qml/components/CustomButton.qml
+    qml/components/CustomCard.qml
+    qml/components/CustomDialog.qml
+    qml/components/CustomTextField.qml
     qml/components/CustomToolTip.qml
     qml/components/CustomScrollBar.qml
+    qml/components/AppIconBadge.qml
+    qml/components/LiquidThemeOverlay.qml
     qml/components/StatusBadge.qml
     qml/components/WorkTimerCard.qml
+    qml/components/WindowControls.qml
     qml/login/LoginPage.qml
     qml/dashboard/DashboardPage.qml
     qml/dashboard/ProductivityView.qml
@@ -216,20 +232,31 @@ target_link_libraries(DeskmonCore
     PUBLIC
         Qt6::Core
         Qt6::Gui
+        Qt6::Quick
         Qt6::Qml
         Qt6::Sql
         Qt6::Network
         Qt6::Widgets
+        Qt6::Svg
 )
 
 if(WIN32)
-    target_link_libraries(DeskmonCore PUBLIC user32 psapi ole32 oleaut32)
+    target_link_libraries(DeskmonCore PUBLIC user32 psapi ole32 oleaut32 shell32 advapi32 iphlpapi ws2_32)
 elseif(APPLE)
     find_library(COCOA_LIBRARY Cocoa)
-    target_link_libraries(DeskmonCore PUBLIC ${COCOA_LIBRARY})
+    find_library(CARBON_LIBRARY Carbon)
+    find_library(IOKIT_LIBRARY IOKit)
+    target_link_libraries(DeskmonCore PUBLIC ${COCOA_LIBRARY} ${CARBON_LIBRARY} ${IOKIT_LIBRARY})
 elseif(UNIX AND NOT APPLE)
-    find_package(X11 REQUIRED)
-    target_link_libraries(DeskmonCore PUBLIC ${X11_LIBRARIES})
+    find_package(X11 QUIET)
+    if(X11_FOUND)
+        find_library(XSS_LIBRARY Xss)
+        target_link_libraries(DeskmonCore PUBLIC ${X11_LIBRARIES})
+        if(XSS_LIBRARY)
+            target_link_libraries(DeskmonCore PUBLIC ${XSS_LIBRARY})
+            target_compile_definitions(DeskmonCore PUBLIC DESKMON_HAS_X11_IDLE=1)
+        endif()
+    endif()
 endif()
 
 # Menambahkan executable
@@ -343,12 +370,17 @@ else()
     set(WIN32_EXE_OPTION TRUE)
 endif()
 
-set_target_properties(Deskmon PROPERTIES
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE ${WIN32_EXE_OPTION}
-)
+if(APPLE)
+    set_target_properties(Deskmon PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+        MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+    )
+elseif(WIN32)
+    set_target_properties(Deskmon PROPERTIES
+        WIN32_EXECUTABLE ${WIN32_EXE_OPTION}
+    )
+endif()
 
 # Install rules
 include(GNUInstallDirs)

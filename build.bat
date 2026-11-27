@@ -53,6 +53,7 @@ if errorlevel 1 (
 echo ==================================================
 echo Compiling Deskmon...
 echo ==================================================
+taskkill /F /IM Deskmon.exe >nul 2>&1
 cmake --build .
 if errorlevel 1 (
     echo [ERROR] Build failed.

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "../theme"
+import "../components"
 
 Dialog {
     id: root
@@ -125,30 +126,12 @@ Dialog {
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                CustomButton {
                     id: okButton1
                     text: Lang.t("OK")
-                    leftPadding: 32
-                    rightPadding: 32
-                    topPadding: 10
-                    bottomPadding: 10
-
-                    background: Rectangle {
-                        radius: Theme.radiusSmall
-                        color: okButton1.pressed ? Qt.darker(Theme.primaryColor, 1.1) :
-                                                   okButton1.hovered ? Qt.lighter(Theme.primaryColor, 1.05) : Theme.primaryColor
-                        border.width: 0
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                    }
-
-                    contentItem: Text {
-                        text: okButton1.text
-                        font.pixelSize: 13
-                        font.weight: Font.DemiBold
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        color: "white"
-                    }
+                    btnColor: Theme.primaryColor
+                    btnHoverColor: Qt.lighter(Theme.primaryColor, 1.05)
+                    font.pixelSize: 13
                     onClicked: root.accept()
                 }
             }

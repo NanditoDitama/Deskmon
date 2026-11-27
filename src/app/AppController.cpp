@@ -1,5 +1,6 @@
 #include "AppController.h"
 #include <QApplication>
+#include <QDesktopServices>
 #include <QProcess>
 #include <QDir>
 #include <QFile>
@@ -51,6 +52,7 @@ void AppController::setupConnections()
     // Activity Tracker Signals
     connect(m_activityTracker, &ActivityTracker::currentAppNameChanged, this, &AppController::currentAppNameChanged);
     connect(m_activityTracker, &ActivityTracker::currentWindowTitleChanged, this, &AppController::currentWindowTitleChanged);
+    connect(m_activityTracker, &ActivityTracker::currentWindowUrlChanged, this, &AppController::currentWindowUrlChanged);
     connect(m_activityTracker, &ActivityTracker::trackingActiveChanged, this, &AppController::trackingActiveChanged);
     connect(m_activityTracker, &ActivityTracker::currentAppIconPathChanged, this, &AppController::currentAppIconPathChanged);
     connect(m_activityTracker, &ActivityTracker::refreshRequested, this, &AppController::refreshAll);
@@ -108,6 +110,7 @@ void AppController::setupConnections()
 
     // Task Manager Signals
     connect(m_taskManager, &TaskManager::taskListChanged, this, &AppController::taskListChanged);
+    connect(m_taskManager, &TaskManager::pendingNeedReviewTasksChanged, this, &AppController::pendingNeedReviewTasksChanged);
     connect(m_taskManager, &TaskManager::activeTaskChanged, this, &AppController::activeTaskChanged);
     connect(m_taskManager, &TaskManager::taskPausedChanged, this, &AppController::taskPausedChanged);
     connect(m_taskManager, &TaskManager::globalTimeUsageChanged, this, &AppController::globalTimeUsageChanged);
@@ -135,15 +138,19 @@ QString AppController::appVersion() const {
 #ifdef APP_VERSION
     return QStringLiteral(APP_VERSION);
 #else
-    return QStringLiteral("1.0.3.4");
+    return QStringLiteral("2.0.0.0");
 #endif
 }
 QString AppController::currentAppName() const { return m_activityTracker->currentAppName(); }
 QString AppController::currentWindowTitle() const { return m_activityTracker->currentWindowTitle(); }
+QString AppController::currentWindowUrl() const { return m_activityTracker->currentWindowUrl(); }
 int AppController::logCount() const { return m_workLogRepo->logCount(m_authManager->currentUserId()); }
 QString AppController::logContent() const { return m_workLogRepo->logContent(m_authManager->currentUserId()); }
+int AppController::todayLogCount() const { return m_workLogRepo->todayLogCount(m_authManager->currentUserId()); }
+QString AppController::todayLogContent() const { return m_workLogRepo->todayLogContent(m_authManager->currentUserId()); }
 QVariantMap AppController::productivityStats() const { return m_prodStatsService->productivityStats(m_startDateFilter, m_endDateFilter); }
 QVariantList AppController::taskList() const { return m_taskManager->taskList(); }
+QVariantList AppController::pendingNeedReviewTaskIds() const { return m_taskManager->pendingNeedReviewTaskIds(); }
 int AppController::activeTaskId() const { return m_taskManager->activeTaskId(); }
 bool AppController::isTaskPaused() const { return m_taskManager->isTaskPaused(); }
 qint64 AppController::globalTimeUsage() const { return m_taskManager->globalTimeUsage(); }
@@ -195,6 +202,7 @@ void AppController::submitTaskDetails(int taskId, const QString &details, const 
     m_taskManager->submitTaskDetails(taskId, details, action, nextTaskId);
 }
 void AppController::taskDetailsDialogClosed(const QString &action) { m_taskManager->taskDetailsDialogClosed(action); }
+void AppController::submitNeedReview(int taskId, const QString &reason) { m_taskManager->submitNeedReview(taskId, reason); }
 bool AppController::isTaskExpired(int taskId) { return m_taskManager->isTaskExpired(taskId); }
 int AppController::getPendingStartedTaskCount() { return m_taskManager->getPendingStartedTaskCount(); }
 QString AppController::getTaskName(int taskId) { return m_taskManager->getTaskName(taskId); }
@@ -252,7 +260,7 @@ QString AppController::formatDuration(int seconds) const {
 int AppController::calculateTodayProductiveSeconds() const { return m_prodStatsService->calculateTodayProductiveSeconds(); }
 void AppController::sendProductiveTimeToAPI() { m_prodStatsService->sendProductiveTimeToAPI(); }
 void AppController::sendDailyUsageReport() { m_prodStatsService->sendDailyUsageReport(); }
-QVariantList AppController::getAvailableApps() const { return m_prodRepo->getAvailableApps(); }
+QVariantList AppController::getAvailableApps() const { return m_prodRepo->getAvailableApps(m_authManager->currentUserId()); }
 QVariantList AppController::getProductivityApps() const { return m_prodRepo->getProductivityApps(m_authManager->currentUserId()); }
 
 void AppController::addProductivityApp(const QString &appName, const QString &windowTitle, const QString &url, int productivityType) {
@@ -369,15 +377,38 @@ void AppController::notify(const QString &type, const QString &message) {
 }
 
 void AppController::launchMaintenanceTool() {
-    QString appDir = QApplication::applicationDirPath();
-    QString maintenanceToolPath = QDir(appDir).filePath("DeskmonTool.exe");
-
-    if (!QFile::exists(maintenanceToolPath)) {
-        QMessageBox::critical(nullptr, "Error", "File update (DeskmonTool.exe) tidak ditemukan.");
+    const QString appDir = QApplication::applicationDirPath();
+#ifdef Q_OS_WIN
+    const QString maintenanceToolPath = QDir(appDir).filePath(QStringLiteral("DeskmonTool.exe"));
+    if (QFile::exists(maintenanceToolPath)) {
+        QProcess::startDetached(maintenanceToolPath);
+        QApplication::quit();
         return;
     }
-    QProcess::startDetached(maintenanceToolPath);
-    QApplication::quit();
+#elif defined(Q_OS_MACOS)
+    const QString maintenanceApp = QDir(appDir).filePath(QStringLiteral("DeskmonTool.app"));
+    const QString maintenanceBin = QDir(appDir).filePath(QStringLiteral("DeskmonTool"));
+    if (QFile::exists(maintenanceApp)) {
+        QProcess::startDetached(QStringLiteral("open"), {maintenanceApp});
+        QApplication::quit();
+        return;
+    }
+    if (QFile::exists(maintenanceBin)) {
+        QProcess::startDetached(maintenanceBin);
+        QApplication::quit();
+        return;
+    }
+#else
+    const QString maintenanceBin = QDir(appDir).filePath(QStringLiteral("DeskmonTool"));
+    if (QFile::exists(maintenanceBin)) {
+        QProcess::startDetached(maintenanceBin);
+        QApplication::quit();
+        return;
+    }
+#endif
+
+    // Cross-platform fallback: open releases page in system browser
+    QDesktopServices::openUrl(QUrl(QStringLiteral("https://github.com/NanditoDitama/DeskmonUpdateRepo/releases")));
 }
 
 void AppController::checkForUpdates() {
@@ -410,11 +441,7 @@ void AppController::checkForUpdates() {
 
         if (serverVer > currentVer) {
             QString notes = obj.value("releaseNotes").toString();
-#ifdef Q_OS_MAC
-            emit showStatusMessage(QStringLiteral("Update %1 tersedia.").arg(serverVersion));
-#else
             emit updateAvailable(serverVersion, notes);
-#endif
         } else {
             emit showNotification("success", "Aplikasi Anda sudah versi terbaru.");
         }

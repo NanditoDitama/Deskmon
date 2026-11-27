@@ -2,6 +2,7 @@
 #define THEMEDICONPROVIDER_H
 
 #include <QQuickImageProvider>
+#include <QGuiApplication>
 #include <QSvgRenderer>
 #include <QPainter>
 #include <QImage>
@@ -9,6 +10,7 @@
 #include <QFile>
 #include <QColor>
 #include <QSize>
+#include <QtMath>
 
 class ThemedIconProvider : public QQuickImageProvider
 {
@@ -40,20 +42,18 @@ public:
             return QPixmap();
         }
 
-        int w = (requestedSize.width() > 0) ? requestedSize.width() : 24;
-        int h = (requestedSize.height() > 0) ? requestedSize.height() : 24;
-        if (requestedSize.width() <= 0 && requestedSize.height() <= 0) {
-            QSize defSize = renderer.defaultSize();
-            if (defSize.isValid() && defSize.width() > 0) {
-                w = defSize.width();
-                h = defSize.height();
-            }
-        }
+        const qreal dpr = qGuiApp ? qMax(qreal(2.0), qGuiApp->devicePixelRatio()) : qreal(2.0);
+        int baseW = (requestedSize.width() > 0) ? requestedSize.width() : 64;
+        int baseH = (requestedSize.height() > 0) ? requestedSize.height() : 64;
+        int w = qBound(48, qRound(baseW * dpr), 256);
+        int h = qBound(48, qRound(baseH * dpr), 256);
 
         QImage image(w, h, QImage::Format_ARGB32_Premultiplied);
         image.fill(Qt::transparent);
 
         QPainter painter(&image);
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
         renderer.render(&painter);
 
         if (!colorStr.isEmpty()) {

@@ -16,6 +16,8 @@ public:
                   const QString &email, const QString &department, const QString &role,
                   const QString &token);
     bool clearToken(int userId);
+    bool saveLastLoginEmail(const QString &email);
+    QString lastLoginEmail() const;
 
     QString getPassword(const QString &username) const;
     QString getEmail(const QString &username) const;

@@ -8,67 +8,30 @@ import QtQuick.Window
 import "../theme"
 import "../components"
 
-Dialog {
+CustomDialog {
     id: addAppDialog
-    title: Lang.t("Add Productivity Application")
+    dialogTitle: Lang.t("Add Productivity Application")
     property int selectedProductivityType: 1
+    property var availableApps: (typeof logger !== "undefined" && logger) ? logger.getAvailableApps() : []
     signal cancelRequested()
-    modal: true
     width: parent ? Math.min(parent.width * 0.8, 1000) : 800
     height: parent ? Math.min(parent.height * 0.8, 600) : 600
-    x: parent ? Math.round((parent.width - width) / 2) : 0
-    y: parent ? Math.round((parent.height - height) / 2) : 0
     padding: 0
-    background: Rectangle {
-        color: Theme.cardColor
-        radius: Theme.radiusLarge
-        border.color: Theme.borderColor
-        border.width: 1
-    }
 
-    header: Item {
-        implicitHeight: 56
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 24
-            anchors.rightMargin: 20
-            Label {
-                text: Lang.t("Add Productivity Application")
-                font.pixelSize: 18
-                font.weight: Font.DemiBold
-                font.family: "Segoe UI"
-                color: Theme.textColor
-                Layout.fillWidth: true
-            }
-            Button {
-                width: 32
-                height: 32
-                flat: true
-                onClicked: addAppDialog.close()
-                background: Rectangle {
-                    radius: 8
-                    color: parent.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
-                }
-                contentItem: Text {
-                    text: "×"
-                    font.pixelSize: 20
-                    color: Theme.lightTextColor
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-            }
+    onOpened: {
+        if (typeof logger !== "undefined" && logger) {
+            availableApps = logger.getAvailableApps()
         }
-        Rectangle {
-            anchors.bottom: parent.bottom
-            width: parent.width
-            height: 1
-            color: Theme.dividerColor
-        }
+        searchField.text = ""
+        appList.currentIndex = 0
     }
 
     footer: DialogButtonBox {
         alignment: Qt.AlignRight
-        padding: 16
+        leftPadding: Theme.dialogPadding
+        rightPadding: Theme.dialogPadding
+        topPadding: 12
+        bottomPadding: 12
         spacing: 10
         background: Rectangle {
             color: Theme.cardColor
@@ -80,39 +43,27 @@ Dialog {
                 color: Theme.dividerColor
             }
         }
-        Button {
+        CustomButton {
             text: Lang.t("Cancel")
-            implicitHeight: 38
-            leftPadding: 16
-            rightPadding: 16
+            btnColor: Theme.cardHeaderColor
+            btnHoverColor: Qt.alpha(Theme.textColor, 0.06)
+            btnTextColor: Theme.textColor
+            btnBorderColor: Theme.borderColor
+            btnBorderWidth: 1
+            font.pixelSize: Theme.fontSizeSmall
+            font.weight: Font.Medium
             onClicked: {
                 addAppDialog.close()
                 addAppDialog.cancelRequested()
             }
-
-            background: Rectangle {
-                radius: Theme.radiusSmall
-                color: parent.hovered ? Qt.alpha(Theme.textColor, 0.06) : Theme.cardHeaderColor
-                border.color: Theme.borderColor
-                border.width: 1
-            }
-            contentItem: Text {
-                text: parent.text
-                font.pixelSize: Theme.fontSizeSmall
-                font.weight: Font.Medium
-                color: Theme.textColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
         }
-        Button {
+        CustomButton {
             id: addButton
             text: Lang.t("Add")
-            implicitHeight: 38
-            leftPadding: 24
-            rightPadding: 24
+            btnColor: addButton.enabled ? Theme.primaryColor : Theme.dividerColor
+            btnHoverColor: Theme.primaryHoverColor
+            btnTextColor: addButton.enabled ? "#ffffff" : Theme.mutedTextColor
             font.pixelSize: Theme.fontSizeSmall
-            font.weight: Font.DemiBold
             enabled: {
                 if (appList.currentItem && appList.model[appList.currentIndex] === "Other") {
                     return txtAppName.text.trim().length > 0
@@ -121,17 +72,6 @@ Dialog {
                     return txtWebsite.text.trim().length > 0
                 }
                 return appList.currentItem !== null
-            }
-            background: Rectangle {
-                color: addButton.enabled ? (parent.hovered ? Theme.primaryHoverColor : Theme.primaryColor) : Theme.dividerColor
-                radius: Theme.radiusSmall
-            }
-            contentItem: Text {
-                text: parent.text
-                color: addButton.enabled ? "#ffffff" : Theme.mutedTextColor
-                font: parent.font
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
             }
             onClicked: {
                 const prodType = addAppDialog.selectedProductivityType
@@ -151,8 +91,8 @@ Dialog {
 
     RowLayout {
         anchors.fill: parent
-        spacing: 15
-        anchors.margins: 15
+        spacing: Theme.spacingLarge
+        anchors.margins: Theme.dialogPadding
 
         // Left: App Selection List
         Rectangle {
@@ -160,7 +100,7 @@ Dialog {
             clip: true
             Layout.preferredWidth: parent.width * 0.45
             Layout.fillHeight: true
-            radius: 4
+            radius: Theme.radiusMedium
             border.color: Theme.dividerColor
             border.width: 1
 
@@ -171,28 +111,22 @@ Dialog {
                 Label {
                     text: Lang.t("Application List:")
                     font.pixelSize: Theme.fontSizeBody
-                    font.bold: true
+                    font.weight: Font.DemiBold
                     color: Theme.textColor
-                    padding: 10
+                    padding: 12
                     Layout.fillWidth: true
                     background: Rectangle {
-                        color: Qt.lighter(Theme.cardColor, 1.1)
+                        color: Theme.cardHeaderColor
+                        radius: Theme.radiusMedium
                     }
                 }
 
-                TextField {
+                CustomTextField {
                     id: searchField
                     Layout.fillWidth: true
                     Layout.margins: 10
                     placeholderText: Lang.t("Search applications...")
-                    font.pixelSize: Theme.fontSizeBody
-                    background: Rectangle {
-                        radius: 4
-                        border.color: Theme.dividerColor
-                        border.width: 1
-                        color: Theme.cardColor
-                        implicitHeight: 36
-                    }
+                    leftIconSource: "image://icon/search.svg?" + Theme.lightTextColor
                     onTextChanged: {
                         appList.currentIndex = 0
                     }
@@ -202,40 +136,31 @@ Dialog {
                     id: appList
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+                    Layout.bottomMargin: 10
                     clip: true
-                    spacing: 4
+                    spacing: 6
                     model: {
-                        let apps = logger.getAvailableApps()
+                        let apps = addAppDialog.availableApps || []
                         return apps.filter(app => app.toLowerCase().includes(searchField.text.toLowerCase()))
                     }
                     currentIndex: 0
                     ScrollBar.vertical: CustomScrollBar {}
 
-                    delegate: Rectangle {
-                        width: appList.width
-                        height: 50
-                        color: Theme.cardColor
+                    delegate: CustomCard {
+                        width: appList.width - 10
+                        height: 54
+                        cardRadius: Theme.radiusSmall
+                        cardColor: isSelected
+                                   ? Qt.alpha(Theme.primaryColor, 0.12)
+                                   : (hover ? Qt.alpha(Theme.primaryColor, 0.06) : Theme.cardHeaderColor)
+                        cardBorderColor: isSelected
+                                         ? Theme.primaryColor
+                                         : (hover ? Theme.borderColor : Theme.dividerColor)
 
                         property bool hover: false
                         property bool isSelected: ListView.isCurrentItem
-
-                        Rectangle {
-                            width: 2
-                            height: parent.height
-                            color: hover ? Qt.lighter(Theme.primaryColor, 1.5) : "transparent"
-                            visible: hover && !isSelected
-                        }
-
-                        Rectangle {
-                            width: 2
-                            height: parent.height
-                            visible: isSelected
-                            gradient: Gradient {
-                                orientation: Gradient.Vertical
-                                GradientStop { position: 0.0; color: Theme.primaryColor }
-                                GradientStop { position: 1.0; color: Qt.darker(Theme.primaryColor, 1.5) }
-                            }
-                        }
 
                         MouseArea {
                             anchors.fill: parent
@@ -250,67 +175,13 @@ Dialog {
                         Row {
                             spacing: 12
                             anchors.fill: parent
-                            anchors.verticalCenter: parent.verticalCenter
-                            leftPadding: 10
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
 
-                            Rectangle {
-                                width: 34
-                                height: 34
-                                radius: 8
-                                color: Qt.alpha(Theme.primaryColor, 0.14)
+                            AppIconBadge {
+                                appName: modelData || ""
+                                accentColor: Theme.primaryColor
                                 anchors.verticalCenter: parent.verticalCenter
-
-                                Image {
-                                    id: reqAppIconImg
-                                    anchors.centerIn: parent
-                                    width: 22
-                                    height: 22
-                                    asynchronous: true
-                                    fillMode: Image.PreserveAspectFit
-                                    source: {
-                                        var key = (modelData || "").toLowerCase().trim()
-                                        var map = {
-                                            "chrome": "google.com/chrome",
-                                            "firefox": "mozilla.org",
-                                            "edge": "microsoft.com",
-                                            "safari": "apple.com",
-                                            "opera": "opera.com",
-                                            "visual studio code": "code.visualstudio.com",
-                                            "vscode": "code.visualstudio.com",
-                                            "figma": "figma.com",
-                                            "canva": "canva.com",
-                                            "blender": "blender.org",
-                                            "capcut": "capcut.com",
-                                            "discord": "discord.com",
-                                            "slack": "slack.com",
-                                            "zoom": "zoom.us",
-                                            "notion": "notion.so",
-                                            "spotify": "spotify.com",
-                                            "whatsapp": "whatsapp.com",
-                                            "telegram": "telegram.org",
-                                            "postman": "postman.com",
-                                            "github": "github.com",
-                                            "adobe": "adobe.com",
-                                            "antigravity": "antigravity.google"
-                                        }
-                                        for (var k in map) {
-                                            if (key.indexOf(k) !== -1) {
-                                                return "https://www.google.com/s2/favicons?domain=" + map[k] + "&sz=64"
-                                            }
-                                        }
-                                        return ""
-                                    }
-                                    visible: status === Image.Ready
-                                }
-
-                                Text {
-                                    visible: reqAppIconImg.status !== Image.Ready
-                                    text: modelData.charAt(0).toUpperCase()
-                                    font.bold: true
-                                    font.pixelSize: Theme.fontSizeBody
-                                    color: Theme.primaryColor
-                                    anchors.centerIn: parent
-                                }
                             }
 
                             Column {
@@ -370,23 +241,11 @@ Dialog {
                 visible: txtAppName.visible
             }
 
-            TextField {
+            CustomTextField {
                 id: txtAppName
                 Layout.fillWidth: true
                 placeholderText: Lang.t("Enter application name, make sure the name is correct")
-                font.pixelSize: Theme.fontSizeBody
-                color: Theme.textColor
-                placeholderTextColor: Theme.mutedTextColor
-                leftPadding: 12
-                rightPadding: 12
                 visible: appList.currentIndex >= 0 && appList.model && appList.model[appList.currentIndex] === "Other"
-                background: Rectangle {
-                    radius: Theme.radiusSmall
-                    border.color: txtAppName.activeFocus ? Theme.primaryColor : Theme.borderColor
-                    border.width: txtAppName.activeFocus ? 2 : 1
-                    color: Theme.surfaceColor
-                    implicitHeight: 40
-                }
             }
 
             // URL/Domain
@@ -398,23 +257,11 @@ Dialog {
                 visible: txtWebsite.visible
             }
 
-            TextField {
+            CustomTextField {
                 id: txtWebsite
                 Layout.fillWidth: true
                 placeholderText: Lang.t("Enter website domain (example: youtube.com, google.com, etc)")
-                font.pixelSize: Theme.fontSizeBody
-                color: Theme.textColor
-                placeholderTextColor: Theme.mutedTextColor
-                leftPadding: 12
-                rightPadding: 12
                 visible: appList.currentIndex >= 0 && appList.model && ["Chrome", "Firefox", "Edge", "Safari", "Opera"].indexOf(appList.model[appList.currentIndex]) !== -1
-                background: Rectangle {
-                    radius: Theme.radiusSmall
-                    border.color: txtWebsite.activeFocus ? Theme.primaryColor : Theme.borderColor
-                    border.width: txtWebsite.activeFocus ? 2 : 1
-                    color: Theme.surfaceColor
-                    implicitHeight: 40
-                }
                 validator: RegularExpressionValidator {
                     regularExpression: /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
                 }
@@ -482,7 +329,7 @@ Dialog {
                             y: (produktifRadio.height - height) / 2
                             radius: 11
                             color: "transparent"
-                            border.color: produktifRadio.checked ? Theme.accentColor : Theme.borderColor
+                            border.color: produktifRadio.checked ? Theme.primaryColor : Theme.borderColor
                             border.width: produktifRadio.checked ? 2 : 1
 
                             Behavior on border.color {
@@ -498,7 +345,7 @@ Dialog {
                                 width: 10
                                 height: 10
                                 radius: 5
-                                color: Theme.accentColor
+                                color: Theme.primaryColor
                                 visible: produktifRadio.checked
 
                                 // Scale animation for dot
@@ -519,7 +366,7 @@ Dialog {
                                 width: 0
                                 height: 0
                                 radius: width / 2
-                                color: Qt.alpha(Theme.accentColor, 0.3)
+                                color: Qt.alpha(Theme.primaryColor, 0.3)
                                 visible: false
 
                                 PropertyAnimation {
@@ -574,7 +421,7 @@ Dialog {
                             y: (nonProduktifRadio.height - height) / 2
                             radius: 11
                             color: "transparent"
-                            border.color: nonProduktifRadio.checked ? Theme.accentColor : Theme.borderColor
+                            border.color: nonProduktifRadio.checked ? Theme.primaryColor : Theme.borderColor
                             border.width: nonProduktifRadio.checked ? 2 : 1
 
                             Behavior on border.color {
@@ -586,7 +433,7 @@ Dialog {
                                 width: 10
                                 height: 10
                                 radius: 5
-                                color: Theme.accentColor
+                                color: Theme.primaryColor
                                 visible: nonProduktifRadio.checked
 
                                 scale: nonProduktifRadio.checked ? 1.0 : 0.0
@@ -596,33 +443,6 @@ Dialog {
                                         easing.type: Easing.OutBack
                                         easing.overshoot: 0.3
                                     }
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            width: 16
-                            height: 16
-                            radius: 3
-                            color: Theme.dangerColor
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.indicator.verticalCenter
-                            anchors.rightMargin: 8
-                            visible: nonProduktifRadio.checked
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "×"
-                                color: "white"
-                                font.pixelSize: 12
-                                font.bold: true
-                            }
-
-                            scale: nonProduktifRadio.checked ? 1.0 : 0.0
-                            Behavior on scale {
-                                NumberAnimation {
-                                    duration: 300
-                                    easing.type: Easing.OutBack
                                 }
                             }
                         }
@@ -657,7 +477,7 @@ Dialog {
                             y: (netralRadio.height - height) / 2
                             radius: 11
                             color: "transparent"
-                            border.color: netralRadio.checked ? Theme.accentColor : Theme.borderColor
+                            border.color: netralRadio.checked ? Theme.primaryColor : Theme.borderColor
                             border.width: netralRadio.checked ? 2 : 1
 
                             Behavior on border.color {
@@ -669,7 +489,7 @@ Dialog {
                                 width: 10
                                 height: 10
                                 radius: 5
-                                color: Theme.accentColor
+                                color: Theme.primaryColor
                                 visible: netralRadio.checked
 
                                 scale: netralRadio.checked ? 1.0 : 0.0
@@ -679,33 +499,6 @@ Dialog {
                                         easing.type: Easing.OutBack
                                         easing.overshoot: 0.3
                                     }
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            width: 16
-                            height: 16
-                            radius: 3
-                            color: Theme.neutralColor
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.indicator.verticalCenter
-                            anchors.rightMargin: 8
-                            visible: netralRadio.checked
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "–"
-                                color: "white"
-                                font.pixelSize: 12
-                                font.bold: true
-                            }
-
-                            scale: netralRadio.checked ? 1.0 : 0.0
-                            Behavior on scale {
-                                NumberAnimation {
-                                    duration: 300
-                                    easing.type: Easing.OutBack
                                 }
                             }
                         }

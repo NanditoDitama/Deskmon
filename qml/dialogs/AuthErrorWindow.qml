@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import "../theme"
+import "../components"
 
 ApplicationWindow {
     id: root
@@ -120,29 +121,10 @@ ApplicationWindow {
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                CustomButton {
                     id: okButton
                     text: Lang.t("Back to Login Page")
-                    leftPadding: 24
-                    rightPadding: 24
-                    topPadding: 10
-                    bottomPadding: 10
-
-                    background: Rectangle {
-                        radius: Theme.radiusSmall
-                        color: Theme.primaryColor
-                        border.width: 0
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                    }
-
-                    contentItem: Text {
-                        text: okButton.text
-                        font.pixelSize: 13
-                        font.weight: Font.DemiBold
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        color: "white"
-                    }
+                    font.pixelSize: 13
 
                     onClicked: {
                         closeAnimation.start()

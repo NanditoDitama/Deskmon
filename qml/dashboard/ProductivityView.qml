@@ -4,6 +4,7 @@ import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
+import QtQuick.Window
 import "../theme"
 import "../components"
 import "../application_submission"
@@ -12,6 +13,7 @@ Item {
     id: productivityRoot
     anchors.fill: parent
 
+    readonly property bool isCompact: Window.window ? Window.window.width < 1060 : false
     property string clockIn: "--:--"
     property string clockOut: "--:--"
     property int userId: (typeof logger !== "undefined") ? logger.currentUserId : -1
@@ -95,9 +97,22 @@ Item {
     function extractDomain(urlString) {
         if (!urlString) return "";
         var s = urlString.trim();
-        if (s === "" || s.toLowerCase() === "n/a") return "";
+        var lower = s.toLowerCase();
+        if (s === "" || lower === "n/a" || s.indexOf(" ") !== -1) return "";
+        if (lower.startsWith("chrome://") || lower.startsWith("chrome-extension://") ||
+            lower.startsWith("edge://") || lower.startsWith("edge-extension://") ||
+            lower.startsWith("moz-extension://") || lower.startsWith("about:") ||
+            lower.startsWith("devtools://") || lower.startsWith("file://") ||
+            lower.startsWith("view-source:") || lower.startsWith("brave://") ||
+            lower.startsWith("opera://") || lower.startsWith("vivaldi://") ||
+            lower.startsWith("data:") || lower.startsWith("blob:") ||
+            lower.startsWith("javascript:")) {
+            return "";
+        }
         var schemeIdx = s.indexOf("://");
         if (schemeIdx !== -1) {
+            var scheme = s.substring(0, schemeIdx).toLowerCase();
+            if (scheme !== "http" && scheme !== "https") return "";
             s = s.substring(schemeIdx + 3);
         }
         var slashIdx = s.indexOf("/");
@@ -112,6 +127,30 @@ Item {
         if (colonIdx !== -1) s = s.substring(0, colonIdx);
         s = s.toLowerCase();
         if (s.startsWith("www.")) s = s.substring(4);
+        if (s === "localhost") return s;
+        if (/^(\d{1,3}\.){3}\d{1,3}$/.test(s)) return s;
+        if (s.indexOf(".") === -1 || s.startsWith(".") || s.endsWith(".")) return "";
+        var parts = s.split(".");
+        if (parts.length < 2) return "";
+        for (var i = 0; i < parts.length; i++) {
+            if (!/^[a-z0-9-]+$/.test(parts[i]) || parts[i].startsWith("-") || parts[i].endsWith("-"))
+                return "";
+        }
+        var tld = parts[parts.length - 1];
+        if (!/[a-z]/.test(tld) || tld.length < 2) return "";
+        var blockedExts = {
+            png:1, jpg:1, jpeg:1, gif:1, svg:1, webp:1, bmp:1, ico:1, tif:1, tiff:1,
+            pdf:1, txt:1, md:1, csv:1, tsv:1, json:1, xml:1, yaml:1, yml:1, toml:1,
+            ini:1, cfg:1, conf:1, log:1, sql:1, db:1, sqlite:1, zip:1, rar:1, "7z":1,
+            tar:1, gz:1, bz2:1, xz:1, exe:1, msi:1, dll:1, so:1, dylib:1, app:1, dmg:1,
+            deb:1, rpm:1, apk:1, ipa:1, cpp:1, hpp:1, c:1, h:1, cc:1, cxx:1, cs:1,
+            java:1, kt:1, swift:1, py:1, rb:1, go:1, rs:1, php:1, js:1, jsx:1, ts:1,
+            tsx:1, mjs:1, cjs:1, qml:1, css:1, scss:1, less:1, vue:1, svelte:1,
+            doc:1, docx:1, xls:1, xlsx:1, ppt:1, pptx:1, odt:1, ods:1, odp:1,
+            mp3:1, wav:1, flac:1, aac:1, ogg:1, mp4:1, mkv:1, avi:1, mov:1, wmv:1,
+            webm:1, bin:1, iso:1, img:1, tmp:1, bak:1, lock:1, env:1
+        };
+        if (blockedExts[tld]) return "";
         return s;
     }
 
@@ -325,13 +364,18 @@ Item {
 
     RowLayout {
         anchors.fill: parent
-        spacing: 24
+        spacing: productivityRoot.isCompact ? 12 : 20
 
         // Application Usage Section (Left)
         ColumnLayout {
-            Layout.preferredWidth: parent.width * 0.3
+            Layout.preferredWidth: productivityRoot.isCompact ? parent.width * 0.27 : parent.width * 0.28
+            Layout.minimumWidth: 160
             Layout.fillHeight: true
-            spacing: 12
+            spacing: productivityRoot.isCompact ? 8 : 12
+
+            HoverHandler {
+                id: appUsageHover
+            }
 
             // Header
             ColumnLayout {
@@ -340,80 +384,53 @@ Item {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 8
+                    Layout.preferredHeight: 30
+                    spacing: 6
 
                     Label {
                         text: Lang.t("Application Usage")
                         font {
                             family: "Segoe UI"
                             weight: Font.DemiBold
-                            pixelSize: 18
-                            letterSpacing: 0.5
+                            pixelSize: productivityRoot.isCompact ? 14 : Theme.fontSizeTitle
+                            letterSpacing: 0.2
                         }
-                        color: Theme.primaryColor
+                        color: Theme.textColor
+                        elide: Text.ElideRight
                         Layout.fillWidth: true
+                        Layout.minimumWidth: 0
                     }
 
                     // Button group
                     Row {
-                        spacing: 8
-                        Layout.alignment: Qt.AlignRight
+                        spacing: 6
+                        Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
 
-                        Button {
-                            text: showAllPercentages ? Lang.t("Top 4") : Lang.t("All")
-                            height: 38
-                            padding: 0
-                            leftPadding: 12
-                            rightPadding: 12
-                            font {
-                                pixelSize: 12
-                                family: "Segoe UI"
-                                weight: Font.Medium
-                            }
-                            background: Rectangle {
-                                radius: 14
-                                color: parent.hovered ? Qt.lighter(Theme.cardColor, 1.5) : "transparent"
-                                border.color: Theme.dividerColor
-                                border.width: 1
-                            }
-                            contentItem: Label {
-                                text: parent.text
-                                font: parent.font
-                                color: Theme.accentColor
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                            onClicked: showAllPercentages = !showAllPercentages
-                        }
-
-                        Button {
+                        CustomButton {
                             id: dateRangeButton
-                            text: !isNaN(startSelectedDate.getTime()) ?
-                                      (!isNaN(endSelectedDate.getTime()) ?
-                                           Qt.formatDate(startSelectedDate, "MMM d") + "-" + Qt.formatDate(endSelectedDate, "MMM d") :
-                                           Qt.formatDate(startSelectedDate, "MMM d")) :
-                                      Lang.t("Date Range")
-                            height: 38
-                            padding: 0
-                            leftPadding: 12
-                            rightPadding: 12
+                            text: {
+                                if (isNaN(startSelectedDate.getTime()))
+                                    return Lang.t("Date Range")
+                                if (!isNaN(endSelectedDate.getTime()) &&
+                                    Qt.formatDate(startSelectedDate, "yyyy-MM-dd") !== Qt.formatDate(endSelectedDate, "yyyy-MM-dd")) {
+                                    return Qt.formatDate(startSelectedDate, "MMM d") + "-" + Qt.formatDate(endSelectedDate, "MMM d")
+                                }
+                                return Qt.formatDate(startSelectedDate, "MMM d")
+                            }
+                            implicitHeight: 26
+                            height: 26
+                            leftPadding: productivityRoot.isCompact ? 7 : 10
+                            rightPadding: productivityRoot.isCompact ? 7 : 10
+                            btnRadius: Theme.radiusSmall
+                            btnColor: "transparent"
+                            btnHoverColor: Qt.lighter(Theme.cardColor, 1.5)
+                            btnTextColor: Theme.accentColor
+                            btnBorderColor: Theme.dividerColor
+                            btnBorderWidth: 1
                             font {
-                                pixelSize: 12
+                                pixelSize: 11
                                 family: "Segoe UI"
                                 weight: Font.Medium
-                            }
-                            background: Rectangle {
-                                radius: 14
-                                color: parent.hovered ? Qt.lighter(Theme.cardColor, 1.5) : "transparent"
-                                border.color: Theme.dividerColor
-                                border.width: 1
-                            }
-                            contentItem: Label {
-                                text: parent.text
-                                font: parent.font
-                                color: Theme.accentColor
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
                             }
                             onClicked: dateRangeDialog.open()
                         }
@@ -436,15 +453,22 @@ Item {
 
             // Content
             ScrollView {
+                id: appScrollView
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
+                rightPadding: appScrollBar.isScrollable ? 14 : 0
+                ScrollBar.vertical: CustomScrollBar {
+                    id: appScrollBar
+                    containerHovered: appUsageHover.hovered
+                }
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                 ListView {
                     id: percentageListView
-                    model: showAllPercentages ? sortedApps : sortedApps.slice(0, 4)
+                    model: sortedApps
                     spacing: 12
-                    width: parent.width
+                    width: appScrollView.availableWidth
 
                     delegate: Item {
                         width: percentageListView.width
@@ -459,8 +483,8 @@ Item {
                             id: percentageAnim
                             from: 0
                             to: targetPercentage
-                            duration: 1000
-                            easing.type: Easing.OutBack
+                            duration: 700
+                            easing.type: Easing.OutCubic
                             running: true
                         }
 
@@ -469,28 +493,15 @@ Item {
                             spacing: 12
 
 
-                            // App icon placeholder
-                            Rectangle {
-                                Layout.preferredWidth: 24
-                                Layout.preferredHeight: 24
-                                radius: 4
-                                color: Qt.rgba(
-                                           Math.random() * 0.5 + 0.3,
-                                           Math.random() * 0.5 + 0.3,
-                                           Math.random() * 0.5 + 0.3,
-                                           0.2
-                                           )
-
-                                Label {
-                                    text: modelData.name.charAt(0).toUpperCase()
-                                    anchors.centerIn: parent
-                                    font {
-                                        family: "Segoe UI"
-                                        weight: Font.Bold
-                                        pixelSize: 12
-                                    }
-                                    color: Theme.primaryColor
-                                }
+                            AppIconBadge {
+                                Layout.preferredWidth: 28
+                                Layout.preferredHeight: 28
+                                badgeSize: 28
+                                iconSize: 18
+                                appName: modelData.name || ""
+                                accentColor: modelData.productivityType === "non-productive"
+                                             ? Theme.nonProductiveColor
+                                             : (modelData.productivityType === "neutral" ? Theme.neutralColor : Theme.primaryColor)
                             }
 
                             ColumnLayout {
@@ -578,8 +589,8 @@ Item {
 
                                         Behavior on width {
                                             NumberAnimation {
-                                                duration: 1000
-                                                easing.type: Easing.OutBack
+                                                duration: 700
+                                                easing.type: Easing.OutCubic
                                             }
                                         }
                                     }
@@ -599,25 +610,37 @@ Item {
 
         // --- KOLOM PENGGUNAAN DOMAIN ---
         ColumnLayout {
-            Layout.preferredWidth: parent.width * 0.3
+            Layout.preferredWidth: productivityRoot.isCompact ? parent.width * 0.21 : parent.width * 0.25
+            Layout.minimumWidth: 130
             Layout.fillHeight: true
-            spacing: 12
+            spacing: productivityRoot.isCompact ? 8 : 12
+
+            HoverHandler {
+                id: webUsageHover
+            }
 
             // Header untuk Domain
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 20
+                spacing: 8
 
-                Label {
-                    text: Lang.t("Website Usage")
-                    font {
-                        family: "Segoe UI"
-                        weight: Font.DemiBold
-                        pixelSize: 18
-                        letterSpacing: 0.5
-                    }
-                    color: Theme.primaryColor
+                RowLayout {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: 30
+
+                    Label {
+                        text: Lang.t("Website Usage")
+                        font {
+                            family: "Segoe UI"
+                            weight: Font.DemiBold
+                            pixelSize: productivityRoot.isCompact ? 14 : Theme.fontSizeTitle
+                            letterSpacing: 0.2
+                        }
+                        color: Theme.textColor
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                    }
                 }
 
                 Rectangle { // Divider di bawah header
@@ -630,15 +653,22 @@ Item {
 
             // Konten ListView untuk Domain
             ScrollView {
+                id: domainScrollView
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
+                rightPadding: domainScrollBar.isScrollable ? 14 : 0
+                ScrollBar.vertical: CustomScrollBar {
+                    id: domainScrollBar
+                    containerHovered: webUsageHover.hovered
+                }
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                 ListView {
                     id: domainsListView
-                    model: showAllPercentages ? sortedDomains : sortedDomains.slice(0, 4)
+                    model: sortedDomains
                     spacing: 12
-                    width: parent.width
+                    width: domainScrollView.availableWidth
 
                     // Delegate untuk domainsListView (gunakan kode yang sudah dibuat dari jawaban sebelumnya
                     // yang sudah memiliki warna progress bar dinamis)
@@ -653,8 +683,8 @@ Item {
                             id: percentageAnim_
                             from: 0
                             to: targetPercentage
-                            duration: 1000
-                            easing.type: Easing.OutBack
+                            duration: 700
+                            easing.type: Easing.OutCubic
                             running: true
                         }
 
@@ -665,46 +695,16 @@ Item {
 
 
                             // App icon placeholder
-                            Item {
-                                Layout.preferredWidth: 24
-                                Layout.preferredHeight: 24
-
-                                // Fallback Rectangle (original placeholder with the initial letter)
-                                Rectangle {
-                                    id: fallbackIcon
-                                    anchors.fill: parent
-                                    radius: 4
-                                    color: Qt.rgba(
-                                               Math.random() * 0.5 + 0.3,
-                                               Math.random() * 0.5 + 0.3,
-                                               Math.random() * 0.5 + 0.3,
-                                               0.2
-                                               )
-                                    // Only show this placeholder if the web icon fails to load
-                                    visible: webIcon.status !== Image.Ready
-
-                                    Label {
-                                        text: modelData.name ? modelData.name.charAt(0).toUpperCase() : "?"
-                                        anchors.centerIn: parent
-                                        font {
-                                            family: "Segoe UI"
-                                            weight: Font.Bold
-                                            pixelSize: 12
-                                        }
-                                        color: Theme.primaryColor
-                                    }
-                                }
-
-                                // Website Favicon Image
-                                Image {
-                                    id: webIcon
-                                    anchors.fill: parent
-                                    source: modelData.name ? "https://www.google.com/s2/favicons?sz=32&domain=" + modelData.name : ""
-                                    asynchronous: true
-                                    smooth: true
-                                    visible: status === Image.Ready
-                                    fillMode: Image.PreserveAspectFit
-                                }
+                            AppIconBadge {
+                                Layout.preferredWidth: 28
+                                Layout.preferredHeight: 28
+                                badgeSize: 28
+                                iconSize: 18
+                                appName: modelData.name || ""
+                                url: modelData.name || ""
+                                accentColor: modelData.productivityType === "non-productive"
+                                             ? Theme.nonProductiveColor
+                                             : (modelData.productivityType === "neutral" ? Theme.neutralColor : Theme.primaryColor)
                             }
                             ColumnLayout {
                                 Layout.fillWidth: true
@@ -791,8 +791,8 @@ Item {
 
                                         Behavior on width {
                                             NumberAnimation {
-                                                duration: 1000
-                                                easing.type: Easing.OutBack
+                                                duration: 700
+                                                easing.type: Easing.OutCubic
                                             }
                                         }
                                     }
@@ -824,36 +824,35 @@ Item {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 8
+                    Layout.preferredHeight: 30
+                    spacing: 6
 
                     Label {
                         text: Lang.t("Productivity")
                         font {
                             family: "Segoe UI"
                             weight: Font.DemiBold
-                            pixelSize: 18
-                            letterSpacing: 0.5
+                            pixelSize: productivityRoot.isCompact ? 14 : Theme.fontSizeTitle
+                            letterSpacing: 0.2
                         }
-                        color: Theme.primaryColor
+                        color: Theme.textColor
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
                     }
 
-                    Item { Layout.fillWidth: true }
-
-                    Button {
+                    CustomButton {
                         id: app
                         text: Lang.t("Show Applications")
-                        font {
-                            pixelSize: Theme.fontSizeSmall
-                        }
-                        background: Rectangle {
-                            color: "transparent"
-                        }
-
-                        contentItem: Text {
-                            text: app.text
-                            font: app.font
-                            color: Theme.accentColor
-                        }
+                        implicitHeight: 26
+                        leftPadding: productivityRoot.isCompact ? 7 : 10
+                        rightPadding: productivityRoot.isCompact ? 7 : 10
+                        btnRadius: Theme.radiusSmall
+                        btnColor: "transparent"
+                        btnHoverColor: Qt.alpha(Theme.accentColor, 0.1)
+                        btnTextColor: Theme.accentColor
+                        font.pixelSize: productivityRoot.isCompact ? 11 : 12
+                        font.weight: Font.Medium
                         onClicked: {
                             applicationsDialog.setApps(logger.getProductivityApps());
                             applicationsDialog.open();
@@ -878,14 +877,14 @@ Item {
 
 
             RowLayout {
-                spacing: 30
+                spacing: productivityRoot.isCompact ? 12 : 24
                 Layout.fillWidth: true
-                Layout.preferredHeight: 250
+                Layout.fillHeight: true
                 // Combined Productivity Circle
                 Item {
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredWidth: 210
-                    Layout.preferredHeight: 210
+                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                    Layout.preferredWidth: productivityRoot.isCompact ? 164 : 204
+                    Layout.preferredHeight: productivityRoot.isCompact ? 164 : 204
 
                     Rectangle {
                         id: circleContainer
@@ -896,6 +895,8 @@ Item {
                             id: productivityCanvas
                             anchors.fill: parent
                             anchors.margins: 0
+                            onWidthChanged: requestPaint()
+                            onHeightChanged: requestPaint()
 
                             property real productiveAngle: 0
                             property real nonProductiveAngle: 0
@@ -911,8 +912,8 @@ Item {
 
                                 var centerX = width / 2
                                 var centerY = height / 2
-                                var outerRadius = Math.min(width, height) / 2 - 20
-                                var ringWidth = 16
+                                var outerRadius = Math.min(width, height) / 2 - (productivityRoot.isCompact ? 12 : 18)
+                                var ringWidth = productivityRoot.isCompact ? 13 : 16
                                 var innerRadius = outerRadius - ringWidth
                                 var startAngle = -Math.PI / 2  // Fixed start position at top
 
@@ -926,94 +927,115 @@ Item {
                                 // Glow effect untuk segmen aktif
 
 
-                                // Fungsi untuk menggambar segmen donat yang selalu berbentuk ring
-                                function drawRingSegment(startAngle, angleSpan, color, gradient = false) {
+                                // Fungsi untuk menggambar segmen donat dengan ujung membulat (rounded cap)
+                                function drawRingSegment(segStart, angleSpan, color, useGradient = false) {
                                     if (angleSpan <= 0) return
 
                                     var animatedAngleSpan = angleSpan * animationProgress
+                                    if (animatedAngleSpan <= 0.001) return
 
-                                    // PERBAIKAN: Pastikan angleSpan tidak pernah mencapai atau melebihi 2*PI
-                                    // Sisakan sedikit gap agar ring tetap berlubang
-                                    var maxAngleSpan = 2 * Math.PI - 0.01 // Sisakan gap kecil (sekitar 0.6 derajat)
-                                    if (animatedAngleSpan >= maxAngleSpan) {
-                                        animatedAngleSpan = maxAngleSpan
+                                    var ringWidth = outerRadius - innerRadius
+                                    var midRadius = (outerRadius + innerRadius) / 2
+                                    var capInset = (ringWidth / 2) / midRadius
+
+                                    // Clamp cap center inside [segStart, segStart + angleSpan] so tiny round dots keep uniform gaps
+                                    var drawStart
+                                    var drawEnd
+                                    if (animatedAngleSpan <= 2 * capInset) {
+                                        drawStart = segStart + Math.min(capInset, angleSpan * 0.5)
+                                        drawEnd = drawStart + 0.001
+                                    } else {
+                                        drawStart = segStart + capInset
+                                        drawEnd = segStart + animatedAngleSpan - capInset
                                     }
-
-                                    var endAngle = startAngle + animatedAngleSpan
 
                                     ctx.beginPath()
+                                    ctx.arc(centerX, centerY, midRadius, drawStart, drawEnd, false)
+                                    ctx.lineWidth = ringWidth
+                                    ctx.lineCap = "round"
 
-                                    // Gambar outer arc
-                                    ctx.arc(centerX, centerY, outerRadius, startAngle, endAngle, false)
+                                    if (useGradient && animatedAngleSpan > 0) {
+                                        var gradientStartX = centerX + midRadius * Math.cos(drawStart)
+                                        var gradientStartY = centerY + midRadius * Math.sin(drawStart)
+                                        var gradientEndX = centerX + midRadius * Math.cos(drawEnd)
+                                        var gradientEndY = centerY + midRadius * Math.sin(drawEnd)
 
-                                    // Connect to inner arc
-                                    ctx.lineTo(
-                                                centerX + innerRadius * Math.cos(endAngle),
-                                                centerY + innerRadius * Math.sin(endAngle)
-                                                )
-
-                                    // Gambar inner arc (reverse direction)
-                                    ctx.arc(centerX, centerY, innerRadius, endAngle, startAngle, true)
-
-                                    // Close path
-                                    ctx.closePath()
-
-                                    // Apply gradient if requested
-                                    if (gradient && animatedAngleSpan > 0) {
-                                        var gradientStartX = centerX + (outerRadius * 0.7) * Math.cos(startAngle)
-                                        var gradientStartY = centerY + (outerRadius * 0.7) * Math.sin(startAngle)
-                                        var gradientEndX = centerX + (outerRadius * 0.7) * Math.cos(endAngle)
-                                        var gradientEndY = centerY + (outerRadius * 0.7) * Math.sin(endAngle)
-
-                                        var gradient = ctx.createLinearGradient(gradientStartX, gradientStartY, gradientEndX, gradientEndY)
-                                        gradient.addColorStop(0, "" + color)
-                                        gradient.addColorStop(1, "" + Qt.lighter(color, 1.3))
-                                        ctx.fillStyle = gradient
+                                        var grad = ctx.createLinearGradient(gradientStartX, gradientStartY, gradientEndX, gradientEndY)
+                                        grad.addColorStop(0, "" + color)
+                                        grad.addColorStop(1, "" + Qt.lighter(color, 1.25))
+                                        ctx.strokeStyle = grad
                                     } else {
-                                        ctx.fillStyle = color
+                                        ctx.strokeStyle = color
                                     }
 
-                                    ctx.fill()
+                                    ctx.stroke()
                                 }
 
-                                // Draw segments secara berurutan dengan animasi yang tepat
-                                var segmentGap = 0.015 // Smaller gap between segments
-                                var currentStartAngle = startAngle
+                                // Draw segments secara berurutan dengan gap konsisten termasuk untuk segmen kecil
+                                var segments = []
+                                if (productiveAngle > 0) segments.push({ angle: productiveAngle, color: Theme.productiveColor, useGradient: true })
+                                if (nonProductiveAngle > 0) segments.push({ angle: nonProductiveAngle, color: Theme.nonProductiveColor, useGradient: false })
+                                if (idleAngle > 0) segments.push({ angle: idleAngle, color: Theme.warningColor, useGradient: false })
+                                if (neutralAngle > 0) segments.push({ angle: neutralAngle, color: Theme.neutralColor, useGradient: false })
 
-                                // PERBAIKAN: Hitung total angle untuk memastikan tidak melebihi batas
-                                var totalAngle = productiveAngle + nonProductiveAngle  + idleAngle + neutralAngle
-                                var availableAngle = 2 * Math.PI - 0.02 // Sisakan gap total
+                                var activeSegments = segments.length
+                                if (activeSegments > 0) {
+                                    var ringWidth = outerRadius - innerRadius
+                                    var midRadius = (outerRadius + innerRadius) / 2
+                                    var minVisualSpan = ringWidth / midRadius
+                                    var segmentGap = activeSegments > 1 ? 0.06 : 0.0
+                                    var availableAngle = 2 * Math.PI - (activeSegments > 1 ? activeSegments * segmentGap : 0.02)
 
-                                // Scale down semua angle jika total melebihi batas
-                                var scaleFactor = 1
-                                if (totalAngle > availableAngle) {
-                                    scaleFactor = availableAngle / totalAngle
-                                }
+                                    var totalAngle = 0
+                                    for (var i = 0; i < activeSegments; i++) {
+                                        totalAngle += segments[i].angle
+                                    }
 
-                                // Productive segment - always starts first
-                                if (productiveAngle > 0) {
-                                    var scaledProductiveAngle = productiveAngle * scaleFactor
-                                    drawRingSegment(currentStartAngle, scaledProductiveAngle, Theme.productiveColor, true)
-                                    currentStartAngle += scaledProductiveAngle + segmentGap
-                                }
+                                    if (totalAngle > 0) {
+                                        var targetTotal = Math.min(totalAngle, availableAngle)
+                                        var effMinSpan = Math.min(minVisualSpan, availableAngle / activeSegments)
+                                        var isFixed = []
+                                        for (var j = 0; j < activeSegments; j++) {
+                                            isFixed.push(false)
+                                        }
 
-                                // Non-productive segment - starts after productive
-                                if (nonProductiveAngle > 0) {
-                                    var scaledNonProductiveAngle = nonProductiveAngle * scaleFactor
-                                    drawRingSegment(currentStartAngle, scaledNonProductiveAngle, Theme.nonProductiveColor)
-                                    currentStartAngle += scaledNonProductiveAngle + segmentGap
-                                }
+                                        var changed = true
+                                        while (changed) {
+                                            changed = false
+                                            var fixedSum = 0
+                                            var flexRawSum = 0
+                                            for (var k = 0; k < activeSegments; k++) {
+                                                if (isFixed[k]) fixedSum += effMinSpan
+                                                else flexRawSum += segments[k].angle
+                                            }
+                                            var remainingBudget = Math.max(0, targetTotal - fixedSum)
+                                            if (flexRawSum > 0) {
+                                                for (var m = 0; m < activeSegments; m++) {
+                                                    if (!isFixed[m] && (segments[m].angle / flexRawSum) * remainingBudget < effMinSpan) {
+                                                        isFixed[m] = true
+                                                        changed = true
+                                                    }
+                                                }
+                                            }
+                                        }
 
-                                if (idleAngle > 0) {
-                                    var scaledIdleAngle = idleAngle * scaleFactor;
-                                    drawRingSegment(currentStartAngle, scaledIdleAngle, Theme.warningColor);
-                                    currentStartAngle += scaledIdleAngle + segmentGap;
-                                }
+                                        var finalFixedSum = 0
+                                        var finalFlexRawSum = 0
+                                        for (var p = 0; p < activeSegments; p++) {
+                                            if (isFixed[p]) finalFixedSum += effMinSpan
+                                            else finalFlexRawSum += segments[p].angle
+                                        }
+                                        var flexBudget = Math.max(0, targetTotal - finalFixedSum)
 
-                                // Neutral segment - starts after non-productive
-                                if (neutralAngle > 0) {
-                                    var scaledNeutralAngle = neutralAngle * scaleFactor
-                                    drawRingSegment(currentStartAngle, scaledNeutralAngle, Theme.neutralColor)
+                                        var currentStartAngle = startAngle
+                                        for (var q = 0; q < activeSegments; q++) {
+                                            var segSpan = isFixed[q]
+                                                ? Math.min(effMinSpan, targetTotal / activeSegments)
+                                                : (finalFlexRawSum > 0 ? (segments[q].angle / finalFlexRawSum) * flexBudget : 0)
+                                            drawRingSegment(currentStartAngle, segSpan, segments[q].color, segments[q].useGradient)
+                                            currentStartAngle += segSpan + segmentGap
+                                        }
+                                    }
                                 }
 
                                 // Clear shadow for text
@@ -1033,12 +1055,12 @@ Item {
                                 ctx.scale(textScale, textScale)
 
                                 ctx.fillStyle = Theme.primaryColor
-                                ctx.font = "bold 32px 'Segoe UI', system-ui, -apple-system"
+                                ctx.font = "bold " + (productivityRoot.isCompact ? "26px" : "32px") + " 'Segoe UI', system-ui, -apple-system"
                                 ctx.fillText(progressPercent + "%", 0, 0)
                                 ctx.restore()
 
                                 // Subtitle dengan fade-in effect
-                                ctx.font = "600 13px 'Segoe UI', system-ui, -apple-system"
+                                ctx.font = "600 " + (productivityRoot.isCompact ? "11px" : "13px") + " 'Segoe UI', system-ui, -apple-system"
                                 ctx.fillStyle = Qt.alpha(Theme.primaryColor, 0.8 * animationProgress)
                                 ctx.fillText(Lang.t("Productive"), centerX, centerY + 18)
 
@@ -1067,7 +1089,7 @@ Item {
                         var idle = stats.idle || 0
 
                         // Normalize if total exceeds 100%
-                        var total = productive + nonProductive + neutral
+                        var total = productive + nonProductive + neutral + idle
                         if (total > 100) {
                             productive = (productive / total) * 100
                             nonProductive = (nonProductive / total) * 100
@@ -1099,6 +1121,20 @@ Item {
 
                         // Start enhanced animation
                         chartAnimator.start()
+                    }
+                }
+
+                Connections {
+                    target: Theme
+                    function onIsDarkModeChanged() {
+                        productivityCanvas.requestPaint()
+                    }
+                }
+
+                Connections {
+                    target: Lang
+                    function onCurrentLanguageChanged() {
+                        productivityCanvas.requestPaint()
                     }
                 }
 
@@ -1273,10 +1309,11 @@ Item {
                 }
                 // Vertical Legend (right side)
                 ColumnLayout {
-                    spacing: 12
+                    spacing: productivityRoot.isCompact ? 8 : 10
                     Layout.alignment: Qt.AlignVCenter
+                    Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.preferredWidth: 180
+                    Layout.minimumWidth: 165
 
                     // Productive
                     RowLayout {

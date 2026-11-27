@@ -24,6 +24,8 @@ public:
 
     int logCount(int userId) const;
     QString logContent(int userId) const;
+    int todayLogCount(int userId) const;
+    QString todayLogContent(int userId) const;
     QSqlQueryModel* logModel() const { m_logModelUsed = true; return m_logModel; }
 
     void setLogFilter(const QString &startDate, const QString &endDate, int userId);
@@ -40,6 +42,8 @@ signals:
 
 private:
     void invalidateCache();
+    int countLogsForRange(int userId, const QString &startDate, const QString &endDate) const;
+    QString fetchLogContentForRange(int userId, const QString &startDate, const QString &endDate) const;
 
     QSqlQueryModel *m_logModel;
     QString m_startDateFilter;
@@ -53,6 +57,16 @@ private:
     mutable bool m_contentCacheValid = false;
     mutable int m_cachedContentUserId = -1;
     mutable QString m_cachedLogContent;
+
+    mutable bool m_todayCountCacheValid = false;
+    mutable int m_cachedTodayCountUserId = -1;
+    mutable QString m_cachedTodayCountDate;
+    mutable int m_cachedTodayLogCount = 0;
+
+    mutable bool m_todayContentCacheValid = false;
+    mutable int m_cachedTodayContentUserId = -1;
+    mutable QString m_cachedTodayContentDate;
+    mutable QString m_cachedTodayLogContent;
 };
 
 #endif // WORKLOGREPOSITORY_H

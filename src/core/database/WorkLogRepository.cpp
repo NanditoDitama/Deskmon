@@ -4,6 +4,7 @@
 #include <QDate>
 #include <QDateTime>
 #include <QTime>
+#include <QUrl>
 #include <QDebug>
 #include <QVariant>
 
@@ -42,6 +43,8 @@ void WorkLogRepository::invalidateCache()
 {
     m_countCacheValid = false;
     m_contentCacheValid = false;
+    m_todayCountCacheValid = false;
+    m_todayContentCacheValid = false;
 }
 
 bool WorkLogRepository::ensureDatabaseOpen() const
@@ -72,10 +75,48 @@ void WorkLogRepository::logWindowChange(const WindowInfo &info, qint64 startTime
         return;
     }
 
-    QString urlToLog = info.url;
-    if (!urlToLog.isEmpty() && (urlToLog.contains(' ') || !urlToLog.contains('.'))) {
-        qDebug() << "URL Ditolak (dianggap query pencarian):" << urlToLog;
-        urlToLog.clear();
+    QString urlToLog = info.url.trimmed();
+    if (!urlToLog.isEmpty()) {
+        const QString lowerUrl = urlToLog.toLower();
+        static const QStringList blockedSchemes = {
+            QStringLiteral("chrome://"),
+            QStringLiteral("chrome-extension://"),
+            QStringLiteral("edge://"),
+            QStringLiteral("edge-extension://"),
+            QStringLiteral("moz-extension://"),
+            QStringLiteral("about:"),
+            QStringLiteral("devtools://"),
+            QStringLiteral("file://"),
+            QStringLiteral("view-source:"),
+            QStringLiteral("brave://"),
+            QStringLiteral("opera://"),
+            QStringLiteral("vivaldi://"),
+            QStringLiteral("data:"),
+            QStringLiteral("blob:")
+        };
+        bool blocked = urlToLog.contains(' ');
+        for (const QString &prefix : blockedSchemes) {
+            if (lowerUrl.startsWith(prefix)) {
+                blocked = true;
+                break;
+            }
+        }
+        if (!blocked) {
+            const QUrl parsed(urlToLog.contains(QStringLiteral("://"))
+                                  ? urlToLog
+                                  : (QStringLiteral("https://") + urlToLog));
+            const QString scheme = parsed.scheme().toLower();
+            const QString host = parsed.host().toLower();
+            if (!parsed.isValid() ||
+                (scheme != QStringLiteral("http") && scheme != QStringLiteral("https")) ||
+                !WindowInfoProvider::isValidWebHost(host)) {
+                blocked = true;
+            }
+        }
+        if (blocked) {
+            qDebug() << "URL Ditolak (bukan URL web valid):" << urlToLog;
+            urlToLog.clear();
+        }
     }
 
     QSqlQuery query(DatabaseManager::instance().database());
@@ -96,28 +137,20 @@ void WorkLogRepository::logWindowChange(const WindowInfo &info, qint64 startTime
     }
 }
 
-int WorkLogRepository::logCount(int userId) const
+int WorkLogRepository::countLogsForRange(int userId, const QString &startDate, const QString &endDate) const
 {
-    if (!ensureDatabaseOpen() || userId == -1) {
-        return 0;
-    }
-
-    if (m_countCacheValid && m_cachedCountUserId == userId) {
-        return m_cachedLogCount;
-    }
-
     qint64 startEpoch = 0;
     qint64 endExclusiveEpoch = 0;
     bool hasStartEpoch = false;
     bool hasEndEpoch = false;
-    dateRangeToEpoch(m_startDateFilter, m_endDateFilter, startEpoch, hasStartEpoch, endExclusiveEpoch, hasEndEpoch);
+    dateRangeToEpoch(startDate, endDate, startEpoch, hasStartEpoch, endExclusiveEpoch, hasEndEpoch);
 
     QString queryStr = "SELECT COUNT(*) FROM activity_logs WHERE app_name IS NOT NULL AND title IS NOT NULL AND user_id = :user_id";
-    if (!m_startDateFilter.isEmpty()) {
+    if (!startDate.isEmpty()) {
         queryStr += hasStartEpoch ? " AND start_time >= :startEpoch"
                                   : " AND date(start_time, 'unixepoch', 'localtime') >= date(:startDate)";
     }
-    if (!m_endDateFilter.isEmpty()) {
+    if (!endDate.isEmpty()) {
         queryStr += hasEndEpoch ? " AND start_time < :endEpoch"
                                 : " AND date(start_time, 'unixepoch', 'localtime') <= date(:endDate)";
     }
@@ -125,54 +158,39 @@ int WorkLogRepository::logCount(int userId) const
     QSqlQuery query(DatabaseManager::instance().database());
     query.prepare(queryStr);
     query.bindValue(":user_id", userId);
-    if (!m_startDateFilter.isEmpty()) {
+    if (!startDate.isEmpty()) {
         if (hasStartEpoch) query.bindValue(":startEpoch", startEpoch);
-        else query.bindValue(":startDate", m_startDateFilter);
+        else query.bindValue(":startDate", startDate);
     }
-    if (!m_endDateFilter.isEmpty()) {
+    if (!endDate.isEmpty()) {
         if (hasEndEpoch) query.bindValue(":endEpoch", endExclusiveEpoch);
-        else query.bindValue(":endDate", m_endDateFilter);
+        else query.bindValue(":endDate", endDate);
     }
     if (!query.exec()) {
         qWarning() << "Failed to count logs:" << query.lastError().text();
         return 0;
     }
-    int count = 0;
-    if (query.next()) {
-        count = query.value(0).toInt();
-    }
-    m_cachedLogCount = count;
-    m_cachedCountUserId = userId;
-    m_countCacheValid = true;
-    return count;
+    return query.next() ? query.value(0).toInt() : 0;
 }
 
-QString WorkLogRepository::logContent(int userId) const
+QString WorkLogRepository::fetchLogContentForRange(int userId, const QString &startDate, const QString &endDate) const
 {
-    if (!ensureDatabaseOpen() || userId == -1) {
-        return "";
-    }
-
-    if (m_contentCacheValid && m_cachedContentUserId == userId) {
-        return m_cachedLogContent;
-    }
-
     qint64 startEpoch = 0;
     qint64 endExclusiveEpoch = 0;
     bool hasStartEpoch = false;
     bool hasEndEpoch = false;
-    dateRangeToEpoch(m_startDateFilter, m_endDateFilter, startEpoch, hasStartEpoch, endExclusiveEpoch, hasEndEpoch);
+    dateRangeToEpoch(startDate, endDate, startEpoch, hasStartEpoch, endExclusiveEpoch, hasEndEpoch);
 
     QString content;
     content.reserve(4096);
     QString queryStr = "SELECT start_time, end_time, app_name, title, url FROM activity_logs "
                        "WHERE app_name IS NOT NULL AND title IS NOT NULL AND user_id = :user_id ";
 
-    if (!m_startDateFilter.isEmpty()) {
+    if (!startDate.isEmpty()) {
         queryStr += hasStartEpoch ? "AND start_time >= :startEpoch "
                                   : "AND date(start_time, 'unixepoch', 'localtime') >= date(:startDate) ";
     }
-    if (!m_endDateFilter.isEmpty()) {
+    if (!endDate.isEmpty()) {
         queryStr += hasEndEpoch ? "AND start_time < :endEpoch "
                                 : "AND date(start_time, 'unixepoch', 'localtime') <= date(:endDate) ";
     }
@@ -182,13 +200,13 @@ QString WorkLogRepository::logContent(int userId) const
     QSqlQuery query(DatabaseManager::instance().database());
     query.prepare(queryStr);
     query.bindValue(":user_id", userId);
-    if (!m_startDateFilter.isEmpty()) {
+    if (!startDate.isEmpty()) {
         if (hasStartEpoch) query.bindValue(":startEpoch", startEpoch);
-        else query.bindValue(":startDate", m_startDateFilter);
+        else query.bindValue(":startDate", startDate);
     }
-    if (!m_endDateFilter.isEmpty()) {
+    if (!endDate.isEmpty()) {
         if (hasEndEpoch) query.bindValue(":endEpoch", endExclusiveEpoch);
-        else query.bindValue(":endDate", m_endDateFilter);
+        else query.bindValue(":endDate", endDate);
     }
     if (!query.exec()) {
         qWarning() << "Failed to fetch log content:" << query.lastError().text();
@@ -210,11 +228,75 @@ QString WorkLogRepository::logContent(int userId) const
         content.append(query.value(4).toString());
         content.append(QLatin1Char('\n'));
     }
+    return content;
+}
 
-    m_cachedLogContent = content;
+int WorkLogRepository::logCount(int userId) const
+{
+    if (!ensureDatabaseOpen() || userId == -1) {
+        return 0;
+    }
+
+    if (m_countCacheValid && m_cachedCountUserId == userId) {
+        return m_cachedLogCount;
+    }
+
+    m_cachedLogCount = countLogsForRange(userId, m_startDateFilter, m_endDateFilter);
+    m_cachedCountUserId = userId;
+    m_countCacheValid = true;
+    return m_cachedLogCount;
+}
+
+QString WorkLogRepository::logContent(int userId) const
+{
+    if (!ensureDatabaseOpen() || userId == -1) {
+        return "";
+    }
+
+    if (m_contentCacheValid && m_cachedContentUserId == userId) {
+        return m_cachedLogContent;
+    }
+
+    m_cachedLogContent = fetchLogContentForRange(userId, m_startDateFilter, m_endDateFilter);
     m_cachedContentUserId = userId;
     m_contentCacheValid = true;
-    return content;
+    return m_cachedLogContent;
+}
+
+int WorkLogRepository::todayLogCount(int userId) const
+{
+    if (!ensureDatabaseOpen() || userId == -1) {
+        return 0;
+    }
+
+    const QString today = QDate::currentDate().toString(Qt::ISODate);
+    if (m_todayCountCacheValid && m_cachedTodayCountUserId == userId && m_cachedTodayCountDate == today) {
+        return m_cachedTodayLogCount;
+    }
+
+    m_cachedTodayLogCount = countLogsForRange(userId, today, today);
+    m_cachedTodayCountUserId = userId;
+    m_cachedTodayCountDate = today;
+    m_todayCountCacheValid = true;
+    return m_cachedTodayLogCount;
+}
+
+QString WorkLogRepository::todayLogContent(int userId) const
+{
+    if (!ensureDatabaseOpen() || userId == -1) {
+        return "";
+    }
+
+    const QString today = QDate::currentDate().toString(Qt::ISODate);
+    if (m_todayContentCacheValid && m_cachedTodayContentUserId == userId && m_cachedTodayContentDate == today) {
+        return m_cachedTodayLogContent;
+    }
+
+    m_cachedTodayLogContent = fetchLogContentForRange(userId, today, today);
+    m_cachedTodayContentUserId = userId;
+    m_cachedTodayContentDate = today;
+    m_todayContentCacheValid = true;
+    return m_cachedTodayLogContent;
 }
 
 void WorkLogRepository::setLogFilter(const QString &startDate, const QString &endDate, int userId)

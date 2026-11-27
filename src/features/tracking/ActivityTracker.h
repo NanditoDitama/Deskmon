@@ -18,6 +18,7 @@ public:
 
     QString currentAppName() const { return m_currentAppName; }
     QString currentWindowTitle() const { return m_currentWindowTitle; }
+    QString currentWindowUrl() const { return m_currentWindowUrl; }
     bool isTrackingActive() const { return m_isTrackingActive; }
     void setIsTrackingActive(bool active);
 
@@ -27,6 +28,7 @@ public:
 signals:
     void currentAppNameChanged();
     void currentWindowTitleChanged();
+    void currentWindowUrlChanged();
     void trackingActiveChanged();
     void currentAppIconPathChanged();
     void windowChanged(const WindowInfo &info);
@@ -38,6 +40,7 @@ private:
 
     QString m_currentAppName;
     QString m_currentWindowTitle;
+    QString m_currentWindowUrl;
     WindowInfo m_lastWindowInfo;
     qint64 m_lastActivityTime = 0;
     bool m_isFirstCheck = true;

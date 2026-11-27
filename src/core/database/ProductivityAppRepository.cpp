@@ -6,6 +6,7 @@
 #include <QUrl>
 #include <QJsonObject>
 #include <QPair>
+#include <QSet>
 #include <QVector>
 
 namespace {
@@ -231,9 +232,9 @@ int ProductivityAppRepository::getAppProductivityType(const QString &appName, co
     return lookupProductivityType(appName, url, m_cachedAppTypes, m_cachedDomainTypes);
 }
 
-QVariantList ProductivityAppRepository::getAvailableApps() const
+QVariantList ProductivityAppRepository::getAvailableApps(int userId) const
 {
-    return QVariantList {
+    static const QVariantList allApps {
         "Other", "Chrome", "Firefox", "Edge", "Safari", "Opera",
         "Visual Studio Code", "Qt Creator", "Android Studio", "IntelliJ IDEA", "PyCharm", "Xcode",
         "Microsoft Word", "Excel", "PowerPoint", "WPS Office", "LibreOffice", "OneNote", "Obsidian",
@@ -243,6 +244,56 @@ QVariantList ProductivityAppRepository::getAvailableApps() const
         "Postman", "FileZilla", "Docker", "GitHub Desktop", "GitKraken", "Terminal",
         "Deskmon", "Desklog-Client", "Explorer", "Outlook", "Thunderbird"
     };
+
+    if (userId == -1 || !ensureDatabaseOpen()) {
+        return allApps;
+    }
+
+    QSet<QString> productiveNormalized;
+    const QString userPattern = "%," + QString::number(userId) + ",%";
+
+    QSqlQuery query(database());
+    query.prepare(R"(
+        SELECT app_name, url
+        FROM productivity_apps
+        WHERE productivity_type = 1
+          AND (for_user = '0' OR ',' || for_user || ',' LIKE :userPattern)
+    )");
+    query.bindValue(":userPattern", userPattern);
+
+    if (query.exec()) {
+        while (query.next()) {
+            const QString url = normalizeAppUrl(query.value(1).toString());
+            if (!url.isEmpty()) continue; // Website rule, not a desktop app
+            const QString appName = query.value(0).toString().trimmed();
+            if (!appName.isEmpty()) {
+                productiveNormalized.insert(normalizeAppString(appName));
+            }
+        }
+    }
+
+    if (productiveNormalized.isEmpty()) {
+        return allApps;
+    }
+
+    static const QSet<QString> alwaysKeep {
+        QStringLiteral("other"),
+        QStringLiteral("chrome"),
+        QStringLiteral("firefox"),
+        QStringLiteral("edge"),
+        QStringLiteral("safari"),
+        QStringLiteral("opera")
+    };
+
+    QVariantList filtered;
+    filtered.reserve(allApps.size());
+    for (const QVariant &item : allApps) {
+        const QString norm = normalizeAppString(item.toString());
+        if (alwaysKeep.contains(norm) || !productiveNormalized.contains(norm)) {
+            filtered.append(item);
+        }
+    }
+    return filtered;
 }
 
 QVariantList ProductivityAppRepository::getProductivityApps(int userId) const

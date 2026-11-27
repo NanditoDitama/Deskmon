@@ -153,32 +153,15 @@ Dialog {
 
             Item { Layout.fillWidth: true }
 
-            Button {
+            CustomButton {
                 id: cancelButton
                 text: Lang.t("Cancel")
                 enabled: buttonBox.buttonsEnabled
-
-                leftPadding: 18
-                rightPadding: 18
-                topPadding: 10
-                bottomPadding: 10
-
-                background: Rectangle {
-                    radius: 8
-                    color: cancelButton.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
-                    border.width: 0
-
-                    Behavior on color { ColorAnimation { duration: 150 } }
-                }
-
-                contentItem: Text {
-                    text: cancelButton.text
-                    font.pixelSize: 13
-                    font.weight: Font.Medium
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    color: Qt.alpha(Theme.textColor, 0.7)
-                }
+                btnColor: "transparent"
+                btnHoverColor: Qt.alpha(Theme.textColor, 0.08)
+                btnTextColor: Qt.alpha(Theme.textColor, 0.7)
+                font.pixelSize: 13
+                font.weight: Font.Medium
 
                 onClicked: {
                     earlyLeaveReasonDialog.close()
@@ -186,35 +169,14 @@ Dialog {
                 }
             }
 
-            Button {
+            CustomButton {
                 id: submitButton
                 text: buttonBox.buttonsEnabled ? Lang.t("Submit") : Lang.t("Sending...")
                 enabled: reasonInput.text.trim().length > 1 && buttonBox.buttonsEnabled
-
-                leftPadding: 24
-                rightPadding: 24
-                topPadding: 10
-                bottomPadding: 10
-
-                background: Rectangle {
-                    radius: 8
-                    color: submitButton.enabled ?
-                               (submitButton.pressed ? Qt.darker(Theme.primaryColor, 1.1) :
-                                                       submitButton.hovered ? Qt.lighter(Theme.primaryColor, 1.05) : Theme.primaryColor) :
-                               Qt.alpha(Theme.textColor, 0.2)
-                    border.width: 0
-
-                    Behavior on color { ColorAnimation { duration: 150 } }
-                }
-
-                contentItem: Text {
-                    text: submitButton.text
-                    font.pixelSize: 13
-                    font.weight: Font.DemiBold
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    color: submitButton.enabled ? "white" : Qt.alpha(Theme.textColor, 0.4)
-                }
+                btnColor: submitButton.enabled ? Theme.primaryColor : Qt.alpha(Theme.textColor, 0.2)
+                btnHoverColor: Qt.lighter(Theme.primaryColor, 1.05)
+                btnTextColor: submitButton.enabled ? "white" : Qt.alpha(Theme.textColor, 0.4)
+                font.pixelSize: 13
 
                 onClicked: {
                     buttonBox.buttonsEnabled = false

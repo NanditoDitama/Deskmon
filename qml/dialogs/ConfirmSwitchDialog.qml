@@ -2,44 +2,54 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "../theme"
+import "../components"
 
 Dialog {
     id: root
     title: ""
     modal: true
-    width: 380
-    height: 240
+    implicitWidth: 420
+    implicitHeight: contentCol.implicitHeight + 48
+    width: 420
+    height: contentCol.implicitHeight + 48
     x: parent ? Math.round((parent.width - width) / 2) : 0
     y: parent ? Math.round((parent.height - height) / 2) : 0
     padding: 0
+    topPadding: 0
+    bottomPadding: 0
+    leftPadding: 0
+    rightPadding: 0
+    topInset: 0
+    bottomInset: 0
+    leftInset: 0
+    rightInset: 0
     property int taskId: -1
+    property string warningMessage: ""
 
     signal confirmed(int targetTaskId)
 
+    onClosed: warningMessage = ""
+
     background: Rectangle {
         color: "transparent"
-        radius: Theme.radiusMedium
+        radius: Theme.radiusLarge
     }
 
     contentItem: Rectangle {
+        implicitWidth: root.width
+        implicitHeight: contentCol.implicitHeight + 48
         color: Theme.cardColor
-        radius: Theme.radiusMedium
+        radius: Theme.radiusLarge
         border.width: 1
-        border.color: Qt.rgba(255, 255, 255, 0.08)
-
-        Rectangle {
-            anchors.fill: parent
-            radius: Theme.radiusMedium
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(255, 255, 255, 0.03) }
-                GradientStop { position: 1.0; color: "transparent" }
-            }
-        }
+        border.color: Theme.borderColor
 
         ColumnLayout {
-            anchors.fill: parent
+            id: contentCol
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
             anchors.margins: 24
-            spacing: 20
+            spacing: 16
 
             // Icon + Title section
             RowLayout {
@@ -47,18 +57,23 @@ Dialog {
                 spacing: 12
 
                 Rectangle {
-                    Layout.preferredWidth: 40
-                    Layout.preferredHeight: 40
+                    Layout.preferredWidth: 38
+                    Layout.preferredHeight: 38
                     radius: Theme.radiusSmall
-                    color: Qt.alpha(Theme.accentColor, 0.12)
+                    color: Qt.alpha(Theme.warningColor, 0.14)
                     border.width: 1
-                    border.color: Qt.alpha(Theme.accentColor, 0.2)
+                    border.color: Qt.alpha(Theme.warningColor, 0.30)
 
                     Image {
                         anchors.centerIn: parent
-                        source: "qrc:/icons/danger.svg"
-                        sourceSize.width: 20
-                        sourceSize.height: 20
+                        source: "image://icon/danger.svg?" + Theme.warningColor
+                        width: 18
+                        height: 18
+                        sourceSize.width: 64
+                        sourceSize.height: 64
+                        fillMode: Image.PreserveAspectFit
+                        smooth: true
+                        mipmap: true
                     }
                 }
 
@@ -70,6 +85,7 @@ Dialog {
                         weight: Font.DemiBold
                     }
                     color: Theme.textColor
+                    elide: Text.ElideRight
                     Layout.fillWidth: true
                 }
             }
@@ -78,82 +94,94 @@ Dialog {
             Label {
                 text: Lang.t("You have an active task. Do you want to switch to this task?")
                 font {
-                    pixelSize: 13
+                    pixelSize: Theme.fontSizeSmall
                     family: "Segoe UI"
                 }
-                color: Qt.alpha(Theme.textColor, 0.65)
+                color: Theme.lightTextColor
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
-                lineHeight: 1.5
+                lineHeight: 1.4
             }
 
-            Item { Layout.fillHeight: true }
+            // Combined pending-task warning banner (shown when warningMessage is provided)
+            Rectangle {
+                visible: root.warningMessage !== ""
+                Layout.fillWidth: true
+                implicitHeight: warningRow.implicitHeight + 24
+                radius: Theme.radiusSmall
+                color: Qt.alpha(Theme.warningColor, 0.10)
+                border.width: 1
+                border.color: Qt.alpha(Theme.warningColor, 0.28)
+
+                RowLayout {
+                    id: warningRow
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    spacing: 10
+
+                    Image {
+                        Layout.preferredWidth: 16
+                        Layout.preferredHeight: 16
+                        Layout.alignment: Qt.AlignTop
+                        Layout.topMargin: 2
+                        source: "image://icon/danger.svg?" + Theme.warningColor
+                        sourceSize.width: 48
+                        sourceSize.height: 48
+                        fillMode: Image.PreserveAspectFit
+                        smooth: true
+                        mipmap: true
+                    }
+
+                    Label {
+                        text: root.warningMessage
+                        font {
+                            pixelSize: 12
+                            family: "Segoe UI"
+                        }
+                        color: Theme.textColor
+                        wrapMode: Text.Wrap
+                        Layout.fillWidth: true
+                        lineHeight: 1.4
+                    }
+                }
+            }
 
             // Button section
             RowLayout {
                 Layout.fillWidth: true
+                Layout.topMargin: 4
                 spacing: 12
 
-                Button {
+                CustomButton {
                     id: cancelButton
                     text: Lang.t("Cancel")
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 40
-
-                    background: Rectangle {
-                        radius: Theme.radiusSmall
-                        color: cancelButton.pressed ? Qt.alpha(Theme.textColor, 0.08) :
-                                                      cancelButton.hovered ? Qt.alpha(Theme.textColor, 0.04) : "transparent"
-                        border.width: 1
-                        border.color: Qt.alpha(Theme.textColor, 0.15)
-
-                        Behavior on color {
-                            ColorAnimation { duration: 150 }
-                        }
-                    }
-
-                    contentItem: Text {
-                        text: cancelButton.text
-                        font {
-                            pixelSize: 13
-                            family: "Segoe UI"
-                            weight: Font.Medium
-                        }
-                        color: Theme.textColor
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
+                    Layout.preferredWidth: 1
+                    Layout.preferredHeight: 36
+                    btnColor: "transparent"
+                    btnHoverColor: Qt.alpha(Theme.textColor, 0.08)
+                    btnTextColor: Theme.textColor
+                    btnBorderColor: Theme.borderColor
+                    btnBorderWidth: 1
+                    font.pixelSize: Theme.fontSizeSmall
+                    font.family: "Segoe UI"
+                    font.weight: Font.Medium
 
                     onClicked: root.reject()
                 }
 
-                Button {
+                CustomButton {
                     id: confirmButton
                     text: Lang.t("Switch Project")
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 40
-
-                    background: Rectangle {
-                        radius: Theme.radiusSmall
-                        color: confirmButton.pressed ? Qt.darker(Theme.accentColor, 1.15) :
-                                                       confirmButton.hovered ? Qt.lighter(Theme.accentColor, 1.08) : Theme.accentColor
-
-                        Behavior on color {
-                            ColorAnimation { duration: 150 }
-                        }
-                    }
-
-                    contentItem: Text {
-                        text: confirmButton.text
-                        font {
-                            pixelSize: 13
-                            family: "Segoe UI"
-                            weight: Font.Medium
-                        }
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
+                    Layout.preferredWidth: 1
+                    Layout.preferredHeight: 36
+                    btnColor: Theme.primaryColor
+                    btnHoverColor: Theme.primaryHoverColor
+                    btnTextColor: Theme.isDarkMode ? "#0F172A" : "#FFFFFF"
+                    font.pixelSize: Theme.fontSizeSmall
+                    font.family: "Segoe UI"
+                    font.weight: Font.DemiBold
 
                     onClicked: {
                         root.confirmed(root.taskId)

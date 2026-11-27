@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDateTime>
+#include <QRegularExpression>
 #include <QSqlQuery>
 
 #include "MockHttpServer.h"
@@ -91,13 +92,20 @@ private slots:
 
     void testAuthLoginIpAppendTokenResetAndLogoutOrdering()
     {
+        // Verify login payload always sends gateway_macs array
         m_server->setHandler([](const RecordedHttpRequest &req) -> MockHttpResponse {
             if (req.path == "/login") {
                 QJsonObject body = QJsonDocument::fromJson(req.body).object();
+                if (!body.contains("gateway_macs") || !body["gateway_macs"].isArray()) {
+                    return {403, "Forbidden", R"({"success":false,"message":"Office network verification required. Please update your Deskmon desktop app or connect to the office network.","reason":"gateway_mac_missing","your_ip":"127.0.0.1"})"};
+                }
                 if (body["password"].toString() == "blocked") {
                     return {200, "OK", R"({"success":false,"message":"Login not allowed from this IP address","your_ip":"10.20.30.40"})"};
                 }
-                return {200, "OK", R"({"success":true,"token":"fresh-tok","user":{"id":42,"name":"tester","email":"t@example.com","role":{"rolename":"QA"},"department":{"rolename":"Engineering"}}})"};
+                if (body["password"].toString() == "mac_missing") {
+                    return {403, "Forbidden", R"({"success":false,"message":"Office network verification required. Please update your Deskmon desktop app or connect to the office network.","reason":"gateway_mac_missing","your_ip":"127.0.0.1"})"};
+                }
+                return {200, "OK", R"({"success":true,"token":"fresh-tok","user":{"id":42,"name":"tester","email":"t@example.com","role":{"rolename":"QA"},"department":{"rolename":"Engineering"}},"verification_method":"gateway_mac_matched"})"};
             }
             if (req.path == "/task-by-user/42") {
                 return {200, "OK", R"({"success":true,"data":[{"id":501,"title":"Proj","description":"Active Task","user_id":42,"duration":1,"total_duration":0,"created_at":"2026-11-21T00:00:00Z","status":"pending"}]})"};
@@ -115,14 +123,33 @@ private slots:
         // Startup must NOT auto-login
         QCOMPARE(controller.currentUserId(), -1);
 
+        // 403 gateway MAC missing error returns server message cleanly
+        QString macErr = controller.authenticate("t@example.com", "mac_missing");
+        QCOMPARE(macErr, QStringLiteral("Office network verification required. Please update your Deskmon desktop app or connect to the office network."));
+
         // IP restriction error appends your_ip
         QString err = controller.authenticate("t@example.com", "blocked");
         QCOMPARE(err, QStringLiteral("Login not allowed from this IP address. 10.20.30.40"));
 
-        // Login succeeds and resets token error visibility
+        // Verify collected gateway MACs (if any present on host) are formatted aa-bb-cc-dd-ee-ff
+        const QStringList hostMacs = AuthManager::collectGatewayMacs();
+        const QRegularExpression macFormat(QStringLiteral(R"(^[0-9a-f]{2}(-[0-9a-f]{2}){5}$)"));
+        for (const QString &mac : hostMacs) {
+            QVERIFY2(macFormat.match(mac).hasMatch(), qPrintable("Invalid MAC format: " + mac));
+        }
+
+        // Login succeeds and sends gateway_macs in payload
         QCOMPARE(controller.authenticate("t@example.com", "secret"), QString());
         QCOMPARE(controller.currentUserId(), 42);
         QCOMPARE(controller.getUserDepartment("tester"), QStringLiteral("QA"));
+
+        // Assert sent /login body actually included gateway_macs array
+        QJsonObject lastLoginBody;
+        for (const auto &req : m_server->requests()) {
+            if (req.path == "/login") lastLoginBody = QJsonDocument::fromJson(req.body).object();
+        }
+        QVERIFY(lastLoginBody.contains("gateway_macs"));
+        QVERIFY(lastLoginBody["gateway_macs"].isArray());
 
         // Wait for login task fetch to populate task 501, then activate it
         QTRY_VERIFY_WITH_TIMEOUT(!controller.taskList().isEmpty(), 2000);
@@ -157,6 +184,8 @@ private slots:
         QVERIFY(stopIdx < logoutIdx);
         QVERIFY(usageIdx < logoutIdx);
         QCOMPARE(controller.currentUserId(), -1);
+        QCOMPARE(controller.savedUsername(), QStringLiteral("t@example.com"));
+        QCOMPARE(controller.savedPassword(), QString());
 
         // Second logout() is a safe no-op
         m_server->clearRequests();
@@ -230,23 +259,20 @@ private slots:
         QVERIFY(controller.isTaskPaused());
         QCOMPARE(idleDetectedSpy.count(), 0);
 
-        // 5. At +10s, still no idleDetected (60s interval required)
+        // 5. At +10s and +60s, still no idleDetected (consolidated into single log on return)
         checker.checkIdleTimeAt(2010);
         QCOMPARE(idleDetectedSpy.count(), 0);
 
-        // 6. At +60s, emits idleDetected(2000, 2060)
         checker.checkIdleTimeAt(2060);
-        QCOMPARE(idleDetectedSpy.count(), 1);
-        QCOMPARE(idleDetectedSpy.first().at(0).toLongLong(), 2000);
-        QCOMPARE(idleDetectedSpy.first().at(1).toLongLong(), 2060);
+        QCOMPARE(idleDetectedSpy.count(), 0);
 
-        // 7. Return from idle -> logs remaining slice, hides notification, auto-resumes task
+        // 6. Return from idle -> emits a single consolidated idleDetected(2000, 2075), hides notification, auto-resumes task
         fakeIdleSecs = 0;
         checker.checkIdleTimeAt(2075);
         QVERIFY(!checker.isIdle());
-        QCOMPARE(idleDetectedSpy.count(), 2);
-        QCOMPARE(idleDetectedSpy.last().at(0).toLongLong(), 2060);
-        QCOMPARE(idleDetectedSpy.last().at(1).toLongLong(), 2075);
+        QCOMPARE(idleDetectedSpy.count(), 1);
+        QCOMPARE(idleDetectedSpy.first().at(0).toLongLong(), 2000);
+        QCOMPARE(idleDetectedSpy.first().at(1).toLongLong(), 2075);
         QCOMPARE(hideNotifSpy.count(), 1);
         QVERIFY(!controller.isTaskPaused());
 

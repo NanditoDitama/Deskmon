@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import "../theme"
+import "../components"
 
 ApplicationWindow {
     id: root
@@ -111,32 +112,16 @@ ApplicationWindow {
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                CustomButton {
                     id: cancelButton
                     text: Lang.t("Later")
-
-                    leftPadding: 18
-                    rightPadding: 18
-                    topPadding: 10
-                    bottomPadding: 10
-
-                    background: Rectangle {
-                        radius: 8
-                        color: cancelButton.hovered ? Qt.alpha(Theme.textColor, 0.08) : "transparent"
-                        border.width: 1
-                        border.color: Theme.dividerColor
-
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                    }
-
-                    contentItem: Text {
-                        text: cancelButton.text
-                        font.pixelSize: 13
-                        font.weight: Font.Medium
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        color: Qt.alpha(Theme.textColor, 0.7)
-                    }
+                    btnColor: "transparent"
+                    btnHoverColor: Qt.alpha(Theme.textColor, 0.08)
+                    btnTextColor: Qt.alpha(Theme.textColor, 0.7)
+                    btnBorderColor: Theme.dividerColor
+                    btnBorderWidth: 1
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
 
                     onClicked: {
                         console.log("Pengiriman ulang dibatalkan oleh pengguna.");
@@ -147,32 +132,12 @@ ApplicationWindow {
                     }
                 }
 
-                Button {
+                CustomButton {
                     id: retryButton
                     text: Lang.t("Retry")
-
-                    leftPadding: 24
-                    rightPadding: 24
-                    topPadding: 10
-                    bottomPadding: 10
-
-                    background: Rectangle {
-                        radius: 8
-                        color: retryButton.pressed ? Qt.darker(Theme.dangerColor, 1.1) :
-                               retryButton.hovered ? Qt.lighter(Theme.dangerColor, 1.05) : Theme.dangerColor
-                        border.width: 0
-
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                    }
-
-                    contentItem: Text {
-                        text: retryButton.text
-                        font.pixelSize: 13
-                        font.weight: Font.DemiBold
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        color: "white"
-                    }
+                    btnColor: Theme.dangerColor
+                    btnHoverColor: Qt.lighter(Theme.dangerColor, 1.05)
+                    font.pixelSize: 13
 
                     onClicked: {
                         console.log("Mencoba lagi untuk mengirim detail task...");

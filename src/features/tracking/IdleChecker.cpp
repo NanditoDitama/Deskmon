@@ -18,7 +18,7 @@
 #include <IOKit/IOKitLib.h>
 #include <IOKit/IOKitKeys.h>
 
-#else
+#elif defined(DESKMON_HAS_X11_IDLE)
 #include <X11/Xlib.h>
 #include <X11/extensions/scrnsaver.h>
 #endif
@@ -89,6 +89,20 @@ void IdleChecker::checkIdleTime()
     checkIdleTimeAt(QDateTime::currentSecsSinceEpoch());
 }
 
+void IdleChecker::flushPendingIdle()
+{
+    if (m_isIdle) {
+        const qint64 now = QDateTime::currentSecsSinceEpoch();
+        if (m_lastIdleLogTime > 0 && now > m_lastIdleLogTime && m_appController && m_appController->currentUserId() != -1) {
+            emit idleDetected(m_lastIdleLogTime, now);
+        }
+        m_isIdle = false;
+        m_lastIdleLogTime = 0;
+        m_lastActiveTime = 0;
+        m_autoPausedByIdle = false;
+    }
+}
+
 void IdleChecker::checkIdleTimeAt(qint64 currentTime)
 {
     if (!m_appController || m_appController->currentUserId() == -1) {
@@ -129,11 +143,6 @@ void IdleChecker::checkIdleTimeAt(qint64 currentTime)
 
             emit showIdleNotification(QStringLiteral("Idle Terdeteksi"));
             qDebug() << "Idle state started. Idle seconds:" << idleSeconds << "Threshold:" << m_idleThreshold;
-        }
-
-        if (currentTime - m_lastIdleLogTime >= 60) {
-            emit idleDetected(m_lastIdleLogTime, currentTime);
-            m_lastIdleLogTime = currentTime;
         }
     } else {
         if (m_isIdle) {
@@ -216,6 +225,32 @@ qint64 IdleChecker::getSystemIdleTimeMacOS() const
 #else
 qint64 IdleChecker::getSystemIdleTimeLinux() const
 {
+    // Wayland session fallback via GNOME Mutter IdleMonitor D-Bus interface
+    const bool isWayland = qEnvironmentVariableIsSet("WAYLAND_DISPLAY")
+        || qEnvironmentVariable("XDG_SESSION_TYPE").compare(QStringLiteral("wayland"), Qt::CaseInsensitive) == 0;
+    if (isWayland) {
+        QProcess proc;
+        proc.start(QStringLiteral("gdbus"), {
+            QStringLiteral("call"), QStringLiteral("--session"),
+            QStringLiteral("--dest"), QStringLiteral("org.gnome.Mutter.IdleMonitor"),
+            QStringLiteral("--object-path"), QStringLiteral("/org/gnome/Mutter/IdleMonitor/Core"),
+            QStringLiteral("--method"), QStringLiteral("org.gnome.Mutter.IdleMonitor.GetIdletime")
+        });
+        if (proc.waitForFinished(300) && proc.exitCode() == 0) {
+            const QString out = QString::fromUtf8(proc.readAllStandardOutput());
+            static const QRegularExpression numRe(QStringLiteral(R"((\d+))"));
+            const QRegularExpressionMatch match = numRe.match(out);
+            if (match.hasMatch()) {
+                bool ok = false;
+                const qint64 ms = match.captured(1).toLongLong(&ok);
+                if (ok && ms >= 0) {
+                    return ms / 1000;
+                }
+            }
+        }
+    }
+
+#ifdef DESKMON_HAS_X11_IDLE
     Display *display = XOpenDisplay(nullptr);
     if (!display) return -1;
 
@@ -232,5 +267,8 @@ qint64 IdleChecker::getSystemIdleTimeLinux() const
     XFree(info);
     XCloseDisplay(display);
     return idleTime;
+#else
+    return -1;
+#endif
 }
 #endif

@@ -25,9 +25,11 @@ ActivityTracker::ActivityTracker(WorkLogRepository *workLogRepo,
             m_lastWindowInfo = WindowInfo();
             m_currentAppName.clear();
             m_currentWindowTitle.clear();
+            m_currentWindowUrl.clear();
             setIsTrackingActive(false);
             emit currentAppNameChanged();
             emit currentWindowTitleChanged();
+            emit currentWindowUrlChanged();
         });
     }
 }
@@ -88,6 +90,7 @@ void ActivityTracker::logActiveWindow(bool isTaskPaused)
 
             const bool appChanged = (self->m_currentAppName != currentInfo.appName);
             const bool titleChanged = (self->m_currentWindowTitle != currentInfo.title);
+            const bool urlChanged = (self->m_currentWindowUrl != currentInfo.url);
             if (appChanged) {
                 self->m_currentAppName = currentInfo.appName;
                 emit self->currentAppNameChanged();
@@ -96,6 +99,10 @@ void ActivityTracker::logActiveWindow(bool isTaskPaused)
             if (titleChanged) {
                 self->m_currentWindowTitle = currentInfo.title;
                 emit self->currentWindowTitleChanged();
+            }
+            if (urlChanged) {
+                self->m_currentWindowUrl = currentInfo.url;
+                emit self->currentWindowUrlChanged();
             }
         }, Qt::QueuedConnection);
     });

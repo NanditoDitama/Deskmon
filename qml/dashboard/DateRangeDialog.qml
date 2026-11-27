@@ -6,6 +6,7 @@ import QtQuick.Dialogs
 import QtQuick.Effects
 import QtQuick.Window
 import "../theme"
+import "../components"
 
 Dialog {
     id: dateRangeDialog
@@ -381,24 +382,17 @@ Dialog {
                 Layout.alignment: Qt.AlignRight
                 spacing: 12
 
-                Button {
+                CustomButton {
                     id: clearBtn
                     text: Lang.t("Clear")
                     Layout.preferredWidth: 100
-                    Layout.preferredHeight: 40
-                    background: Rectangle {
-                        radius: Theme.radiusSmall
-                        color: clearBtn.hovered ? Qt.alpha(Theme.accentColor, 0.15) : "transparent"
-                        border.color: Theme.accentColor
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: clearBtn.text
-                        font.pixelSize: Theme.fontSizeBody
-                        color: Theme.accentColor
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
+                    Layout.preferredHeight: Theme.controlHeight
+                    btnColor: "transparent"
+                    btnHoverColor: Qt.alpha(Theme.accentColor, 0.15)
+                    btnTextColor: Theme.accentColor
+                    btnBorderColor: Theme.accentColor
+                    btnBorderWidth: 1
+                    font.weight: Font.Medium
                     onClicked: {
                         startSelectedDate = new Date(NaN)
                         endSelectedDate = new Date(NaN)
@@ -406,44 +400,30 @@ Dialog {
                     }
                 }
 
-                Button {
+                CustomButton {
                     id: cancelBtn
                     text: Lang.t("Cancel")
                     Layout.preferredWidth: 100
-                    Layout.preferredHeight: 40
-                    background: Rectangle {
-                        radius: Theme.radiusSmall
-                        color: cancelBtn.hovered ? Qt.alpha(Theme.textColor, 0.1) : "transparent"
-                        border.color: Theme.dividerColor
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: cancelBtn.text
-                        font.pixelSize: Theme.fontSizeBody
-                        color: Theme.textColor
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
+                    Layout.preferredHeight: Theme.controlHeight
+                    btnColor: "transparent"
+                    btnHoverColor: Qt.alpha(Theme.textColor, 0.1)
+                    btnTextColor: Theme.textColor
+                    btnBorderColor: Theme.dividerColor
+                    btnBorderWidth: 1
+                    font.weight: Font.Medium
                     onClicked: dateRangeDialog.reject()
                 }
 
-                Button {
+                CustomButton {
                     id: applyBtn
                     text: Lang.t("Apply")
                     Layout.preferredWidth: 100
-                    Layout.preferredHeight: 40
+                    Layout.preferredHeight: Theme.controlHeight
                     enabled: !isNaN(startSelectedDate.getTime())
-                    background: Rectangle {
-                        radius: Theme.radiusSmall
-                        color: applyBtn.enabled ? (applyBtn.hovered ? Qt.lighter(Theme.secondaryColor, 1.1) : Theme.secondaryColor) : Theme.neutralColor
-                    }
-                    contentItem: Text {
-                        text: applyBtn.text
-                        font.pixelSize: Theme.fontSizeBody
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
+                    btnColor: applyBtn.enabled ? Theme.secondaryColor : Theme.neutralColor
+                    btnHoverColor: Qt.lighter(Theme.secondaryColor, 1.1)
+                    btnTextColor: "white"
+                    font.weight: Font.Normal
                     onClicked: {
                         if (!isNaN(startSelectedDate.getTime())) {
                             if (isNaN(endSelectedDate.getTime())) {

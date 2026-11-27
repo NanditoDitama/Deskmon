@@ -3,6 +3,8 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
+#include <functional>
 #include "core/network/ApiClient.h"
 #include "core/database/UserRepository.h"
 
@@ -10,8 +12,13 @@ class AuthManager : public QObject
 {
     Q_OBJECT
 public:
+    using GatewayMacProvider = std::function<QStringList()>;
+
     explicit AuthManager(ApiClient *apiClient, UserRepository *userRepo, QObject *parent = nullptr);
     ~AuthManager() override = default;
+
+    void setGatewayMacProvider(GatewayMacProvider provider);
+    static QStringList collectGatewayMacs();
 
     int currentUserId() const { return m_currentUserId; }
     QString currentUsername() const { return m_currentUsername; }
@@ -58,6 +65,7 @@ private:
     QString m_userEmail;
     QString m_authToken;
     bool m_isTokenErrorVisible = false;
+    GatewayMacProvider m_gatewayMacProvider;
 };
 
 #endif // AUTHMANAGER_H

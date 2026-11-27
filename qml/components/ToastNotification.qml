@@ -9,7 +9,7 @@ Rectangle {
     property string ntype: "info"
     property int duration: 3500
     property string iconSource: ""
-    property string closeIcon: "qrc:/icons/close.svg"
+    property string closeIcon: "image://icon/close.svg?" + Theme.textColor
     property bool leaving: false
 
     anchors.top: parent ? parent.top : undefined
@@ -17,8 +17,14 @@ Rectangle {
     anchors.topMargin: 60
     anchors.rightMargin: 20
 
-    width: Math.min(Math.max(contentRow.implicitWidth + 32, 240), 360)
-    height: contentRow.implicitHeight + 34
+    TextMetrics {
+        id: messageMetrics
+        font: messageText.font
+        text: root.message
+    }
+
+    width: Math.min(Math.max(Math.ceil(messageMetrics.advanceWidth) + 108, 320), 480)
+    height: contentRow.implicitHeight + 24
     radius: Theme.radiusMedium
     color: Theme.cardColor
     border.width: 1.5
@@ -43,19 +49,23 @@ Rectangle {
             id: typeIcon
             width: 20
             height: 20
+            sourceSize.width: 48
+            sourceSize.height: 48
+            fillMode: Image.PreserveAspectFit
             anchors.verticalCenter: parent.verticalCenter
             source: root.iconSource
             smooth: true
+            mipmap: true
             antialiasing: true
         }
 
         Text {
             id: messageText
             text: root.message
-            width: root.width - 36 - 32 - 36 - 12
+            width: root.width - 108
             anchors.verticalCenter: parent.verticalCenter
             color: Theme.textColor
-            font.pixelSize: Theme.fontSizeTitle
+            font.pixelSize: Theme.fontSizeBody
             font.weight: Font.Medium
             wrapMode: Text.WordWrap
             elide: Text.ElideRight
@@ -82,10 +92,14 @@ Rectangle {
 
                 Image {
                     anchors.centerIn: parent
-                    width: 16
-                    height: 16
+                    width: 14
+                    height: 14
+                    sourceSize.width: 48
+                    sourceSize.height: 48
+                    fillMode: Image.PreserveAspectFit
                     source: root.closeIcon
                     smooth: true
+                    mipmap: true
                     antialiasing: true
                     opacity: closeArea.containsMouse ? 1.0 : 0.6
                     Behavior on opacity { NumberAnimation { duration: 150 } }

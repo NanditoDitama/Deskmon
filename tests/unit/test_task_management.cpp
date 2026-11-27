@@ -5,6 +5,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QDateTime>
+#include <QSettings>
 #include <QSqlQuery>
 #include <algorithm>
 
@@ -44,6 +45,7 @@ private slots:
 
     void cleanup()
     {
+        QSettings().remove(QStringLiteral("need_review_queue"));
         m_taskManager.reset();
         m_authManager.reset();
         m_taskRepo.reset();
@@ -354,6 +356,7 @@ private slots:
     {
         const QString created = QDateTime::currentDateTime().toString(Qt::ISODate);
         QVERIFY(m_taskRepo->upsertTask(999, 10, "StaleProj", "To Be Removed", 3600, 0, created));
+        QVERIFY(m_taskRepo->upsertTask(1000, 10, "Project_0", "Bulk Task 0", 3600, 0, created, "Review"));
 
         QJsonArray tasksArray;
         for (int i = 0; i < 300; ++i) {
@@ -394,6 +397,95 @@ private slots:
         QVERIFY(m_taskRepo->getTaskDetails(1000, maxT, usage, status));
         QCOMPARE(maxT, 14400);
         QCOMPARE(usage, 900);
+        QCOMPARE(status, QStringLiteral("Pending"));
+    }
+
+    void testNeedReviewDoesNotSwitchAndRetriesFallbackUntilConfirmed()
+    {
+        const QString created = QDateTime::currentDateTime().toString(Qt::ISODate);
+        QVERIFY(m_taskRepo->upsertTask(501, 10, "P1", "Active Task One", 3600, 100, created));
+        QVERIFY(m_taskRepo->upsertTask(502, 10, "P2", "Other Eligible Task", 3600, 0, created));
+
+        // 1. Activate 501; when server returns "need-review" on status check, must NOT auto-switch to 502
+        m_taskManager->setActiveTask(501);
+        QTRY_VERIFY_WITH_TIMEOUT(!m_taskManager->isTaskPaused(), 4000);
+
+        m_server->setHandler([](const RecordedHttpRequest &req) -> MockHttpResponse {
+            if (req.path == "/get-current-task-status/501") {
+                return {200, "OK", R"({"success":true,"data":"need-review"})"};
+            }
+            return {200, "OK", R"({"success":true})"};
+        });
+
+        m_taskManager->updateTaskStatus(501);
+        QTRY_COMPARE_WITH_TIMEOUT(m_taskManager->activeTaskId(), -1, 3000);
+        QCOMPARE(m_taskManager->activeTaskId(), -1);
+        int maxT = 0, usage = 0;
+        QString status501;
+        QVERIFY(m_taskRepo->getTaskDetails(501, maxT, usage, status501));
+        QCOMPARE(status501, QStringLiteral("Need Review"));
+
+        // 2. Activate 502 and submit Need Review while server fails (HTTP 500) -> fallback + locked + no other task selected
+        m_taskManager->setActiveTask(502);
+        QTRY_VERIFY_WITH_TIMEOUT(!m_taskManager->isTaskPaused(), 4000);
+
+        int postAttempts = 0;
+        m_server->setHandler([&postAttempts](const RecordedHttpRequest &req) -> MockHttpResponse {
+            if (req.path == "/update-status-task/502/10") {
+                ++postAttempts;
+                return {500, "Internal Server Error", R"({"success":false})"};
+            }
+            return {200, "OK", R"({"success":true})"};
+        });
+
+        QSignalSpy pendingSpy(m_taskManager.get(), &TaskManager::pendingNeedReviewTasksChanged);
+        m_taskManager->submitNeedReview(502, "Need supervisor review");
+
+        QCOMPARE(m_taskManager->activeTaskId(), -1);
+        QVERIFY(m_taskManager->isTaskPendingNeedReview(502));
+        QVERIFY(m_taskManager->pendingNeedReviewTaskIds().contains(QVariant(502)));
+        QTRY_VERIFY_WITH_TIMEOUT(postAttempts >= 1, 2000);
+
+        // Selecting 502 while awaiting Need Review confirmation must be blocked
+        m_taskManager->setActiveTask(502);
+        QCOMPARE(m_taskManager->activeTaskId(), -1);
+
+        // 3. Recover POST endpoint -> returns 200 OK, but /task-by-user and /get-current-task-status still show "pending" briefly
+        m_server->setHandler([&postAttempts, created](const RecordedHttpRequest &req) -> MockHttpResponse {
+            if (req.path == "/update-status-task/502/10") {
+                ++postAttempts;
+                return {200, "OK", R"({"success":true})"};
+            }
+            if (req.path == "/get-current-task-status/502") {
+                return {200, "OK", R"({"success":true,"data":"pending"})"};
+            }
+            if (req.path == "/task-by-user/10") {
+                QJsonArray arr;
+                arr.append(QJsonObject{{"id", 502}, {"title", "P2"}, {"description", "Other Eligible Task"}, {"user_id", 10}, {"status", "pending"}, {"duration", 1.0}, {"total_duration", 0.0}, {"created_at", created}});
+                return {200, "OK", QJsonDocument(QJsonObject{{"success", true}, {"data", arr}}).toJson(QJsonDocument::Compact)};
+            }
+            return {200, "OK", R"({"success":true})"};
+        });
+
+        QMetaObject::invokeMethod(m_taskManager.get(), "processPendingNeedReviewQueue");
+        QTRY_VERIFY_WITH_TIMEOUT(postAttempts >= 2, 3000);
+        QTest::qWait(300);
+        // Must remain locked (grey + loading) until server confirms "need-review"
+        QVERIFY(m_taskManager->isTaskPendingNeedReview(502));
+
+        // 4. Server finally reports "need-review" -> clears pending lock and marks status as "Need Review"
+        m_server->setHandler([](const RecordedHttpRequest &req) -> MockHttpResponse {
+            if (req.path == "/get-current-task-status/502") {
+                return {200, "OK", R"({"success":true,"data":"need-review"})"};
+            }
+            return {200, "OK", R"({"success":true})"};
+        });
+        m_taskManager->updateTaskStatus(502);
+        QTRY_VERIFY_WITH_TIMEOUT(!m_taskManager->isTaskPendingNeedReview(502), 3000);
+        QCOMPARE(m_taskManager->pendingNeedReviewTaskIds().size(), 0);
+        QString status502;
+        QVERIFY(m_taskRepo->getTaskDetails(502, maxT, usage, status502));
+        QCOMPARE(status502, QStringLiteral("Need Review"));
     }
 
 private:

@@ -4,10 +4,19 @@ import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
+import QtQuick.Window
 import "../theme"
+import "../components"
 
 Item {
+    id: activityMonitorRoot
     anchors.fill: parent
+
+    readonly property bool isCompact: Window.window ? Window.window.width < 1060 : false
+    readonly property int timeColWidth: isCompact ? 62 : 72
+    readonly property int durationColWidth: isCompact ? 54 : 64
+    readonly property int appColWidth: isCompact ? 115 : 170
+    readonly property int tableSpacing: isCompact ? 6 : 10
 
     function parseTimeSeconds(t) {
         if (!t) return -1
@@ -25,7 +34,8 @@ Item {
         const result = []
         let pos = 0
         const len = content.length
-        while (pos < len && result.length < maxCount) {
+        const limit = (typeof maxCount === "number" && maxCount > 0) ? maxCount : Number.MAX_SAFE_INTEGER
+        while (pos < len && result.length < limit) {
             const nl = content.indexOf('\n', pos)
             const line = (nl === -1) ? content.substring(pos) : content.substring(pos, nl)
             pos = (nl === -1) ? len : nl + 1
@@ -45,14 +55,16 @@ Item {
                     time: start,
                     durationText: durationText,
                     app: parts[2].trim(),
-                    title: parts[3].trim()
+                    title: parts[3].trim(),
+                    url: parts.length >= 5 ? parts[4].trim() : ""
                 })
             } else {
                 result.push({
                     time: "Unknown",
                     durationText: "",
                     app: "Unknown",
-                    title: ""
+                    title: "",
+                    url: ""
                 })
             }
         }
@@ -65,8 +77,8 @@ Item {
 
         Label {
             text: Lang.t("Activity Monitor")
-            font { bold: true; pixelSize: Theme.fontSizeTitle; family: "Segoe UI" }
-            color: Theme.primaryColor
+            font { weight: Font.DemiBold; pixelSize: Theme.fontSizeTitle; family: "Segoe UI"; letterSpacing: 0.3 }
+            color: Theme.textColor
         }
 
         Rectangle {
@@ -97,11 +109,24 @@ Item {
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.lightTextColor
                 }
-                Label {
-                    text: logger.currentAppName || Lang.t("Unknown")
-                    font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.textColor
-                    elide: Text.ElideRight
+                RowLayout {
+                    spacing: 8
+                    Layout.fillWidth: true
+
+                    AppIconBadge {
+                        badgeSize: 22
+                        iconSize: 15
+                        appName: logger.currentAppName || ""
+                        url: logger.currentWindowUrl || ""
+                    }
+
+                    Label {
+                        text: logger.currentAppName || Lang.t("Unknown")
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.textColor
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                    }
                 }
 
                 Label {
@@ -114,6 +139,7 @@ Item {
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.textColor
                     elide: Text.ElideRight
+                    Layout.fillWidth: true
                 }
                 Label {
                     text: Lang.t("Total Logs") + ":"
@@ -121,7 +147,7 @@ Item {
                     color: Theme.lightTextColor
                 }
                 Label {
-                    text: logger.logCount
+                    text: logger.todayLogCount
                     color: Theme.lightTextColor
                     font.pixelSize: Theme.fontSizeSmall
                 }
@@ -150,63 +176,87 @@ Item {
                 color: Theme.textColor
             }
 
+            HoverHandler {
+                id: activityScrollHover
+            }
+
             ScrollView {
+                id: activityScrollView
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
+                rightPadding: activityScrollBar.isScrollable ? 14 : 0
+                ScrollBar.vertical: CustomScrollBar {
+                    id: activityScrollBar
+                    containerHovered: activityScrollHover.hovered
+                }
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                 ListView {
                     id: activityListView
-                    model: getTopRecentLogs(logger.logContent, 15)
+                    model: getTopRecentLogs(logger.todayLogContent, 0)
                     spacing: 4
-                    width: parent.width
+                    width: activityScrollView.availableWidth
 
-                    header: RowLayout {
+                    header: Item {
                         width: activityListView.width
-                        spacing: 8
+                        height: 26
 
-                        Label {
-                            text: Lang.t("Time")
-                            font {
-                                family: "Segoe UI"
-                                weight: Font.DemiBold
-                                pixelSize: Theme.fontSizeSmall
-                            }
-                            color: Theme.textColor
-                            Layout.preferredWidth: 100
-                        }
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 8
+                            anchors.rightMargin: 8
+                            spacing: activityMonitorRoot.tableSpacing
 
-                        Label {
-                            text: Lang.t("Duration")
-                            font {
-                                family: "Segoe UI"
-                                weight: Font.DemiBold
-                                pixelSize: Theme.fontSizeSmall
+                            Label {
+                                text: Lang.t("Time")
+                                font {
+                                    family: "Segoe UI"
+                                    weight: Font.DemiBold
+                                    pixelSize: Theme.fontSizeSmall
+                                }
+                                color: Theme.textColor
+                                Layout.minimumWidth: activityMonitorRoot.timeColWidth
+                                Layout.preferredWidth: activityMonitorRoot.timeColWidth
+                                Layout.maximumWidth: activityMonitorRoot.timeColWidth
                             }
-                            color: Theme.textColor
-                            Layout.preferredWidth: 80
-                        }
 
-                        Label {
-                            text: Lang.t("Application")
-                            font {
-                                family: "Segoe UI"
-                                weight: Font.DemiBold
-                                pixelSize: Theme.fontSizeSmall
+                            Label {
+                                text: Lang.t("Duration")
+                                font {
+                                    family: "Segoe UI"
+                                    weight: Font.DemiBold
+                                    pixelSize: Theme.fontSizeSmall
+                                }
+                                color: Theme.textColor
+                                Layout.minimumWidth: activityMonitorRoot.durationColWidth
+                                Layout.preferredWidth: activityMonitorRoot.durationColWidth
+                                Layout.maximumWidth: activityMonitorRoot.durationColWidth
                             }
-                            color: Theme.textColor
-                            Layout.preferredWidth: 150
-                        }
 
-                        Label {
-                            text: Lang.t("Title")
-                            font {
-                                family: "Segoe UI"
-                                weight: Font.DemiBold
-                                pixelSize: Theme.fontSizeSmall
+                            Label {
+                                text: Lang.t("Application")
+                                font {
+                                    family: "Segoe UI"
+                                    weight: Font.DemiBold
+                                    pixelSize: Theme.fontSizeSmall
+                                }
+                                color: Theme.textColor
+                                Layout.minimumWidth: activityMonitorRoot.appColWidth
+                                Layout.preferredWidth: activityMonitorRoot.appColWidth
+                                Layout.maximumWidth: activityMonitorRoot.appColWidth
                             }
-                            color: Theme.textColor
-                            Layout.fillWidth: true
+
+                            Label {
+                                text: Lang.t("Title")
+                                font {
+                                    family: "Segoe UI"
+                                    weight: Font.DemiBold
+                                    pixelSize: Theme.fontSizeSmall
+                                }
+                                color: Theme.textColor
+                                Layout.fillWidth: true
+                            }
                         }
                     }
 
@@ -220,11 +270,13 @@ Item {
                             anchors.fill: parent
                             anchors.leftMargin: 8
                             anchors.rightMargin: 8
-                            spacing: 8
+                            spacing: activityMonitorRoot.tableSpacing
 
                             Label {
                                 text: modelData.time
-                                Layout.preferredWidth: 100
+                                Layout.minimumWidth: activityMonitorRoot.timeColWidth
+                                Layout.preferredWidth: activityMonitorRoot.timeColWidth
+                                Layout.maximumWidth: activityMonitorRoot.timeColWidth
                                 font {
                                     family: "Segoe UI"
                                     pixelSize: Theme.fontSizeSmall
@@ -235,23 +287,41 @@ Item {
 
                             Label {
                                 text: modelData.durationText
-                                Layout.preferredWidth: 80
-                                font {
-                                    family: "Segoe UI"
-                                    pixelSize: Theme.fontSizeSmall
-                                }
-                                color: Theme.lightTextColor
-                            }
-
-                            Label {
-                                text: modelData.app
-                                Layout.preferredWidth: 150
+                                Layout.minimumWidth: activityMonitorRoot.durationColWidth
+                                Layout.preferredWidth: activityMonitorRoot.durationColWidth
+                                Layout.maximumWidth: activityMonitorRoot.durationColWidth
                                 font {
                                     family: "Segoe UI"
                                     pixelSize: Theme.fontSizeSmall
                                 }
                                 color: Theme.lightTextColor
                                 elide: Text.ElideRight
+                            }
+
+                            RowLayout {
+                                Layout.minimumWidth: activityMonitorRoot.appColWidth
+                                Layout.preferredWidth: activityMonitorRoot.appColWidth
+                                Layout.maximumWidth: activityMonitorRoot.appColWidth
+                                clip: true
+                                spacing: 6
+
+                                AppIconBadge {
+                                    badgeSize: 22
+                                    iconSize: 15
+                                    appName: modelData.app || ""
+                                    url: modelData.url || ""
+                                }
+
+                                Label {
+                                    text: modelData.app
+                                    Layout.fillWidth: true
+                                    font {
+                                        family: "Segoe UI"
+                                        pixelSize: Theme.fontSizeSmall
+                                    }
+                                    color: Theme.lightTextColor
+                                    elide: Text.ElideRight
+                                }
                             }
 
                             Label {
