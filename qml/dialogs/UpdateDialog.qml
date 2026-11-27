@@ -67,14 +67,6 @@ Dialog {
         border.color: Theme.borderColor
         clip: true
 
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 3
-            color: root.statusAccent
-        }
-
         ColumnLayout {
             id: contentCol
             anchors.top: parent.top

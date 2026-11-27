@@ -112,6 +112,95 @@ mkdir -p "${DMG_STAGING}"
 cp -R "${APP_BUNDLE}" "${DMG_STAGING}/Deskmon.app"
 ln -s /Applications "${DMG_STAGING}/Applications"
 
+cat > "${DMG_STAGING}/Uninstall Deskmon.command" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+show_error() {
+    local msg="$1"
+    echo "[ERROR] ${msg}" >&2
+    osascript -e "display alert \"Deskmon Uninstaller Error\" message \"${msg}\" as critical" >/dev/null 2>&1 || true
+}
+
+APP_PATH="/Applications/Deskmon.app"
+DATA_DIR="${HOME}/Library/Application Support/Pranala/Deskmon"
+ORG_DATA_DIR="${HOME}/Library/Application Support/Pranala"
+CACHE_DIR="${HOME}/Library/Caches/Pranala/Deskmon"
+ORG_CACHE_DIR="${HOME}/Library/Caches/Pranala"
+PREF_PLIST="${HOME}/Library/Preferences/com.pranala.Deskmon.plist"
+DB_FILE="${DATA_DIR}/deskmon.db"
+
+CHOICE="$(osascript <<'APPLESCRIPT'
+try
+    set resp to display dialog "Choose how you want to uninstall Deskmon:" & return & return & "• Keep Database: removes Deskmon.app and temporary caches/logs, keeping deskmon.db intact." & return & "• Delete All + DB: also removes deskmon.db, profile data, and saved preferences." with title "Uninstall Deskmon" buttons {"Cancel", "Keep Database", "Delete All + DB"} default button "Keep Database"
+    return button returned of resp
+on error number -128
+    return "Cancel"
+end try
+APPLESCRIPT
+)"
+
+if [ "${CHOICE}" = "Cancel" ] || [ -z "${CHOICE}" ]; then
+    exit 0
+fi
+
+pkill -x "Deskmon" >/dev/null 2>&1 || true
+sleep 0.5
+
+if [ "${CHOICE}" = "Delete All + DB" ] && [ -f "${DB_FILE}" ]; then
+    while lsof "${DB_FILE}" >/dev/null 2>&1; do
+        RETRY="$(osascript <<'APPLESCRIPT'
+try
+    set r to display dialog "Unable to delete deskmon.db because it is currently open in another application. Close the program using deskmon.db and click Retry." with title "Database Locked" buttons {"Cancel", "Retry"} default button "Retry" with icon stop
+    return button returned of r
+on error number -128
+    return "Cancel"
+end try
+APPLESCRIPT
+)"
+        if [ "${RETRY}" != "Retry" ]; then
+            show_error "Uninstall aborted because deskmon.db is still open in another application."
+            exit 1
+        fi
+        pkill -x "Deskmon" >/dev/null 2>&1 || true
+    done
+fi
+
+if [ -d "${APP_PATH}" ]; then
+    if [ -w "$(dirname "${APP_PATH}")" ]; then
+        if ! rm -rf "${APP_PATH}"; then
+            show_error "Failed to remove ${APP_PATH}. Make sure Deskmon is closed."
+            exit 1
+        fi
+    else
+        if ! osascript -e "do shell script \"rm -rf '${APP_PATH}'\" with administrator privileges" >/dev/null 2>&1; then
+            show_error "Failed to remove ${APP_PATH} (administrator permission canceled or application files are in use)."
+            exit 1
+        fi
+    fi
+fi
+
+# Bersihkan cache, logs, icon_cache, updates
+rm -rf "${DATA_DIR}/logs" "${DATA_DIR}/cache" "${DATA_DIR}/icon_cache" "${DATA_DIR}/updates" "${CACHE_DIR}" 2>/dev/null || true
+
+if [ "${CHOICE}" = "Delete All + DB" ]; then
+    if [ -f "${DB_FILE}" ] && ! rm -f "${DB_FILE}" "${DB_FILE}-wal" "${DB_FILE}-shm"; then
+        show_error "Failed to delete ${DB_FILE}. Make sure no application is holding it open."
+        exit 1
+    fi
+    rm -rf "${DATA_DIR}/profiles" "${PREF_PLIST}" 2>/dev/null || true
+fi
+
+rmdir "${DATA_DIR}" 2>/dev/null || true
+rmdir "${ORG_DATA_DIR}" 2>/dev/null || true
+rmdir "${CACHE_DIR}" 2>/dev/null || true
+rmdir "${ORG_CACHE_DIR}" 2>/dev/null || true
+
+osascript -e 'display notification "Deskmon has been uninstalled cleanly." with title "Uninstall Deskmon"' >/dev/null 2>&1 || true
+echo "Deskmon uninstalled successfully (${CHOICE})."
+EOF
+chmod +x "${DMG_STAGING}/Uninstall Deskmon.command"
+
 hdiutil create -volname "Deskmon ${VERSION}" \
     -srcfolder "${DMG_STAGING}" \
     -ov -format UDZO \

@@ -235,7 +235,7 @@ def step_create_update_zip(version):
         "releaseNotes": f"Deskmon v{version}",
         "platforms": {
             "windows-x64": {
-                "url": f"https://github.com/NanditoDitama/DeskmonUpdateRepo/releases/download/v{version}/{zip_name}",
+                "url": f"https://github.com/NanditoDitama/DeskmonUpdater/releases/download/v{version}/{zip_name}",
                 "sha256": digest,
                 "type": "zip"
             }

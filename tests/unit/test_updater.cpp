@@ -240,6 +240,8 @@ private slots:
         QVERIFY(winRestart.contains(QStringLiteral("$targetPid = 4242")));
         QVERIFY(winRestart.contains(QStringLiteral("$relaunch = $true")));
         QVERIFY(winRestart.contains(QStringLiteral("robocopy")));
+        QVERIFY(winRestart.contains(QStringLiteral("$quotedSelf = '\"' + $PSCommandPath + '\"'")));
+        QVERIFY(winRestart.contains(QStringLiteral("'-File',$quotedSelf,'-Elevated'")));
 
         const QString macQuit = UpdateManager::buildSwapScriptContent(
             QStringLiteral("macos"), 777, QStringLiteral("/tmp/upd/payload"),
@@ -248,6 +250,8 @@ private slots:
         QVERIFY(macQuit.contains(QStringLiteral("RELAUNCH=0")));
         QVERIFY(macQuit.contains(QStringLiteral("TARGET_BUNDLE='/Applications/Deskmon.app'")));
         QVERIFY(macQuit.contains(QStringLiteral("ditto")));
+        QVERIFY(macQuit.contains(QStringLiteral("apply_update.log")));
+        QVERIFY(macQuit.contains(QStringLiteral("trap cleanup_on_exit EXIT")));
 
         const QString linuxRestart = UpdateManager::buildSwapScriptContent(
             QStringLiteral("linux"), 999, QStringLiteral("/tmp/upd/payload"),
@@ -255,6 +259,10 @@ private slots:
             QStringLiteral("/opt/deskmon/Deskmon"), true);
         QVERIFY(linuxRestart.contains(QStringLiteral("RELAUNCH=1")));
         QVERIFY(linuxRestart.contains(QStringLiteral("pkexec")));
+        QVERIFY(linuxRestart.contains(QStringLiteral("cp -af")));
+        QVERIFY(linuxRestart.contains(QStringLiteral("deskmon.sh")));
+        QVERIFY(linuxRestart.contains(QStringLiteral("nohup \"$APP_DIR/deskmon.sh\"")));
+        QVERIFY(linuxRestart.contains(QStringLiteral("apply_update.log")));
     }
 
 private:

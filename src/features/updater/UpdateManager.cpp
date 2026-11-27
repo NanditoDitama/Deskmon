@@ -799,33 +799,49 @@ QString UpdateManager::buildSwapScriptContent(const QString &platformFamily,
             "$stagedDir = %4\n"
             "$exePath = %5\n"
             "$relaunch = %6\n"
-            "for ($i = 0; $i -lt 60; $i++) {\n"
-            "    if (-not (Get-Process -Id $targetPid -ErrorAction SilentlyContinue)) { break }\n"
-            "    Start-Sleep -Milliseconds 250\n"
+            "$logFile = Join-Path (Split-Path $PSCommandPath -Parent) 'apply_update.log'\n"
+            "function Write-UpdateLog([string]$msg) {\n"
+            "    try { Add-Content -Path $logFile -Value (\"[{0}] {1}\" -f (Get-Date -Format 's'), $msg) -ErrorAction SilentlyContinue } catch {}\n"
             "}\n"
-            "$writable = $false\n"
             "try {\n"
-            "    $probe = Join-Path $appDir '.deskmon_write_probe'\n"
-            "    [IO.File]::WriteAllText($probe, 'ok')\n"
-            "    Remove-Item $probe -Force -ErrorAction SilentlyContinue\n"
-            "    $writable = $true\n"
-            "} catch { $writable = $false }\n"
-            "if (-not $writable -and -not $Elevated) {\n"
-            "    $proc = Start-Process -FilePath 'powershell.exe' -Verb RunAs -PassThru -Wait "
-            "-ArgumentList @('-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-File',$PSCommandPath,'-Elevated')\n"
-            "    if ($proc.ExitCode -ne 0) { exit $proc.ExitCode }\n"
-            "    if ($relaunch -and (Test-Path $exePath)) { Start-Process -FilePath $exePath -WorkingDirectory $appDir }\n"
-            "    Remove-Item $PSCommandPath -Force -ErrorAction SilentlyContinue\n"
+            "    for ($i = 0; $i -lt 60; $i++) {\n"
+            "        if (-not (Get-Process -Id $targetPid -ErrorAction SilentlyContinue)) { break }\n"
+            "        Start-Sleep -Milliseconds 250\n"
+            "    }\n"
+            "    $writable = $false\n"
+            "    try {\n"
+            "        $probe = Join-Path $appDir '.deskmon_write_probe'\n"
+            "        [IO.File]::WriteAllText($probe, 'ok')\n"
+            "        Remove-Item $probe -Force -ErrorAction SilentlyContinue\n"
+            "        $writable = $true\n"
+            "    } catch { $writable = $false }\n"
+            "    if (-not $writable -and -not $Elevated) {\n"
+            "        $quotedSelf = '\"' + $PSCommandPath + '\"'\n"
+            "        $proc = Start-Process -FilePath 'powershell.exe' -Verb RunAs -PassThru -Wait "
+            "-ArgumentList @('-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-File',$quotedSelf,'-Elevated')\n"
+            "        if ($proc.ExitCode -ne 0) {\n"
+            "            Write-UpdateLog \"Elevated swap failed with exit code $($proc.ExitCode)\"\n"
+            "            exit $proc.ExitCode\n"
+            "        }\n"
+            "        if ($relaunch -and (Test-Path $exePath)) { Start-Process -FilePath $exePath -WorkingDirectory $appDir }\n"
+            "        Remove-Item $PSCommandPath -Force -ErrorAction SilentlyContinue\n"
+            "        exit 0\n"
+            "    }\n"
+            "    $null = & robocopy $payloadDir $appDir /E /IS /IT /R:5 /W:1 /NFL /NDL /NJH /NJS /NP\n"
+            "    if ($LASTEXITCODE -ge 8) {\n"
+            "        Write-UpdateLog \"robocopy failed with exit code $LASTEXITCODE\"\n"
+            "        exit $LASTEXITCODE\n"
+            "    }\n"
+            "    if (Test-Path $stagedDir) { Remove-Item $stagedDir -Recurse -Force -ErrorAction SilentlyContinue }\n"
+            "    if ($relaunch -and -not $Elevated -and (Test-Path $exePath)) {\n"
+            "        Start-Process -FilePath $exePath -WorkingDirectory $appDir\n"
+            "    }\n"
+            "    if (-not $Elevated) { Remove-Item $PSCommandPath -Force -ErrorAction SilentlyContinue }\n"
             "    exit 0\n"
-            "}\n"
-            "$null = & robocopy $payloadDir $appDir /E /IS /IT /R:5 /W:1 /NFL /NDL /NJH /NJS /NP\n"
-            "if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }\n"
-            "if (Test-Path $stagedDir) { Remove-Item $stagedDir -Recurse -Force -ErrorAction SilentlyContinue }\n"
-            "if ($relaunch -and -not $Elevated -and (Test-Path $exePath)) {\n"
-            "    Start-Process -FilePath $exePath -WorkingDirectory $appDir\n"
-            "}\n"
-            "if (-not $Elevated) { Remove-Item $PSCommandPath -Force -ErrorAction SilentlyContinue }\n"
-            "exit 0\n")
+            "} catch {\n"
+            "    Write-UpdateLog \"Swap error (Elevated=$Elevated): $($_.Exception.Message)\"\n"
+            "    exit 1\n"
+            "}\n")
             .arg(targetPid)
             .arg(psSingleQuote(winPayload),
                  psSingleQuote(winAppDir),
@@ -834,21 +850,38 @@ QString UpdateManager::buildSwapScriptContent(const QString &platformFamily,
                  relaunch ? QStringLiteral("$true") : QStringLiteral("$false"));
     }
 
+    const QString unixPreamble = QStringLiteral(
+        "#!/bin/bash\n"
+        "set -e\n"
+        "TARGET_PID=%1\n"
+        "PAYLOAD_DIR=%2\n"
+        "APP_DIR=%3\n"
+        "STAGED_DIR=%4\n"
+        "EXE_PATH=%5\n"
+        "RELAUNCH=%6\n"
+        "LOG_FILE=\"$(dirname \"$0\")/apply_update.log\"\n"
+        "cleanup_on_exit() {\n"
+        "  rc=$?\n"
+        "  if [ \"$rc\" -ne 0 ]; then\n"
+        "    printf '[%s] Update swap failed (exit %d)\\n' \"$(date '+%Y-%m-%dT%H:%M:%S')\" \"$rc\" >> \"$LOG_FILE\" 2>/dev/null || true\n"
+        "  fi\n"
+        "}\n"
+        "trap cleanup_on_exit EXIT\n"
+        "for i in $(seq 1 60); do\n"
+        "  kill -0 \"$TARGET_PID\" 2>/dev/null || break\n"
+        "  sleep 0.25\n"
+        "done\n")
+        .arg(targetPid)
+        .arg(shSingleQuote(payloadDir),
+             shSingleQuote(appDirPath),
+             shSingleQuote(stagedDir),
+             shSingleQuote(executablePath),
+             relaunch ? QStringLiteral("1") : QStringLiteral("0"));
+
     if (family == QStringLiteral("macos")) {
         const QString bundleRoot = macAppBundleRootFromDir(appDirPath);
-        return QStringLiteral(
-            "#!/bin/bash\n"
-            "set -e\n"
-            "TARGET_PID=%1\n"
-            "PAYLOAD_DIR=%2\n"
-            "TARGET_BUNDLE=%3\n"
-            "STAGED_DIR=%4\n"
-            "EXE_PATH=%5\n"
-            "RELAUNCH=%6\n"
-            "for i in $(seq 1 60); do\n"
-            "  kill -0 \"$TARGET_PID\" 2>/dev/null || break\n"
-            "  sleep 0.25\n"
-            "done\n"
+        return unixPreamble + QStringLiteral(
+            "TARGET_BUNDLE=%1\n"
             "SRC_APP=$(find \"$PAYLOAD_DIR\" -maxdepth 2 -name '*.app' -type d | head -n 1)\n"
             "if [ -n \"$SRC_APP\" ] && [ -d \"$TARGET_BUNDLE\" ]; then\n"
             "  if [ -w \"$(dirname \"$TARGET_BUNDLE\")\" ]; then\n"
@@ -857,7 +890,12 @@ QString UpdateManager::buildSwapScriptContent(const QString &platformFamily,
             "    osascript -e \"do shell script \\\"ditto '$SRC_APP' '$TARGET_BUNDLE'\\\" with administrator privileges\"\n"
             "  fi\n"
             "else\n"
-            "  cp -Rf \"$PAYLOAD_DIR\"/* %7/\n"
+            "  if [ -w \"$APP_DIR\" ]; then\n"
+            "    cp -af \"$PAYLOAD_DIR\"/. \"$APP_DIR\"/\n"
+            "    chmod +x \"$EXE_PATH\" 2>/dev/null || true\n"
+            "  else\n"
+            "    osascript -e \"do shell script \\\"cp -af '$PAYLOAD_DIR'/. '$APP_DIR'/ && chmod +x '$EXE_PATH'\\\" with administrator privileges\"\n"
+            "  fi\n"
             "fi\n"
             "rm -rf \"$STAGED_DIR\"\n"
             "if [ \"$RELAUNCH\" = \"1\" ]; then\n"
@@ -868,46 +906,27 @@ QString UpdateManager::buildSwapScriptContent(const QString &platformFamily,
             "  fi\n"
             "fi\n"
             "rm -f \"$0\"\n")
-            .arg(targetPid)
-            .arg(shSingleQuote(payloadDir),
-                 shSingleQuote(bundleRoot),
-                 shSingleQuote(stagedDir),
-                 shSingleQuote(executablePath),
-                 relaunch ? QStringLiteral("1") : QStringLiteral("0"),
-                 shSingleQuote(appDirPath));
+            .arg(shSingleQuote(bundleRoot));
     }
 
     // Linux swap script
-    return QStringLiteral(
-        "#!/bin/bash\n"
-        "set -e\n"
-        "TARGET_PID=%1\n"
-        "PAYLOAD_DIR=%2\n"
-        "APP_DIR=%3\n"
-        "STAGED_DIR=%4\n"
-        "EXE_PATH=%5\n"
-        "RELAUNCH=%6\n"
-        "for i in $(seq 1 60); do\n"
-        "  kill -0 \"$TARGET_PID\" 2>/dev/null || break\n"
-        "  sleep 0.25\n"
-        "done\n"
+    return unixPreamble + QStringLiteral(
         "if [ -w \"$APP_DIR\" ]; then\n"
-        "  cp -Rf \"$PAYLOAD_DIR\"/* \"$APP_DIR\"/\n"
+        "  cp -af \"$PAYLOAD_DIR\"/. \"$APP_DIR\"/\n"
         "  chmod +x \"$EXE_PATH\" 2>/dev/null || true\n"
+        "  [ ! -f \"$APP_DIR/deskmon.sh\" ] || chmod +x \"$APP_DIR/deskmon.sh\" 2>/dev/null || true\n"
         "else\n"
-        "  pkexec sh -c \"cp -Rf '$PAYLOAD_DIR'/* '$APP_DIR'/ && chmod +x '$EXE_PATH'\"\n"
+        "  pkexec sh -c \"cp -af '$PAYLOAD_DIR'/. '$APP_DIR'/ && chmod +x '$EXE_PATH' && ([ ! -f '$APP_DIR/deskmon.sh' ] || chmod +x '$APP_DIR/deskmon.sh')\"\n"
         "fi\n"
         "rm -rf \"$STAGED_DIR\"\n"
         "if [ \"$RELAUNCH\" = \"1\" ]; then\n"
-        "  nohup \"$EXE_PATH\" >/dev/null 2>&1 &\n"
+        "  if [ -x \"$APP_DIR/deskmon.sh\" ]; then\n"
+        "    nohup \"$APP_DIR/deskmon.sh\" >/dev/null 2>&1 &\n"
+        "  else\n"
+        "    nohup \"$EXE_PATH\" >/dev/null 2>&1 &\n"
+        "  fi\n"
         "fi\n"
-        "rm -f \"$0\"\n")
-        .arg(targetPid)
-        .arg(shSingleQuote(payloadDir),
-             shSingleQuote(appDirPath),
-             shSingleQuote(stagedDir),
-             shSingleQuote(executablePath),
-             relaunch ? QStringLiteral("1") : QStringLiteral("0"));
+        "rm -f \"$0\"\n");
 }
 
 bool UpdateManager::launchDetachedSwapHelper(const StagedUpdateInfo &info,

@@ -172,6 +172,70 @@ Description: Deskmon Desktop Activity Monitor
  Cross-platform work tracking and productivity monitoring application.
 EOF
 
+    cat > "${DEB_WORK}/DEBIAN/prerm" <<'EOF'
+#!/usr/bin/env bash
+set -e
+pkill -f '/opt/deskmon/Deskmon' >/dev/null 2>&1 || true
+sleep 0.3
+EOF
+    chmod 0755 "${DEB_WORK}/DEBIAN/prerm"
+
+    cat > "${DEB_WORK}/DEBIAN/postrm" <<'EOF'
+#!/usr/bin/env bash
+set -e
+
+cleanup_user_dir() {
+    local user_home="$1"
+    local mode="$2"
+    [ -d "${user_home}" ] || return 0
+
+    local local_dir="${user_home}/.local/share/Pranala/Deskmon"
+    local cache_dir="${user_home}/.cache/Pranala/Deskmon"
+    local config_dir="${user_home}/.config/Pranala"
+
+    # Hapus jejak sementara aplikasi saat remove maupun purge
+    rm -rf "${local_dir}/logs" "${local_dir}/cache" "${local_dir}/icon_cache" "${local_dir}/updates" "${cache_dir}" 2>/dev/null || true
+
+    if [ "${mode}" = "purge" ]; then
+        local db_file="${local_dir}/deskmon.db"
+        if [ -f "${db_file}" ]; then
+            if (command -v fuser >/dev/null 2>&1 && fuser "${db_file}" >/dev/null 2>&1) || \
+               (command -v lsof >/dev/null 2>&1 && lsof "${db_file}" >/dev/null 2>&1); then
+                echo "[ERROR] Cannot delete '${db_file}' because it is currently open in another process." >&2
+                echo "        Close the process using deskmon.db and run 'sudo apt purge deskmon' again." >&2
+                exit 1
+            fi
+        fi
+
+        if [ -f "${db_file}" ] && ! rm -f "${db_file}" "${db_file}-wal" "${db_file}-shm"; then
+            echo "[ERROR] Failed to delete '${db_file}'. Close any program accessing it and retry." >&2
+            exit 1
+        fi
+
+        rm -rf "${local_dir}/profiles" 2>/dev/null || true
+        rm -f "${config_dir}/Deskmon.conf" 2>/dev/null || true
+        rmdir "${config_dir}" 2>/dev/null || true
+    fi
+
+    rmdir "${local_dir}" 2>/dev/null || true
+    rmdir "${user_home}/.local/share/Pranala" 2>/dev/null || true
+    rmdir "${user_home}/.cache/Pranala" 2>/dev/null || true
+}
+
+case "${1:-}" in
+    remove|purge)
+        if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+            sudo_home="$(getent passwd "${SUDO_USER}" 2>/dev/null | cut -d: -f6 || true)"
+            [ -n "${sudo_home}" ] && cleanup_user_dir "${sudo_home}" "$1"
+        fi
+        for home_dir in /home/*; do
+            [ -d "${home_dir}" ] && cleanup_user_dir "${home_dir}" "$1"
+        done
+        ;;
+esac
+EOF
+    chmod 0755 "${DEB_WORK}/DEBIAN/postrm"
+
     dpkg-deb --root-owner-group --build "${DEB_WORK}" "${DEB_PATH}"
     rm -rf "${DEB_WORK}"
     echo "Created .deb installer: ${DEB_PATH}"
