@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version (e.g. 2.0.1.0, defaults to tag/CMake)"
+        description: "Release version (e.g. 1.0.3.4, leave empty to read version.txt)"
         required: false
 
 permissions:
