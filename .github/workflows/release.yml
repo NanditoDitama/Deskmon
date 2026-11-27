@@ -28,20 +28,38 @@ jobs:
           target: "desktop"
           arch: "win64_mingw"
           dir: "${{ github.workspace }}/Qt"
+          aqtsource: "git+https://github.com/miurahr/aqtinstall.git"
 
       - name: Configure & Build
         shell: pwsh
         run: |
-          $qtDir = Resolve-Path "${{ github.workspace }}/Qt/6.12.0/mingw_64"
-          $mingwArch = (python -m aqt list-tool windows desktop tools_mingw | Select-String -Pattern "win64_mingw" | Select-Object -Last 1).ToString().Trim()
-          if ($mingwArch) {
-            python -m aqt install-tool --outputdir "${{ github.workspace }}/Qt" windows desktop tools_mingw $mingwArch
+          $qtDir = $env:QT_ROOT_DIR
+          if (-not $qtDir -and $env:Qt6_DIR) { $qtDir = (Resolve-Path "$env:Qt6_DIR\..\..\..").Path }
+          if (-not $qtDir) {
+            $windeploy = Get-ChildItem "${{ github.workspace }}/Qt" -Recurse -Filter "windeployqt.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($windeploy) { $qtDir = Split-Path $windeploy.DirectoryName }
           }
-          $mingwBin = (Get-ChildItem "${{ github.workspace }}/Qt/Tools/mingw*/bin" -ErrorAction SilentlyContinue | Select-Object -Last 1).FullName
-          if (-not $mingwBin -and (Test-Path "C:\msys64\mingw64\bin\g++.exe")) {
-            $mingwBin = "C:\msys64\mingw64\bin"
+          if (-not $qtDir) { throw "Qt directory not found after install-qt-action." }
+          $env:QT_RESOLVED_DIR = $qtDir
+          "QT_RESOLVED_DIR=$qtDir" >> $env:GITHUB_ENV
+
+          try {
+            $mingwArch = (python -m aqt list-tool windows desktop tools_mingw 2>$null | Select-String -Pattern "win64_mingw" | Select-Object -Last 1).ToString().Trim()
+            if ($mingwArch) {
+              python -m aqt install-tool --outputdir "${{ github.workspace }}/Qt" windows desktop tools_mingw $mingwArch
+            }
+          } catch {}
+
+          $mingwBin = (Get-ChildItem "${{ github.workspace }}/Qt" -Recurse -Directory -Filter "mingw*_64" -ErrorAction SilentlyContinue | ForEach-Object { Join-Path $_.FullName "bin" } | Where-Object { Test-Path (Join-Path $_ "g++.exe") } | Select-Object -Last 1)
+          if (-not $mingwBin -and (Test-Path "C:\mingw64\bin\g++.exe")) { $mingwBin = "C:\mingw64\bin" }
+          if (-not $mingwBin -and (Test-Path "C:\msys64\mingw64\bin\g++.exe")) { $mingwBin = "C:\msys64\mingw64\bin" }
+          if (-not $mingwBin) {
+            $gpp = Get-Command g++ -ErrorAction SilentlyContinue
+            if ($gpp) { $mingwBin = $gpp.Source | Split-Path }
           }
           if (-not $mingwBin) { throw "MinGW toolchain not found." }
+          "MINGW_RESOLVED_BIN=$mingwBin" >> $env:GITHUB_ENV
+
           $env:PATH = "$qtDir\bin;$mingwBin;$env:PATH"
           $genArgs = if (Get-Command ninja -ErrorAction SilentlyContinue) { @("-G", "Ninja") } else { @("-G", "MinGW Makefiles") }
           cmake -B build @genArgs -DCMAKE_BUILD_TYPE=Release -DCONSOLE_LOGS=OFF -DBUILD_TESTING=OFF -DCMAKE_PREFIX_PATH="$qtDir"
@@ -62,9 +80,8 @@ jobs:
           if (-not $ver) {
             $ver = (Get-Content version.txt -Raw).Trim()
           }
-          $qtDir = Resolve-Path "${{ github.workspace }}/Qt/6.12.0/mingw_64"
-          $mingwBin = (Get-ChildItem "${{ github.workspace }}/Qt/Tools/mingw*/bin" -ErrorAction SilentlyContinue | Select-Object -Last 1).FullName
-          if ($mingwBin) { $env:PATH = "$mingwBin;$env:PATH" }
+          $qtDir = $env:QT_RESOLVED_DIR
+          if ($env:MINGW_RESOLVED_BIN) { $env:PATH = "$env:MINGW_RESOLVED_BIN;$env:PATH" }
           New-Item -ItemType Directory -Force -Path dist/Deskmon | Out-Null
           Copy-Item build/Deskmon.exe dist/Deskmon/
           Copy-Item -Recurse resources dist/Deskmon/resources
