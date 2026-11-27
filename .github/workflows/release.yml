@@ -44,13 +44,14 @@ jobs:
           "QT_RESOLVED_DIR=$qtDir" >> $env:GITHUB_ENV
 
           try {
-            $mingwArch = (python -m aqt list-tool windows desktop tools_mingw 2>$null | Select-String -Pattern "win64_mingw" | Select-Object -Last 1).ToString().Trim()
-            if ($mingwArch) {
-              python -m aqt install-tool --outputdir "${{ github.workspace }}/Qt" windows desktop tools_mingw $mingwArch
-            }
+            $mingwTools = python -m aqt list-tool windows desktop tools_mingw 2>$null | ForEach-Object { $_.Trim() } | Where-Object { $_ -match 'win64_mingw(\d+)' }
+            $mingwArch = ($mingwTools | Sort-Object { if ($_ -match 'win64_mingw(\d+)') { [int]$matches[1] } else { 0 } } -Descending | Select-Object -First 1)
+            if (-not $mingwArch) { $mingwArch = "qt.tools.win64_mingw1310" }
+            Write-Host "Installing MinGW tool: $mingwArch"
+            python -m aqt install-tool --outputdir "${{ github.workspace }}/Qt" windows desktop tools_mingw $mingwArch
           } catch {}
 
-          $mingwBin = (Get-ChildItem "${{ github.workspace }}/Qt" -Recurse -Directory -Filter "mingw*_64" -ErrorAction SilentlyContinue | ForEach-Object { Join-Path $_.FullName "bin" } | Where-Object { Test-Path (Join-Path $_ "g++.exe") } | Select-Object -Last 1)
+          $mingwBin = (Get-ChildItem "${{ github.workspace }}/Qt" -Recurse -Directory -Filter "mingw*_64" -ErrorAction SilentlyContinue | Sort-Object { if ($_.Name -match 'mingw(\d+)_64') { [int]$matches[1] } else { 0 } } -Descending | ForEach-Object { Join-Path $_.FullName "bin" } | Where-Object { Test-Path (Join-Path $_ "g++.exe") } | Select-Object -First 1)
           if (-not $mingwBin -and (Test-Path "C:\mingw64\bin\g++.exe")) { $mingwBin = "C:\mingw64\bin" }
           if (-not $mingwBin -and (Test-Path "C:\msys64\mingw64\bin\g++.exe")) { $mingwBin = "C:\msys64\mingw64\bin" }
           if (-not $mingwBin) {
