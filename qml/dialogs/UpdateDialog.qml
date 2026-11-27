@@ -8,15 +8,15 @@ Dialog {
     id: root
     title: ""
     parent: Overlay.overlay
+    anchors.centerIn: Overlay.overlay
     modal: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
+    margins: 24
     implicitWidth: 450
     implicitHeight: contentCol.implicitHeight + 48
-    width: 450
+    width: Overlay.overlay ? Math.min(450, Math.max(320, Overlay.overlay.width - 48)) : 450
     height: contentCol.implicitHeight + 48
-    x: parent ? Math.round((parent.width - width) / 2) : 0
-    y: parent ? Math.round((parent.height - height) / 2) : 0
 
     padding: 0
     topPadding: 0
