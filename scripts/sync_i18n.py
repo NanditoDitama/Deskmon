@@ -149,12 +149,24 @@ def generate_i18n_file(output_path, en_dict, id_dict):
 
     qml_content = f'''pragma Singleton
 import QtQuick
+import QtCore
 
 QtObject {{
     id: i18n
 
-    // Bahasa aktif saat ini. Default: "en" (English)
+    // Bahasa aktif saat ini. Default: "en" (English), disimpan via QSettings
     property string currentLanguage: "en"
+
+    readonly property Settings langSettings: Settings {{
+        category: "ui"
+        property alias currentLanguage: i18n.currentLanguage
+    }}
+
+    Component.onCompleted: {{
+        if (!strings[currentLanguage]) {{
+            currentLanguage = "en";
+        }}
+    }}
 
     readonly property bool isEnglish: currentLanguage === "en"
     readonly property bool isIndonesian: currentLanguage === "id"

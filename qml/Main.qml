@@ -48,10 +48,12 @@ Window {
     property string idleNotificationText: ""
 
     Component.onCompleted: {
-        if (typeof Application !== "undefined" && Application.styleHints) {
-            Theme.isDarkMode = Application.styleHints.colorScheme === Qt.ColorScheme.Dark
-        } else {
-            Theme.isDarkMode = Material.theme === Material.Dark
+        if (!Theme.hasCustomTheme) {
+            if (typeof Application !== "undefined" && Application.styleHints) {
+                Theme.isDarkMode = Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+            } else {
+                Theme.isDarkMode = Material.theme === Material.Dark
+            }
         }
 
         if (typeof logger !== "undefined" && logger.currentUserId === -1) {
@@ -474,6 +476,7 @@ Window {
         target: Theme
         function onThemeToggleRequested() {
             liquidThemeOverlay.startWithToggle(function() {
+                Theme.hasCustomTheme = true
                 Theme.isDarkMode = !Theme.isDarkMode
             })
         }

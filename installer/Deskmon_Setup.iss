@@ -316,7 +316,11 @@ begin
     HasProfiles := DirExists(RoamingDataDir);
 
     if HasDb or HasProfiles then
+    begin
       ShouldDeleteDatabase := AskUninstallDatabaseOption(HasDb, HasProfiles);
+      // Pastikan proses Deskmon ditutup ulang jika pengguna sempat membukanya saat dialog opsi tampil
+      TryKillDeskmonProcesses();
+    end;
   end
   else if CurUninstallStep = usPostUninstall then
   begin

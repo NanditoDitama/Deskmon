@@ -7,10 +7,12 @@ QtObject {
 
     // Mode (persisted via QSettings)
     property bool isDarkMode: false
+    property bool hasCustomTheme: false
 
     readonly property Settings appSettings: Settings {
         category: "ui"
         property alias isDarkMode: theme.isDarkMode
+        property alias hasCustomTheme: theme.hasCustomTheme
     }
 
     // Color Palette

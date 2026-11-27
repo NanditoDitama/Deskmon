@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 
     // Terapkan update yang sudah 100% staged sebelum mengunci single-instance / memuat QML
     const QString startupVersion = QCoreApplication::applicationVersion().isEmpty()
-        ? QStringLiteral("1.0.3.4")
+        ? QStringLiteral("0.0.0.0")
         : QCoreApplication::applicationVersion();
     if (UpdateManager::tryApplyStagedUpdateOnStartup(startupVersion,
                                                      QCoreApplication::applicationDirPath(),

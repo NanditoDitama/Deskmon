@@ -1,11 +1,23 @@
 pragma Singleton
 import QtQuick
+import QtCore
 
 QtObject {
     id: i18n
 
-    // Bahasa aktif saat ini. Default: "en" (English)
+    // Bahasa aktif saat ini. Default: "en" (English), disimpan via QSettings
     property string currentLanguage: "en"
+
+    readonly property Settings langSettings: Settings {
+        category: "ui"
+        property alias currentLanguage: i18n.currentLanguage
+    }
+
+    Component.onCompleted: {
+        if (!strings[currentLanguage]) {
+            currentLanguage = "en";
+        }
+    }
 
     readonly property bool isEnglish: currentLanguage === "en"
     readonly property bool isIndonesian: currentLanguage === "id"
@@ -123,6 +135,8 @@ QtObject {
             "idleDetected": "Idle Detected",
             "idleMessage": "No mouse or keyboard activity detected for a while.",
             "indonesian": "Bahasa Indonesia",
+            "Koneksi ke server gagal atau timeout. Periksa koneksi internet Anda.": "Server connection failed or timed out. Please check your internet connection.",
+            "Koneksi ke server gagal. Periksa koneksi internet, username, dan password Anda.": "Server connection failed. Please check your internet connection, username, and password.",
             "language": "Language",
             "Language": "Language",
             "Last Month": "Last Month",
@@ -409,6 +423,8 @@ QtObject {
             "idleDetected": "Tidak Aktif Terdeteksi",
             "idleMessage": "Tidak ada aktivitas mouse atau keyboard dalam beberapa waktu.",
             "indonesian": "Bahasa Indonesia",
+            "Koneksi ke server gagal atau timeout. Periksa koneksi internet Anda.": "Koneksi ke server gagal atau timeout. Periksa koneksi internet Anda.",
+            "Koneksi ke server gagal. Periksa koneksi internet, username, dan password Anda.": "Koneksi ke server gagal. Periksa koneksi internet, username, dan password Anda.",
             "language": "Bahasa",
             "Language": "Bahasa",
             "Last Month": "Bulan Lalu",

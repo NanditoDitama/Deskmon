@@ -269,7 +269,8 @@ QString AuthManager::authenticate(const QString &loginInput, const QString &pass
     QJsonDocument doc(jsonPayload);
     QByteArray data = doc.toJson();
 
-    qDebug() << "Sending login request with payload:" << doc.toJson(QJsonDocument::Compact);
+    qDebug() << "Sending login request for" << loginType << ":" << jsonPayload["email"].toString()
+             << "with" << gatewayMacs.size() << "gateway MAC(s)";
 
     QNetworkReply *reply = m_apiClient->post(m_apiClient->buildUrl("/login"), data, false);
     QEventLoop loop;
@@ -280,7 +281,7 @@ QString AuthManager::authenticate(const QString &loginInput, const QString &pass
     if (!reply->isFinished()) {
         reply->abort();
         reply->deleteLater();
-        return "Koneksi ke server gagal atau timeout.\n Periksa koneksi internet Anda.";
+        return QStringLiteral("Koneksi ke server gagal atau timeout. Periksa koneksi internet Anda.");
     }
 
     QByteArray response = reply->readAll();
@@ -289,11 +290,12 @@ QString AuthManager::authenticate(const QString &loginInput, const QString &pass
     if (jsonResponse.isNull() || !jsonResponse.isObject()) {
         qWarning() << "Invalid JSON response. Network error:" << reply->errorString();
         reply->deleteLater();
-        return "Koneksi ke server gagal. Periksa koneksi \n internet, username, dan pasword Anda.";
+        return QStringLiteral("Koneksi ke server gagal. Periksa koneksi internet, username, dan password Anda.");
     }
 
     QJsonObject jsonObj = jsonResponse.object();
-    qDebug() << "API Response:" << jsonResponse.toJson(QJsonDocument::Compact);
+    qDebug() << "API login response received. success:" << jsonObj.value("success").toBool()
+             << "message:" << jsonObj.value("message").toString();
 
     if (jsonObj.contains("success") && jsonObj["success"].toBool()) {
         qDebug() << "API login successful. Storing user data...";

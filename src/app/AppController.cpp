@@ -155,7 +155,7 @@ QString AppController::appVersion() const {
 #ifdef APP_VERSION
     return QStringLiteral(APP_VERSION);
 #else
-    return QStringLiteral("2.0.0.0");
+    return QStringLiteral("0.0.0.0");
 #endif
 }
 QString AppController::currentAppName() const { return m_activityTracker->currentAppName(); }
